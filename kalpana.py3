@@ -18,13 +18,7 @@
 
 version = 0.5
 
-import datetime
-import os
-import os.path
-import platform
-import re
-import sys
-import subprocess
+import datetime, json, os, os.path, platform, re, sys, subprocess
 
 from math import ceil
 
@@ -55,7 +49,7 @@ class App(QtGui.QMainWindow):
         if system == 'Linux':
             self.cfgpath = os.path.join(os.getenv('HOME'), '.kalpana')
         else:
-            self.cfgpath = os.path.join(sys.path[0], 'kalpana.ini')
+            self.cfgpath = os.path.join(sys.path[0], 'kalpana.json')
 
         # Generate confige if none exists
         if not os.path.exists(self.cfgpath):
@@ -226,81 +220,62 @@ class App(QtGui.QMainWindow):
 
     def defaultConfig(self):
         """ Generate the default config file and save it. """
-        defaultcfg = [
-        '[Window]',
-        'x = 20',
-        'y = 20',
-        'width = 800',
-        'height = 480',
-        'maximized = False',
-        '',
-        '[Settings]',
-        'fontfamily = Times New Roman',
-        'fontsize = 12',
-        'lastdirectory = ',
-        'vscrollbar = always',
-        'linenumbers = False',
-        'autoindent = False',
-        ';Let Open/New do it in a new window instead of the current one.',
-        'open_in_new_window = False',
-        '',
-        '[NaNo]',
-        'endpoint = SLUTPUNKT',
-        'goal = 50000',
-        'days = 29',
-        'idealChLen = 3600']
+        defaultcfg = {
+            'window': {
+                'x': 20,
+                'y': 20,
+                'width': 800,
+                'height': 480,
+                'maximized': False,
+            },
+            'settings': {
+                'fontfamily': 'Times New Roman',
+                'fontsize': 12,
+                'lastdirectory': 'self.lastdir',
+                'vscrollbar': 'always',
+                'linenumbers': False,
+                'autoindent': False,
+                'open_in_new_window': False,
+            },   
+            'nano': {
+                'endpoint': 'SLUTPUNKT',
+                'goal': 50000,
+                'days': 29,
+                'idealChLen': 3600,
+            },
+        }
         
-        defaultcfg = [x+'\n' for x in defaultcfg]
-        
+        jsondump = json.dumps(defaultcfg, ensure_ascii=False, indent=4, sort_keys=True)
         with open(self.cfgpath, 'w', encoding='utf-8') as cfgfile:
-            cfgfile.writelines(defaultcfg)
+            cfgfile.write(jsondump)
 
 
     def readConfig(self):
         """ Read the config and update the appropriate variables. """
-        cfg = {}
         with open(self.cfgpath, encoding='utf-8') as f:
-            for l in f:
-                l = l.strip()
-                if not l or l[0] in ('[', ';'):
-                    continue
-                key, value = l.split('=')
-                cfg[key.strip()] = value.strip()
+            cfg = json.loads(f.read())
 
-        # Window
-        w = int(cfg['width'])
-        h = int(cfg['height'])
-##        self.resize(w,h)
-        x = int(cfg['x'])
-        y = int(cfg['y'])
-##        self.move(x,y)
-##        if cfg['maximized'].lower() == 'true':
-##            self.showMaximized()
-            
         # Settings
-        fontfamily = cfg['fontfamily']
-        fontsize = int(cfg['fontsize'])
+        fontfamily = cfg['settings']['fontfamily']
+        fontsize = cfg['settings']['fontsize']
         self.document.setDefaultFont(QtGui.QFont(fontfamily, fontsize))
-        self.lastdir = cfg['lastdirectory']
-        vscrollbar = cfg['vscrollbar']
+        self.lastdir = cfg['settings']['lastdirectory']
+        vscrollbar = cfg['settings']['vscrollbar']
         if vscrollbar == 'always':
             self.sbAlwaysShow()
         elif vscrollbar == 'needed':
             self.sbNeededShow()
         elif vscrollbar == 'never':
             self.sbNeverShow()
-        if cfg['linenumbers'].lower() == 'true':
-            self.textarea.number_bar.showbar = True
-        if cfg['autoindent'].lower() == 'true':
-            self.autoindent = True
-        if cfg['open_in_new_window'].lower() == 'true':
-            self.open_in_new_window = True
+        self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
+        self.autoindent = cfg['settings']['autoindent']
+        self.open_in_new_window = cfg['settings']['open_in_new_window']
 
         # NaNo
-        self.endPoint = cfg['endpoint']
-        self.goal = int(cfg['goal'])
-        self.days = int(cfg['days'])
-        self.idealChLen = int(cfg['idealChLen'])
+        self.endPoint = cfg['nano']['endpoint']
+        self.goal = cfg['nano']['goal']
+        self.days = cfg['nano']['days']
+        self.idealChLen = cfg['nano']['idealChLen']
 
     def writeConfig(self):
         """
@@ -310,38 +285,36 @@ class App(QtGui.QMainWindow):
         vscrollbar = ('needed', 'never', 'always')
         sizepos = self.geometry()
         font = self.document.defaultFont()
-        cfg = {'x': sizepos.left(),
-               'y': sizepos.top(),
-               'width': sizepos.width(),
-               'height': sizepos.height(),
-               'maximized': self.isMaximized(),
-               'fontfamily': font.family(),
-               'fontsize': font.pointSize(),
-               'lastdirectory': self.lastdir,
-               'vscrollbar': vscrollbar[self.textarea.
-                                        verticalScrollBarPolicy()],
-               'linenumbers': self.textarea.number_bar.showbar,
-               'autoindent': self.autoindent,
-               'open_in_new_window': self.open_in_new_window,
-               'endpoint': self.endPoint,
-               'goal': self.goal,
-               'days': self.days,
-               'idealChLen': self.idealChLen}
-        output = []
-        with open(self.cfgpath, encoding='utf-8') as f:
-            for l in f:
-                l = l.strip()
-                if not l or l[0] in ('[', ';', '#'):
-                    output.append(l+'\n')
-                    continue
-                key, value = l.split('=')
-                key, value = key.strip(), value.strip()
-                if key in cfg:
-                    value = cfg[key]
-                output.append('{0} = {1}\n'.format(key, value))
+        cfg = {
+            'window': {
+                'x': sizepos.left(),
+                'y': sizepos.top(),
+                'width': sizepos.width(),
+                'height': sizepos.height(),
+                'maximized': self.isMaximized(),
+            },
+            'settings': {
+                'fontfamily': font.family(),
+                'fontsize': font.pointSize(),
+                'lastdirectory': self.lastdir,
+                'vscrollbar': vscrollbar[self.textarea.
+                                    verticalScrollBarPolicy()],
+                'linenumbers': self.textarea.number_bar.showbar,
+                'autoindent': self.autoindent,
+                'open_in_new_window': self.open_in_new_window,
+            },   
+            'nano': {
+                'endpoint': self.endPoint,
+                'goal': self.goal,
+                'days': self.days,
+                'idealChLen': self.idealChLen
+            }
+        }
 
+        outjson = json.dumps(cfg, ensure_ascii=False, indent=4, sort_keys=True)
         with open(self.cfgpath, 'w', encoding='utf-8') as f:
-            f.writelines(output)
+            f.write(outjson)
+
 
 
 ## ==== Nano 3============================================================== ##
