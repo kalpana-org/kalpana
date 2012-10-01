@@ -12,13 +12,12 @@
 ## v0.2 - added line numbers, taken from
 ## v0.3 - did sum shit, added dragndrop, made stuff better
 ## v0.4 - find(/replace)
+## v0.5 - moved to git, converted to py3k, refactored
 ## http://www.japh.de/blog/qtextedit-with-line-numbers/
 ## Original code in MIT license
 
-version = 0.4
+version = 0.5
 
-import ConfigParser
-import codecs
 import datetime
 import os
 import os.path
@@ -65,7 +64,7 @@ class App(QtGui.QMainWindow):
         # Window title stuff
         self.wt_wordcount = 0
         self.wt_modified = False
-        self.wt_file = u''
+        self.wt_file = ''
 
         # Layout
         layout0widget = QtGui.QWidget(self)
@@ -94,7 +93,7 @@ class App(QtGui.QMainWindow):
         layout0.addWidget(self.terminal)
 
         # Misc settings etc
-        self.filename = u''
+        self.filename = ''
         self.autoindent = False
         self.blocks = 1
         self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
@@ -253,14 +252,14 @@ class App(QtGui.QMainWindow):
         
         defaultcfg = [x+'\n' for x in defaultcfg]
         
-        with codecs.open(self.cfgpath, 'w', encoding='utf-8') as cfgfile:
+        with open(self.cfgpath, 'w', encoding='utf-8') as cfgfile:
             cfgfile.writelines(defaultcfg)
 
 
     def readConfig(self):
         """ Read the config and update the appropriate variables. """
         cfg = {}
-        with codecs.open(self.cfgpath, encoding='utf-8') as f:
+        with open(self.cfgpath, encoding='utf-8') as f:
             for l in f:
                 l = l.strip()
                 if not l or l[0] in ('[', ';'):
@@ -282,7 +281,7 @@ class App(QtGui.QMainWindow):
         fontfamily = cfg['fontfamily']
         fontsize = int(cfg['fontsize'])
         self.document.setDefaultFont(QtGui.QFont(fontfamily, fontsize))
-        self.lastdir = unicode(cfg['lastdirectory'])
+        self.lastdir = cfg['lastdirectory']
         vscrollbar = cfg['vscrollbar']
         if vscrollbar == 'always':
             self.sbAlwaysShow()
@@ -329,7 +328,7 @@ class App(QtGui.QMainWindow):
                'days': self.days,
                'idealChLen': self.idealChLen}
         output = []
-        with codecs.open(self.cfgpath, encoding='utf-8') as f:
+        with open(self.cfgpath, encoding='utf-8') as f:
             for l in f:
                 l = l.strip()
                 if not l or l[0] in ('[', ';', '#'):
@@ -338,10 +337,10 @@ class App(QtGui.QMainWindow):
                 key, value = l.split('=')
                 key, value = key.strip(), value.strip()
                 if key in cfg:
-                    value = unicode(cfg[key])
-                output.append(u'{0} = {1}\n'.format(key, value))
+                    value = cfg[key]
+                output.append('{0} = {1}\n'.format(key, value))
 
-        with codecs.open(self.cfgpath, 'w', encoding='utf-8') as f:
+        with open(self.cfgpath, 'w', encoding='utf-8') as f:
             f.writelines(output)
 
 
@@ -398,28 +397,28 @@ class App(QtGui.QMainWindow):
         BONUS HAMSTER:
         Read yesterday's last wordcount!
         """
-        logfilename = self.filename + u'.log'
+        logfilename = self.filename + '.log'
         thistime = datetime.datetime.today()
-        logstring = u'{0}, {1} = {2}\n'
-        stat1 = logstring.format(thistime.strftime(u'%Y-%m-%d %H:%M:%S'), 
+        logstring = '{0}, {1} = {2}\n'
+        stat1 = logstring.format(thistime.strftime('%Y-%m-%d %H:%M:%S'), 
                                  self.myDay, self.accWcount)
         stat2 = []
         for n,ch in enumerate(self.wordsPerChapter):
-            stat2.append(u'{0} = {1}\n'.format(n, ch))
+            stat2.append('{0} = {1}\n'.format(n, ch))
         if not os.path.isfile(logfilename):
-            with codecs.open(logfilename, 'w', encoding='utf-8') as f:
-                logHeader = u'STATISTICS FILE\n{0}\n\nDAY, MY DAY = WORDS\nCHAPTER = WORDS\n\n'.format(self.filename) 
+            with open(logfilename, 'w', encoding='utf-8') as f:
+                logHeader = 'STATISTICS FILE\n{0}\n\nDAY, MY DAY = WORDS\nCHAPTER = WORDS\n\n'.format(self.filename) 
                 f.write(logHeader)
-        with codecs.open(logfilename, 'r', encoding='utf-8') as lr:
+        with open(logfilename, 'r', encoding='utf-8') as lr:
             logLines = lr.readlines()
-            h = logLines.index(u'DAY, MY DAY = WORDS\n')
-            i = logLines.index(u'CHAPTER = WORDS\n')
+            h = logLines.index('DAY, MY DAY = WORDS\n')
+            i = logLines.index('CHAPTER = WORDS\n')
             lines = sorted(logLines[h+1:i])
             for line in lines:
-                dayWcount = line.split(u',')[1].strip()
+                dayWcount = line.split(',')[1].strip()
                 if int(dayWcount.split(' = ')[0]) < self.myDay:
                     self.myLastWcount = int(dayWcount.split(' = ')[1])
-        with codecs.open(logfilename, 'w', encoding='utf-8') as l:
+        with open(logfilename, 'w', encoding='utf-8') as l:
             newLines = logLines[:i] + [stat1] + [logLines[i]] + stat2
             l.writelines(newLines)
 
@@ -429,7 +428,7 @@ class App(QtGui.QMainWindow):
         number corresponds to day, with year being in first row.
         Should be run at startup or when NaNo modes is turned on.
         """
-        prevStatsDir = u'nano_prev_stats'
+        prevStatsDir = 'nano_prev_stats'
         self.oldStats = []
         statsFiles = []
         prevStatsDirPath = os.path.join(os.path.dirname(self.filename), 
@@ -442,7 +441,7 @@ class App(QtGui.QMainWindow):
             pass
         else:
             for stFile in statsFiles:
-                with codecs.open(os.path.join(prevStatsDirPath, stFile), 'r', 
+                with open(os.path.join(prevStatsDirPath, stFile), 'r', 
                                  encoding='utf-8') as f:
                     statsByYearUnsplit = f.readlines()
                 statsByYear = []
@@ -476,7 +475,7 @@ class App(QtGui.QMainWindow):
                 statsText.append(formStr.format(n, w, ch, ch - self.idealChLen))
         statsText.append(formStr.format('TOTAL', w, self.accWcount,
                          self.accWcount - self.goal))
-        statsText.append(u'\n')
+        statsText.append('\n')
         statsText.append(formStr.format('GOAL', w, 
                          self.goalToday, self.accWcount - self.goalToday))
         statsText.append(formStr.format('TODAY', w, writtenToday, 
@@ -609,7 +608,7 @@ class App(QtGui.QMainWindow):
 ## ==== Window title ===================================== ##
 
     def updateWindowTitle(self):
-        self.setWindowTitle(u'{0}{1} - {2}{0}'.format(u'*'*self.wt_modified,
+        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
                                                      self.wt_wordcount,
                                                      self.wt_file))
         
@@ -635,9 +634,9 @@ class App(QtGui.QMainWindow):
 
     def setFileName(self, filename):
         """ Set both the output file and the title to filename. """
-        if filename == u'NEW':
-            self.filename = u''
-            self.wt_file = u'New file'
+        if filename == 'NEW':
+            self.filename = ''
+            self.wt_file = 'New file'
         else:
             self.filename = filename
             self.wt_file = os.path.basename(filename)
@@ -709,17 +708,16 @@ class App(QtGui.QMainWindow):
 
     def openFile(self, filename):
         encodings = ('utf-8', 'latin1')
-        import codecs
         readsuccess = False
         for e in encodings:
             try:
-                with codecs.open(filename, encoding=e) as f:
+                with open(filename, encoding=e) as f:
                     lines = f.readlines()
             except UnicodeDecodeError:
                 continue
             else:
                 readsuccess = True
-                self.document.setPlainText(u''.join(lines))
+                self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
                 self.setFileName(filename)
                 self.blocks = self.document.blockCount()
@@ -746,9 +744,8 @@ class App(QtGui.QMainWindow):
             else:
                 self.setFileName(fname)
                 self.lastdir = os.path.dirname(fname)
-        import codecs
         try:
-            with codecs.open(self.filename, 'w', encoding='utf-8') as f:
+            with open(self.filename, 'w', encoding='utf-8') as f:
                 f.write(self.document.toPlainText())
         except IOError as e:
             print(e)
@@ -775,10 +772,10 @@ class App(QtGui.QMainWindow):
 def getValidFiles(): 
     output = []
     for f in sys.argv[1:]:
-        try:
-            f = unicode(f, 'utf-8')
-        except UnicodeDecodeError:
-            f = unicode(f, 'latin1')
+        # try:
+        #     f = unicode(f, 'utf-8')
+        # except UnicodeDecodeError:
+        #     f = unicode(f, 'latin1')
         if os.path.isfile(os.path.abspath(f)):
             output.append(f)
         else:

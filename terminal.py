@@ -1,3 +1,8 @@
+import os.path
+
+from PySide import QtGui
+from PySide.QtCore import Qt, SIGNAL
+
 # =========================================================================== #
 # ==== Terminal ============================================================= #
 
@@ -36,7 +41,7 @@ class Terminal(QtGui.QWidget):
 
         # Colors
         p = self.outputTerm.palette()
-        p.setColor(QtGui.QPalette.Text, QtGui.QPalette.Dark)
+        p.setColor(QtGui.QPalette.Text, Qt.black)
         p.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Base, 
                 Qt.lightGray)
         self.inputTerm.setPalette(p)
