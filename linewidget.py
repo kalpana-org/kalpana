@@ -138,6 +138,6 @@ class LineTextWidget(QtGui.QPlainTextEdit):
         if event.key() == Qt.Key_Space and\
                             event.modifiers() == Qt.ControlModifier:
 
-            self.emit(SIGNAL("ctrlSpacePressed"))
+            self.emit(SIGNAL('ctrlSpacePressed()'))
             return True
         return QtGui.QPlainTextEdit.keyPressEvent(self, event)

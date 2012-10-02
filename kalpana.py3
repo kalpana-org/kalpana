@@ -95,7 +95,7 @@ class App(QtGui.QMainWindow):
         self.replace2text = ''
         
         # Terminal
-        self.terminal = Terminal(self, layoutwidget)
+        self.terminal = Terminal(self, version, layoutwidget)
         layout0.addWidget(self.terminal)
 
         # Misc settings etc
@@ -113,7 +113,7 @@ class App(QtGui.QMainWindow):
                      self.updateWordCount)
         self.connect(self.textarea, SIGNAL('blockCountChanged(int)'), 
                      self.newLine)
-        self.connect(self.textarea, SIGNAL('ctrlSpacePressed'), 
+        self.connect(self.textarea, SIGNAL('ctrlSpacePressed()'), 
                      self.switchFocus)
 
         # Keyboard shortcuts

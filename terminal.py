@@ -33,7 +33,7 @@ class Terminal(QtGui.QWidget):
         def keyPressEvent(self, event):
             if event.key() == Qt.Key_Space and\
                         event.modifiers() == Qt.ControlModifier:
-                self.emit(SIGNAL("ctrlSpacePressed"))
+                self.emit(SIGNAL('ctrlSpacePressed()'))
                 return True
             return QtGui.QLineEdit.keyPressEvent(self, event)
 
@@ -74,7 +74,7 @@ class Terminal(QtGui.QWidget):
 #                     self.resetSuggestions)
         self.connect(self.inputTerm, SIGNAL('returnPressed()'), 
                      self.parseCommand)
-        self.connect(self.inputTerm, SIGNAL('ctrlSpacePressed'), 
+        self.connect(self.inputTerm, SIGNAL('ctrlSpacePressed()'), 
                      self.switchFocus)
 #        self.connect(self.inputTerm, SIGNAL('shiftTabPressed'), 
 #                     self.prevSuggestion)
