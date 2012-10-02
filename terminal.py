@@ -21,8 +21,6 @@ import os.path
 from PySide import QtGui
 from PySide.QtCore import Qt, SIGNAL
 
-# =========================================================================== #
-# ==== Terminal ============================================================= #
 
 class Terminal(QtGui.QWidget):
 
@@ -43,11 +41,12 @@ class Terminal(QtGui.QWidget):
         pass
 
 
-    def __init__(self, main, *args):
+    def __init__(self, main, version, *args):
         QtGui.QWidget.__init__(self, *args)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1
+        self.version = version
 
         layout = QtGui.QHBoxLayout(self)
         layout.setSpacing(0)
@@ -252,7 +251,7 @@ class Terminal(QtGui.QWidget):
             self.error('Wrong argument')
 
     def cmdVersion(self, arg):
-        self.print_('Kalpana {0}, made in 2011 by nycz'.format(version))
+        self.print_('Kalpana {0}'.format(self.version))
 
     def cmdWhereAmI(self, arg):
         self.print_(os.path.abspath(self.main.filename))
