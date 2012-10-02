@@ -1,0 +1,73 @@
+/* This ain't real css! This is a Qt-stylesheet! */
+
+/*QTabBar::tab {
+    /*border: 2px solid #C4C4C4;
+    background-color: #141414;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    color: #ddd;
+    font-family: DejaVu Sans;
+    padding: 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 4px;
+}*/
+
+InputBox {
+    font-family: Telegrama;
+    color: #ddd;
+    border: 0px;
+    border-right: 1px solid #111;
+    border-top: 2px solid #111;
+    background: #222;
+}
+
+OutputBox {
+    font-family: Telegrama;
+    color: #ddd;
+    border: 0px;
+    border-left: 1px solid #111;
+    border-top: 2px solid #111;
+    background: #181818;
+}
+
+QPlainTextEdit {
+    color: #ddd;
+    border: 0px;
+    background: #222;
+}
+
+QScrollBar:vertical {
+    /*border: 2px solid grey;*/
+    background: #222;
+    width: 15px;
+    /*margin: 22px 0 22px 0;*/
+}
+QScrollBar::handle:vertical {
+    background: #111;
+    min-height: 20px;
+}
+QScrollBar::sub-line:vertical {
+    /*border: 2px solid #111;
+    background: #111;*/
+    height: 0px;
+    /*subcontrol-position: top;
+    subcontrol-origin: margin;*/
+}
+QScrollBar::add-line:vertical {
+    /*border: 2px solid #111;
+    background: #111;*/
+    height: 0px;/*
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;*/
+}
+/*QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+    border: 2px solid grey;
+    width: 3px;
+    height: 3px;
+    background: white;
+}*/
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}

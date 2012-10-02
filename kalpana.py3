@@ -463,10 +463,8 @@ class App(QtGui.QMainWindow):
                                                 year[self.myDay].strip(), diff))
             except IndexError:
                 pass
-        edStr = ''
-        for line in statsText:
-            edStr += line
-        return edStr
+
+        return ''.join(statsText)
 
 
 ## ==== Misc =============================================================== ##
@@ -505,9 +503,7 @@ class App(QtGui.QMainWindow):
 
     def newAndEmpty(self):
         """ Return True if the file is empty and unsaved. """
-        if not self.document.isModified() and not self.filename:
-            return True
-        return False
+        return not self.document.isModified() and not self.filename
 
     # ---- Vertical scrollbar -------------------------------------- #
     
@@ -672,8 +668,7 @@ class App(QtGui.QMainWindow):
         
         if filename:
             if self.open_in_new_window and not self.newAndEmpty():
-                subprocess.Popen([self.command, sys.argv[0],
-                                     filename.encode('utf-8')])
+                subprocess.Popen([self.command, sys.argv[0], filename])
             else:
                 self.lastdir = os.path.dirname(filename)
                 self.openFile(filename)
@@ -761,8 +756,13 @@ if __name__ == '__main__':
     files = getValidFiles()
     app = QtGui.QApplication(sys.argv)
 ##    app.setOverrideCursor(Qt.BlankCursor)
-    if gtkpresent:
-        app.setStyle(QGtkStyle())
+    # if gtkpresent:
+    #     app.setStyle(QGtkStyle())
+
+    with open('qtstylesheet.css', encoding='utf8') as f:
+        stylesheet = f.read()
+    app.setStyleSheet(stylesheet)
+
     if not files:
         a = App()
     else:

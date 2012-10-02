@@ -21,6 +21,9 @@ class Terminal(QtGui.QWidget):
                 return True
             return QtGui.QLineEdit.keyPressEvent(self, event)
 
+    class OutputBox(QtGui.QLineEdit):
+        pass
+
 
     def __init__(self, main, *args):
         QtGui.QWidget.__init__(self, *args)
@@ -33,7 +36,7 @@ class Terminal(QtGui.QWidget):
         layout.setContentsMargins(0,0,0,0)
 
         self.inputTerm = self.InputBox(self)
-        self.outputTerm = QtGui.QLineEdit(self)
+        self.outputTerm = self.OutputBox(self)
         self.inputTerm.setFont(QtGui.QFont('monospace'))
         self.outputTerm.setFont(QtGui.QFont('monospace'))
         self.outputTerm.setDisabled(True)

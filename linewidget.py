@@ -1,5 +1,5 @@
 from PySide import QtGui
-from PySide.QtCore import Qt
+from PySide.QtCore import Qt, SIGNAL
 
 # =========================================================================== #
 # ==== Line numbers ========================================================= #
