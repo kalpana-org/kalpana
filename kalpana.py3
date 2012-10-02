@@ -1,20 +1,32 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-## KALPANA
-##
-## Gender: Feminine
-##
-## Usage: Indian
-##
-## Other Scripts: कल्पना (Hindi)
-## Means "imagining, fantasy" in Sanskrit.
-##
-## v0.2 - added line numbers, taken from
-## v0.3 - did sum shit, added dragndrop, made stuff better
-## v0.4 - find(/replace)
-## v0.5 - moved to git, converted to py3k, refactored
-## http://www.japh.de/blog/qtextedit-with-line-numbers/
-## Original code in MIT license
+# Copyright nycz, cefyr 2011-2012
+
+# This file is part of Kalpana.
+
+# Kalpana is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Kalpana is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
+
+
+# [Kalpana]
+# Gender: Feminine
+# Usage: Indian
+# Other Scripts: कल्पना (Hindi)
+# Means "imagining, fantasy" in Sanskrit.
+
+# v0.2 - added line numbers, taken from
+# v0.3 - did sum shit, added dragndrop, made stuff better
+# v0.4 - find(/replace)
+# v0.5 - moved to git, converted to py3k, refactored, GPL'd
+
 
 version = 0.5
 
