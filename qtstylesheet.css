@@ -1,40 +1,31 @@
 /* This ain't real css! This is a Qt-stylesheet! */
 
-/*QTabBar::tab {
-    /*border: 2px solid #C4C4C4;
-    background-color: #141414;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    color: #ddd;
-    font-family: DejaVu Sans;
-    padding: 4px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-top: 4px;
-}*/
-
 InputBox {
-    font-family: Telegrama;
-    color: #ddd;
     border: 0px;
     border-right: 1px solid #111;
     border-top: 2px solid #111;
+    font-family: Telegrama;
+    color: #ddd;
     background: #222;
+    selection-color: #222;
+    selection-background-color: #ddd;
 }
 
 OutputBox {
-    font-family: Telegrama;
-    color: #ddd;
     border: 0px;
     border-left: 1px solid #111;
     border-top: 2px solid #111;
+    font-family: Telegrama;
+    color: #ddd;
     background: #181818;
 }
 
 QPlainTextEdit {
-    color: #ddd;
     border: 0px;
+    color: #ddd;
     background: #222;
+    selection-color: #222;
+    selection-background-color: #ddd;
 }
 
 QScrollBar:vertical {
