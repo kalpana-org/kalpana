@@ -557,6 +557,9 @@ class MainWindow(QtGui.QMainWindow):
 
     
     def findNext(self):
+        if not self.main.findtext:
+            self.terminal.error("No previous searches")
+            return
         tempCursor = self.textarea.textCursor()
         found = self.textarea.find(self.findtext)
         if not found:
@@ -569,6 +572,10 @@ class MainWindow(QtGui.QMainWindow):
 
     
     def replaceNext(self):
+        if not self.replace1text:
+            self.error("No previous replaces")
+            return
+            
         tempCursor = self.textarea.textCursor()
         found = self.textarea.find(self.replace1text)
         if not found:
@@ -585,6 +592,10 @@ class MainWindow(QtGui.QMainWindow):
             
     
     def replaceAll(self):
+        if not self.replace1text:
+            self.error("No previous replaces")
+            return
+
         tempCursor = self.textarea.textCursor()
         times = 0
         while True:

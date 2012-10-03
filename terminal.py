@@ -191,34 +191,19 @@ class Terminal(QtGui.QSplitter):
     def cmdFind(self, arg):
         if arg:
             self.main.findtext = arg
-            self.main.findNext()
-        else:
-            if self.main.findtext:
-                self.main.findNext()
-            else:
-                self.error("No previous searches")
+        self.main.findNext()
 
     def cmdReplace(self, arg):
         if arg:
             args = arg.split(' ', 1)
             self.main.replace1text, self.main.replace2text = args
-            self.main.replaceNext()
-        else:
-            if self.main.replace1text:
-                self.main.replaceNext()
-            else:
-                self.error("No previous replaces")
+        self.main.replaceNext()
 
     def cmdReplaceAll(self, arg):
         if arg:
             args = arg.split(' ', 1)
             self.main.replace1text, self.main.replace2text = args
-            self.main.replaceAll()
-        else:
-            if self.main.replace1text:
-                self.main.replaceAll()
-            else:
-                self.error("No previous replaces")
+        self.main.replaceAll()
 
     def cmdListCommands(self, arg):
         self.print_(' '.join(sorted(self.cmds)))
