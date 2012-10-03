@@ -1,0 +1,39 @@
+{
+  "nano": {
+    "days": 29, 
+    "endpoint": "SLUTPUNKT", 
+    "goal": 50000, 
+    "idealChLen": 3600
+  }, 
+  "settings": {
+    "autoindent": false,  
+    "lastdirectory": "", 
+    "linenumbers": false, 
+    "open_in_new_window": false, 
+    "vscrollbar": "always"
+  }, 
+  "theme": {
+    "details_color": "#111", 
+    "main_bgcolor": "#222", 
+    "main_fontfamily": "Serif", 
+    "main_fontsize": "14px", 
+    "main_textcolor": "#ddd", 
+    "nano_bgcolor": "#191919", 
+    "nano_fontfamily": "Monospace", 
+    "nano_fontsize": "12px", 
+    "nano_textcolor": "", 
+    "term_fontfamily": "Monospace", 
+    "term_fontsize": "12px", 
+    "term_input_bgcolor": "", 
+    "term_input_textcolor": "", 
+    "term_output_bgcolor": "#191919", 
+    "term_output_textcolor": ""
+  }, 
+  "window": {
+    "height": 480, 
+    "maximized": false, 
+    "width": 800, 
+    "x": 20, 
+    "y": 20
+  }
+}

@@ -50,22 +50,12 @@ else:
     
 
 class MainWindow(QtGui.QMainWindow):
+
     def __init__(self, file_=''):
         super(MainWindow, self).__init__()
 
         # Accept drag & drop events
         self.setAcceptDrops(True)
-
-        # Find the path to the config file
-        system = platform.system()
-        if system == 'Linux':
-            self.cfgpath = os.path.join(os.getenv('HOME'), '.kalpana')
-        else:
-            self.cfgpath = os.path.join(sys.path[0], 'kalpana.json')
-
-        # Generate confige if none exists
-        if not os.path.exists(self.cfgpath):
-            self.defaultConfig()
 
         # Window title stuff
         self.wt_wordcount = 0
@@ -125,6 +115,17 @@ class MainWindow(QtGui.QMainWindow):
                         self.nanoToggleSidebar)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Return'), self, 
                         self.toggleTerminal)
+
+
+        # Config init
+        system = platform.system()
+        if system == 'Linux':
+            self.cfgpath = os.path.join(os.getenv('HOME'), '.kalpana')
+        else:
+            self.cfgpath = os.path.join(sys.path[0], 'kalpana.json')
+
+        with open('defaultcfg.json', encoding='utf8') as f:
+            self.defaultcfg = json.loads(f.read())
 
         self.readConfig()
 
@@ -219,64 +220,42 @@ class MainWindow(QtGui.QMainWindow):
 
 
 ## ==== Config ============================================================= ##
-    def defaultConfig(self):
-        """ Generate the default config file and save it. """
-        defaultcfg = {
-            'window': {
-                'x': 20,
-                'y': 20,
-                'width': 800,
-                'height': 480,
-                'maximized': False,
-            },
-            'settings': {
-                'lastdirectory': 'self.lastdir',
-                'vscrollbar': 'always',
-                'linenumbers': False,
-                'autoindent': False,
-                'open_in_new_window': False,
-            },
-            'theme': {
-                'details_color': '#111',
-                'main_bgcolor': '#222',
-                'main_textcolor': '#ddd',
-                'main_fontfamily': 'Serif',
-                'main_fontsize': '14px',
-
-                'term_fontfamily': 'Monospace',
-                'term_fontsize': '12px',
-                'term_input_bgcolor': '',
-                'term_input_textcolor': '',
-                'term_output_bgcolor': '#191919',
-                'term_output_textcolor': '',
-            
-                'nano_fontfamily': 'Monospace',
-                'nano_fontsize': '12px',
-                'nano_bgcolor': '#191919',
-                'nano_textcolor': '',
-            },
-            'nano': {
-                'endpoint': 'SLUTPUNKT',
-                'goal': 50000,
-                'days': 29,
-                'idealChLen': 3600,
-            },
-        }
-        
-        jsondump = json.dumps(defaultcfg, ensure_ascii=False, indent=4, sort_keys=True)
-        with open(self.cfgpath, 'w', encoding='utf-8') as cfgfile:
-            cfgfile.write(jsondump)
-
 
     def readConfig(self):
         """ Read the config and update the appropriate variables. """
-        with open(self.cfgpath, encoding='utf-8') as f:
-            cfg = json.loads(f.read())
+
+        optionalvalues = ('term_input_bgcolor',
+                          'term_output_bgcolor',
+                          'nano_bgcolor',
+                          'term_input_textcolor',
+                          'term_output_textcolor',
+                          'nano_textcolor')
+
+        def checkConfig(cfg, defaultcfg):
+            """ Make sure the config is valid """
+            out = {}
+            for key, defvalue in defaultcfg.items():
+                if key in cfg:
+                    if type(defvalue) == dict:
+                        out[key] = checkConfig(cfg[key], defvalue)
+                    elif not cfg[key] and key not in optionalvalues:
+                        out[key] = defvalue
+                    else:
+                        out[key] = cfg[key]
+                else:
+                    out[key] = defvalue
+            return out
+
+        try:
+            with open(self.cfgpath, encoding='utf-8') as f:
+                rawcfg = json.loads(f.read())
+        except (IOError, ValueError):
+            print('no/bad config')
+            cfg = self.defaultcfg
+        else:
+            cfg = checkConfig(rawcfg, self.defaultcfg)
 
         # Settings
-        # fontfamily = cfg['settings']['fontfamily']
-        # fontsize = cfg['settings']['fontsize']
-        # self.document.setDefaultFont(QtGui.QFont(fontfamily, fontsize))
         self.lastdir = cfg['settings']['lastdirectory']
         vscrollbar = cfg['settings']['vscrollbar']
         if vscrollbar == 'always':
@@ -289,36 +268,16 @@ class MainWindow(QtGui.QMainWindow):
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
 
-        self.themedict = cfg['theme'].copy()
+        self.themedict = cfg['theme']
 
-        # Theme
-        overload = {
-            'term_input_bgcolor': 'main_bgcolor',
-            'term_output_bgcolor': 'main_bgcolor',
-            'nano_bgcolor': 'main_bgcolor',
-            'term_input_textcolor': 'main_textcolor',
-            'term_output_textcolor': 'main_textcolor',
-            'nano_textcolor': 'main_textcolor',
-        }
-        for x, y in overload.items():
-            if not cfg['theme'][x]:
-                cfg['theme'][x] = cfg['theme'][y]
-        for value in cfg['theme'].values():
-            if not value:
-                text = 'Some values in the themesection of the config is missing!'
-                QMessageBox.critical(self, 'Bad themeconfig', text)
-                break
-
-        with open('qtstylesheet.css', encoding='utf8') as f:
-            stylesheet = f.read()
-
-        self.setStyleSheet(stylesheet.format(**cfg['theme']))
+        self.updateTheme(cfg['theme'])
 
         # NaNo
         self.endPoint = cfg['nano']['endpoint']
         self.goal = cfg['nano']['goal']
         self.days = cfg['nano']['days']
         self.idealChLen = cfg['nano']['idealChLen']
+
 
     def writeConfig(self):
         """
@@ -337,8 +296,6 @@ class MainWindow(QtGui.QMainWindow):
                 'maximized': self.isMaximized(),
             },
             'settings': {
-                'fontfamily': font.family(),
-                'fontsize': font.pointSize(),
                 'lastdirectory': self.lastdir,
                 'vscrollbar': vscrollbar[self.textarea.
                                     verticalScrollBarPolicy()],
