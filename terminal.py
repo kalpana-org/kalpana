@@ -22,8 +22,7 @@ from PySide import QtGui
 from PySide.QtCore import Qt, SIGNAL
 
 
-class Terminal(QtGui.QWidget):
-
+class Terminal(QtGui.QSplitter):
 
     class InputBox(QtGui.QLineEdit):
 
@@ -37,21 +36,26 @@ class Terminal(QtGui.QWidget):
                 return True
             return QtGui.QLineEdit.keyPressEvent(self, event)
 
+    # This needs to be here for the stylesheet
     class OutputBox(QtGui.QLineEdit):
         pass
 
 
     def __init__(self, main, version, *args):
-        QtGui.QWidget.__init__(self, *args)
+        QtGui.QSplitter.__init__(self, *args)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1
         self.version = version
 
-        layout = QtGui.QHBoxLayout(self)
-        layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
+        # Splitter settings
+        self.setHandleWidth(2)
 
+        # layout = QtGui.QHBoxLayout(self)
+        # layout.setSpacing(0)
+        # layout.setContentsMargins(0,0,0,0)
+
+        # I/O fields creation
         self.inputTerm = self.InputBox(self)
         self.outputTerm = self.OutputBox(self)
         self.inputTerm.setFont(QtGui.QFont('monospace'))
@@ -59,16 +63,9 @@ class Terminal(QtGui.QWidget):
         self.outputTerm.setDisabled(True)
         self.outputTerm.setAlignment(Qt.AlignRight)
 
-        # Colors
-        p = self.outputTerm.palette()
-        p.setColor(QtGui.QPalette.Text, Qt.black)
-        p.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Base, 
-                Qt.lightGray)
-        self.inputTerm.setPalette(p)
-        self.outputTerm.setPalette(p)
+        self.addWidget(self.inputTerm)
+        self.addWidget(self.outputTerm)
 
-        layout.addWidget(self.inputTerm)
-        layout.addWidget(self.outputTerm)
 
 #        self.connect(self.inputTerm, SIGNAL('textEdited(const QString&)'), 
 #                     self.resetSuggestions)
@@ -76,8 +73,29 @@ class Terminal(QtGui.QWidget):
                      self.parseCommand)
         self.connect(self.inputTerm, SIGNAL('ctrlSpacePressed()'), 
                      self.switchFocus)
+        QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
+                        self.moveSplitterLeft)
+        QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,
+                        self.moveSplitterRight)
 #        self.connect(self.inputTerm, SIGNAL('shiftTabPressed'), 
 #                     self.prevSuggestion)
+    
+    def moveSplitter(self, dir):
+        s1, s2 = self.sizes()
+        jump = int((s1 + s2) * 0.1)
+        if dir == 'left':
+            new_s1 = max(0, s1 - jump)
+        else:
+            new_s1 = min(s1 + s2, s1 + jump)
+        new_s2 = s1 + s2 - new_s1
+        self.setSizes((new_s1, new_s2))
+
+    def moveSplitterLeft(self):
+        self.moveSplitter('left')
+
+    def moveSplitterRight(self):
+        self.moveSplitter('right')
+
 
     def switchFocus(self):
         self.main.textarea.setFocus()
@@ -149,7 +167,7 @@ class Terminal(QtGui.QWidget):
         if cmd in self.cmds:
             self.cmds[cmd][0](self, text[len(cmd)+1:])
         else:
-            self.error('No such function')
+            self.error('No such function (? for help)')
 
 
     def setText(self, text, gray=False):
@@ -257,7 +275,9 @@ class Terminal(QtGui.QWidget):
         self.print_(os.path.abspath(self.main.filename))
 
     def cmdHelp(self, arg):
-        if arg in self.cmds:
+        if not arg:
+            self.print_(' '.join(sorted(self.cmds)))
+        elif arg in self.cmds:
             self.print_(self.cmds[arg][1])
         else:
             self.error('No such command')
@@ -284,10 +304,10 @@ class Terminal(QtGui.QWidget):
     cmds = {'o': (cmdOpen, 'Open [file]'),
             'n': (cmdNew, 'Open new file'),
             's': (cmdSave, 'Save (as) [file]'),
-            'f': (cmdFind, 'find (next) [string]'),
+            '/': (cmdFind, 'find (next) [string]'),
             'r': (cmdReplace, 'Replace (syntax help needed)'),
             'ra': (cmdReplaceAll, 'Replace all (syntax help needed)'),
-            '?': (cmdListCommands, 'List all commands'),
+            '?': (cmdHelp, 'List commands or help for [command]'),
             'cf': (cmdChangeFont, 'Change font'),
             'ai': (cmdAutoIndent, 'Toggle auto indent'),
             'ln': (cmdLineNumbers, 'Toggle line numbers'),
@@ -295,5 +315,4 @@ class Terminal(QtGui.QWidget):
             'nw': (cmdNewWindow, 'Open in new window [0,1] No, Yes'),
             'v': (cmdVersion, 'Version info'),
             'wd': (cmdWhereAmI, 'Working directory'),
-            'h': (cmdHelp, 'Help for [command]'),
             'nn': (cmdNanoToggle, 'Start NaNo mode at [day]')}

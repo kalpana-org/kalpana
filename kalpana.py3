@@ -97,6 +97,7 @@ class App(QtGui.QMainWindow):
         # Terminal
         self.terminal = Terminal(self, version, layoutwidget)
         layout0.addWidget(self.terminal)
+        self.terminal.setVisible(False)
 
         # Misc settings etc
         self.filename = ''
@@ -130,10 +131,13 @@ class App(QtGui.QMainWindow):
         self.readConfig()
 
         # Nano stuff including empty sidebar
+        class NaNoSidebar(QtGui.QPlainTextEdit):
+            # For the stylesheet
+            pass 
         self.myDay = 0 
         self.nanoMode = False
         self.nanoWidth = 20 
-        self.nanowidget = QtGui.QPlainTextEdit(self)
+        self.nanowidget = NaNoSidebar(self)
         self.nanowidget.setLineWrapMode(QtGui.QPlainTextEdit.NoWrap)
         self.nanowidget.setReadOnly(True)
         font = QtGui.QFont()

@@ -2,7 +2,6 @@
 
 InputBox {
     border: 0px;
-    border-right: 1px solid #111;
     border-top: 2px solid #111;
     font-family: Telegrama;
     color: #ddd;
@@ -13,11 +12,14 @@ InputBox {
 
 OutputBox {
     border: 0px;
-    border-left: 1px solid #111;
     border-top: 2px solid #111;
     font-family: Telegrama;
     color: #ddd;
-    background: #181818;
+    background: #191919;
+}
+
+QSplitter::handle:horizontal  {
+    background: #111;
 }
 
 QPlainTextEdit {
@@ -26,6 +28,10 @@ QPlainTextEdit {
     background: #222;
     selection-color: #222;
     selection-background-color: #ddd;
+}
+
+NaNoSidebar {
+    background: #191919;
 }
 
 QScrollBar:vertical {
