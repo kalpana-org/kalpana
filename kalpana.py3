@@ -129,8 +129,8 @@ class MainWindow(QtGui.QMainWindow):
         self.readConfig()
 
         # Nano stuff including empty sidebar
+        # New class for the stylesheet
         class NaNoSidebar(QtGui.QPlainTextEdit):
-            # For the stylesheet
             pass 
         self.myDay = 0 
         self.nanoMode = False
@@ -219,19 +219,6 @@ class MainWindow(QtGui.QMainWindow):
 
 
 ## ==== Config ============================================================= ##
-    """
-    The config files' syntax is similar to standard INI's but the sections are
-    treated as comments only and are therefore purely cosmetical. The rest is
-    (as far as I know) identical.
-
-    Order is not important but it IS saved between read/writes, contrary to
-    how configparser does it.
-
-    Also, leading/trailing whitspaces and around
-    the = is ignored and removed on read, and added (only one on each side
-    of the = ) on write.
-    """
-
     def defaultConfig(self):
         """ Generate the default config file and save it. """
         defaultcfg = {

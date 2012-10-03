@@ -26,5 +26,6 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-# Kalpana encoding testfiles
+# Kalpana specific
+kalpana.json
 encodingtests

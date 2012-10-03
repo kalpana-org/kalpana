@@ -24,7 +24,7 @@ Theme config
 ------------
 Styling is done in the `theme` part of the config (`.kalpana` on Linux and `kalpana.json` in kalpana.py3's directory on Windows) with css-like values.
 
-Four values are non-essential and can be left blank:
+Six values are non-essential and can be left blank:
 
 * `term_input_bgcolor`, `term_output_bgcolor` and `nano_bgcolor` will be overloaded with `main_bgcolor`'s value if empty.
 * `term_input_textcolor`, `term_output_textcolor` and `nano_textcolor` will be overloaded with `main_textcolor`'s value if empty.
