@@ -287,6 +287,9 @@ class Terminal(QtGui.QSplitter):
                 self.error('Invalid date')
         else:
             self.error('Invalid argument')
+
+    def cmdReloadTheme(self, arg):
+        self.main.reloadTheme()
        
 
     cmds = {'o': (cmdOpen, 'Open [file]'),
@@ -303,4 +306,5 @@ class Terminal(QtGui.QSplitter):
             'nw': (cmdNewWindow, 'Open in new window [0,1] No, Yes'),
             'v': (cmdVersion, 'Version info'),
             'wd': (cmdWhereAmI, 'Working directory'),
-            'nn': (cmdNanoToggle, 'Start NaNo mode at [day]')}
+            'nn': (cmdNanoToggle, 'Start NaNo mode at [day]'),
+            'rt': (cmdReloadTheme, 'Reload theme from config')}

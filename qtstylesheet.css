@@ -1,70 +1,79 @@
 /* This ain't real css! This is a Qt-stylesheet! */
 
-InputBox {
+InputBox {{
     border: 0px;
-    border-top: 2px solid #111;
-    font-family: Telegrama;
-    color: #ddd;
-    background: #222;
-    selection-color: #222;
-    selection-background-color: #ddd;
-}
+    border-top: 2px solid {details_color};
+    font-family: {term_fontfamily};
+    font-size: {term_fontsize};
+    color: {term_input_textcolor};
+    background: {term_input_bgcolor};
+    selection-color: {term_input_bgcolor};
+    selection-background-color: {term_input_textcolor};
+}}
 
-OutputBox {
+OutputBox {{
     border: 0px;
-    border-top: 2px solid #111;
-    font-family: Telegrama;
-    color: #ddd;
-    background: #191919;
-}
+    border-top: 2px solid {details_color};
+    font-family: {term_fontfamily};
+    font-size: {term_fontsize};
+    color: {term_output_textcolor};
+    background: {term_output_bgcolor};
+}}
 
-QSplitter::handle:horizontal  {
-    background: #111;
-}
+QSplitter::handle:horizontal  {{
+    background: {details_color};
+}}
 
-QPlainTextEdit {
+QPlainTextEdit {{
+    font-family: {main_fontfamily};
+    font-size: {main_fontsize};
     border: 0px;
-    color: #ddd;
-    background: #222;
-    selection-color: #222;
-    selection-background-color: #ddd;
-}
+    color: {main_textcolor};
+    background: {main_bgcolor};
+    selection-color: {main_bgcolor};
+    selection-background-color: {main_textcolor};
+}}
 
-NaNoSidebar {
-    background: #191919;
-}
+NaNoSidebar {{
+    font-family: {nano_fontfamily};
+    font-size: {nano_fontsize};
+    color: {nano_textcolor};
+    background: {nano_bgcolor};
+    selection-color: {nano_bgcolor};
+    selection-background-color: {nano_textcolor};
+}}
 
-QScrollBar:vertical {
+QScrollBar:vertical {{
     /*border: 2px solid grey;*/
-    background: #222;
+    background: {main_bgcolor};
     width: 15px;
     /*margin: 22px 0 22px 0;*/
-}
-QScrollBar::handle:vertical {
-    background: #111;
+}}
+QScrollBar::handle:vertical {{
+    background: {details_color};
     min-height: 20px;
-}
-QScrollBar::sub-line:vertical {
+}}
+QScrollBar::sub-line:vertical {{
     /*border: 2px solid #111;
     background: #111;*/
     height: 0px;
     /*subcontrol-position: top;
     subcontrol-origin: margin;*/
-}
-QScrollBar::add-line:vertical {
+}}
+QScrollBar::add-line:vertical {{
     /*border: 2px solid #111;
     background: #111;*/
     height: 0px;/*
     subcontrol-position: bottom;
     subcontrol-origin: margin;*/
-}
-/*QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+}}
+/*QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
     border: 2px solid grey;
     width: 3px;
     height: 3px;
     background: white;
-}*/
+}}*/
 
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
     background: none;
-}
+}}

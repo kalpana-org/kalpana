@@ -49,9 +49,9 @@ else:
     
     
 
-class App(QtGui.QMainWindow):
+class MainWindow(QtGui.QMainWindow):
     def __init__(self, file_=''):
-        super(App, self).__init__()
+        super(MainWindow, self).__init__()
 
         # Accept drag & drop events
         self.setAcceptDrops(True)
@@ -243,14 +243,31 @@ class App(QtGui.QMainWindow):
                 'maximized': False,
             },
             'settings': {
-                'fontfamily': 'Times New Roman',
-                'fontsize': 12,
                 'lastdirectory': 'self.lastdir',
                 'vscrollbar': 'always',
                 'linenumbers': False,
                 'autoindent': False,
                 'open_in_new_window': False,
-            },   
+            },
+            'theme': {
+                'details_color': '#111',
+                'main_bgcolor': '#222',
+                'main_textcolor': '#ddd',
+                'main_fontfamily': 'Serif',
+                'main_fontsize': '14px',
+
+                'term_fontfamily': 'Monospace',
+                'term_fontsize': '12px',
+                'term_input_bgcolor': '',
+                'term_input_textcolor': '',
+                'term_output_bgcolor': '#191919',
+                'term_output_textcolor': '',
+            
+                'nano_fontfamily': 'Monospace',
+                'nano_fontsize': '12px',
+                'nano_bgcolor': '#191919',
+                'nano_textcolor': '',
+            },
             'nano': {
                 'endpoint': 'SLUTPUNKT',
                 'goal': 50000,
@@ -270,9 +287,9 @@ class App(QtGui.QMainWindow):
             cfg = json.loads(f.read())
 
         # Settings
-        fontfamily = cfg['settings']['fontfamily']
-        fontsize = cfg['settings']['fontsize']
-        self.document.setDefaultFont(QtGui.QFont(fontfamily, fontsize))
+        # fontfamily = cfg['settings']['fontfamily']
+        # fontsize = cfg['settings']['fontsize']
+        # self.document.setDefaultFont(QtGui.QFont(fontfamily, fontsize))
         self.lastdir = cfg['settings']['lastdirectory']
         vscrollbar = cfg['settings']['vscrollbar']
         if vscrollbar == 'always':
@@ -284,6 +301,31 @@ class App(QtGui.QMainWindow):
         self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
+
+        self.themedict = cfg['theme'].copy()
+
+        # Theme
+        overload = {
+            'term_input_bgcolor': 'main_bgcolor',
+            'term_output_bgcolor': 'main_bgcolor',
+            'nano_bgcolor': 'main_bgcolor',
+            'term_input_textcolor': 'main_textcolor',
+            'term_output_textcolor': 'main_textcolor',
+            'nano_textcolor': 'main_textcolor',
+        }
+        for x, y in overload.items():
+            if not cfg['theme'][x]:
+                cfg['theme'][x] = cfg['theme'][y]
+        for value in cfg['theme'].values():
+            if not value:
+                text = 'Some values in the themesection of the config is missing!'
+                QMessageBox.critical(self, 'Bad themeconfig', text)
+                break
+
+        with open('qtstylesheet.css', encoding='utf8') as f:
+            stylesheet = f.read()
+
+        self.setStyleSheet(stylesheet.format(**cfg['theme']))
 
         # NaNo
         self.endPoint = cfg['nano']['endpoint']
@@ -316,7 +358,8 @@ class App(QtGui.QMainWindow):
                 'linenumbers': self.textarea.number_bar.showbar,
                 'autoindent': self.autoindent,
                 'open_in_new_window': self.open_in_new_window,
-            },   
+            },
+            'theme': self.themedict,
             'nano': {
                 'endpoint': self.endPoint,
                 'goal': self.goal,
@@ -325,10 +368,40 @@ class App(QtGui.QMainWindow):
             }
         }
 
-        outjson = json.dumps(cfg, ensure_ascii=False, indent=4, sort_keys=True)
+        outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
         with open(self.cfgpath, 'w', encoding='utf-8') as f:
             f.write(outjson)
 
+
+    def updateTheme(self, themedict):
+        self.themedict = themedict.copy()
+
+        overload = {
+            'term_input_bgcolor': 'main_bgcolor',
+            'term_output_bgcolor': 'main_bgcolor',
+            'nano_bgcolor': 'main_bgcolor',
+            'term_input_textcolor': 'main_textcolor',
+            'term_output_textcolor': 'main_textcolor',
+            'nano_textcolor': 'main_textcolor',
+        }
+        for x, y in overload.items():
+            if not themedict[x]:
+                themedict[x] = themedict[y]
+        for value in themedict.values():
+            if not value:
+                text = 'Some values in the themesection of the config is missing!'
+                QMessageBox.critical(self, 'Bad themeconfig', text)
+                break
+
+        with open('qtstylesheet.css', encoding='utf8') as f:
+            stylesheet = f.read()
+
+        self.setStyleSheet(stylesheet.format(**themedict))
+
+    def reloadTheme(self):
+        with open(self.cfgpath, encoding='utf-8') as f:
+            cfg = json.loads(f.read())
+        self.updateTheme(cfg['theme'])
 
 
 ## ==== Nano 3============================================================== ##
@@ -773,14 +846,10 @@ if __name__ == '__main__':
     # if gtkpresent:
     #     app.setStyle(QGtkStyle())
 
-    with open('qtstylesheet.css', encoding='utf8') as f:
-        stylesheet = f.read()
-    app.setStyleSheet(stylesheet)
-
     if not files:
-        a = App()
+        a = MainWindow()
     else:
-        a = App(file_=files[0])
+        a = MainWindow(file_=files[0])
         for f in files[1:]:
             subprocess.Popen(['python', sys.argv[0], f.encode('utf-8')])
     sys.exit(app.exec_())
