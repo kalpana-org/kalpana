@@ -193,16 +193,23 @@ class Terminal(QtGui.QSplitter):
             self.main.findtext = arg
         self.main.findNext()
 
+    def setReplaceTexts(self, arg):
+        """ Try to set the find/replace texts to the args, return False if it fails """
+        try:
+            self.main.replace1text, self.main.replace2text = arg.split(' ', 1)
+        except ValueError:
+            self.error('Not enough arguments')
+            return False
+        return True
+
     def cmdReplace(self, arg):
-        if arg:
-            args = arg.split(' ', 1)
-            self.main.replace1text, self.main.replace2text = args
+        if arg and not self.setReplaceTexts(arg):
+            return
         self.main.replaceNext()
 
     def cmdReplaceAll(self, arg):
-        if arg:
-            args = arg.split(' ', 1)
-            self.main.replace1text, self.main.replace2text = args
+        if arg and not self.setReplaceTexts(arg):
+            return
         self.main.replaceAll()
 
     def cmdListCommands(self, arg):
