@@ -133,11 +133,3 @@ class LineTextWidget(QtGui.QPlainTextEdit):
             self.number_bar.update()
             return False
         return QtGui.QPlainTextEdit.eventFilter(object, event)
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Space and\
-                            event.modifiers() == Qt.ControlModifier:
-
-            self.emit(SIGNAL('ctrlSpacePressed()'))
-            return True
-        return QtGui.QPlainTextEdit.keyPressEvent(self, event)

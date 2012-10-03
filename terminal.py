@@ -24,19 +24,9 @@ from PySide.QtCore import Qt, SIGNAL
 
 class Terminal(QtGui.QSplitter):
 
-    class InputBox(QtGui.QLineEdit):
-
-        def __init__(self, *args):
-            QtGui.QLineEdit.__init__(self, *args)
-
-        def keyPressEvent(self, event):
-            if event.key() == Qt.Key_Space and\
-                        event.modifiers() == Qt.ControlModifier:
-                self.emit(SIGNAL('ctrlSpacePressed()'))
-                return True
-            return QtGui.QLineEdit.keyPressEvent(self, event)
-
     # This needs to be here for the stylesheet
+    class InputBox(QtGui.QLineEdit):
+        pass
     class OutputBox(QtGui.QLineEdit):
         pass
 
@@ -71,8 +61,6 @@ class Terminal(QtGui.QSplitter):
 #                     self.resetSuggestions)
         self.connect(self.inputTerm, SIGNAL('returnPressed()'), 
                      self.parseCommand)
-        self.connect(self.inputTerm, SIGNAL('ctrlSpacePressed()'), 
-                     self.switchFocus)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
                         self.moveSplitterLeft)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,

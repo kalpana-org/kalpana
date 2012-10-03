@@ -114,8 +114,6 @@ class App(QtGui.QMainWindow):
                      self.updateWordCount)
         self.connect(self.textarea, SIGNAL('blockCountChanged(int)'), 
                      self.newLine)
-        self.connect(self.textarea, SIGNAL('ctrlSpacePressed()'), 
-                     self.switchFocus)
 
         # Keyboard shortcuts
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new)
