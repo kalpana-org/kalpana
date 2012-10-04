@@ -14,6 +14,10 @@
   }, 
   "theme": {
     "details_color": "#111", 
+    "fontdialog_normal_bgcolor": "#333",
+    "fontdialog_normal_textcolor": "#ddd",
+    "fontdialog_inactive_bgcolor": "#888",
+    "fontdialog_inactive_textcolor": "#111",
     "main_bgcolor": "#222", 
     "main_fontfamily": "Serif", 
     "main_fontsize": "14px", 

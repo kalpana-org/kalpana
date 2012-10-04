@@ -17,6 +17,7 @@
 
 
 import os.path
+import fontdialog
 
 from PySide import QtGui
 from PySide.QtCore import Qt, SIGNAL
@@ -41,15 +42,9 @@ class Terminal(QtGui.QSplitter):
         # Splitter settings
         self.setHandleWidth(2)
 
-        # layout = QtGui.QHBoxLayout(self)
-        # layout.setSpacing(0)
-        # layout.setContentsMargins(0,0,0,0)
-
         # I/O fields creation
         self.inputTerm = self.InputBox(self)
         self.outputTerm = self.OutputBox(self)
-        self.inputTerm.setFont(QtGui.QFont('monospace'))
-        self.outputTerm.setFont(QtGui.QFont('monospace'))
         self.outputTerm.setDisabled(True)
         self.outputTerm.setAlignment(Qt.AlignRight)
 
@@ -216,10 +211,14 @@ class Terminal(QtGui.QSplitter):
         self.print_(' '.join(sorted(self.cmds)))
 
     def cmdChangeFont(self, arg):
-        font, ok = QtGui.QFontDialog.getFont(QtGui.QFont(self.main.document.
-                                                         defaultFont()))
-        if ok:
-            self.main.document.setDefaultFont(font)
+        if arg not in ('main', 'term', 'nano'):
+            self.error('Argument should be main, term or nano')
+            return
+        font = fontdialog.getFontInfo(self.main)
+        if font:
+            self.main.themedict[arg + '_fontfamily'] = font['name']
+            self.main.themedict[arg + '_fontsize'] = '{}pt'.format(font['size'])
+            self.main.updateTheme(self.main.themedict)
 
     def cmdAutoIndent(self, arg):
         self.main.autoindent = not self.main.autoindent

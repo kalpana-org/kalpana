@@ -43,37 +43,71 @@ NaNoSidebar {{
     selection-background-color: {nano_textcolor};
 }}
 
+/* VERTICAL SCROLLBAR */
 QScrollBar:vertical {{
-    /*border: 2px solid grey;*/
     background: {main_bgcolor};
     width: 15px;
-    /*margin: 22px 0 22px 0;*/
 }}
 QScrollBar::handle:vertical {{
     background: {details_color};
     min-height: 20px;
 }}
 QScrollBar::sub-line:vertical {{
-    /*border: 2px solid #111;
-    background: #111;*/
     height: 0px;
-    /*subcontrol-position: top;
-    subcontrol-origin: margin;*/
 }}
 QScrollBar::add-line:vertical {{
-    /*border: 2px solid #111;
-    background: #111;*/
-    height: 0px;/*
-    subcontrol-position: bottom;
-    subcontrol-origin: margin;*/
+    height: 0px;
 }}
-/*QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {{
-    border: 2px solid grey;
-    width: 3px;
-    height: 3px;
-    background: white;
-}}*/
 
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
     background: none;
+}}
+
+/* HORIZONTAL SCROLLBAR */
+QScrollBar:horizontal {{
+    background: {main_bgcolor};
+    height: 15px;
+}}
+QScrollBar::handle:horizontal {{
+    background: {details_color};
+    min-width: 20px;
+}}
+QScrollBar::sub-line:horizontal {{
+    width: 0px;
+}}
+QScrollBar::add-line:horizontal {{
+    width: 0px;
+}}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+    background: none;
+}}
+
+/* FONT DIALOG */
+FontDialog {{
+    background: {main_bgcolor};
+    border: 0px;
+}}
+FontExampleLabel {{
+    color: {main_textcolor};
+}}
+
+QListWidget {{
+    outline: 0;
+    color: {fontdialog_normal_textcolor};
+    background: {fontdialog_normal_bgcolor};
+    border: 2px solid {details_color};
+}}
+QListWidget::corner {{
+    background: {details_color};
+}}
+QListView::item:selected:active {{
+    color: {fontdialog_normal_bgcolor};
+    background: {fontdialog_normal_textcolor};
+}}
+QListView::item:selected:!active {{
+    color: {fontdialog_inactive_textcolor};
+    background: {fontdialog_inactive_bgcolor};
+}}
+QListView::item:hover {{
+    background: {fontdialog_normal_bgcolor};
 }}
