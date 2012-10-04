@@ -20,14 +20,30 @@ import os.path
 import fontdialog
 
 from PySide import QtGui
-from PySide.QtCore import Qt, SIGNAL
+from PySide.QtCore import Qt, SIGNAL, QDir, QEvent
 
 
 class Terminal(QtGui.QSplitter):
 
-    # This needs to be here for the stylesheet
     class InputBox(QtGui.QLineEdit):
-        pass
+        def __init__(self, *args):
+            QtGui.QLineEdit.__init__(self, *args)
+
+        def event(self, event):
+            if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Tab and\
+                        event.modifiers() == Qt.NoModifier:
+                self.emit(SIGNAL('tabPressed()'))
+                return True
+            return QtGui.QLineEdit.event(self, event)
+
+        def keyPressEvent(self, event):
+            if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
+                QtGui.QLineEdit.keyPressEvent(self, event)
+                self.emit(SIGNAL('updateCompletionPrefix()'))
+                return True
+            return QtGui.QLineEdit.keyPressEvent(self, event)
+  
+    # This needs to be here for the stylesheet 
     class OutputBox(QtGui.QLineEdit):
         pass
 
@@ -51,18 +67,65 @@ class Terminal(QtGui.QSplitter):
         self.addWidget(self.inputTerm)
         self.addWidget(self.outputTerm)
 
+        # Autocomplete
+        self.completer = QtGui.QCompleter(self)
+        fsmodel = QtGui.QFileSystemModel(self.completer)
+        fsmodel.setRootPath(QDir.homePath())
+        self.completer.setModel(fsmodel)
+        self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
+        self.completer.setCaseSensitivity(Qt.CaseSensitive)
+        
+        self.connect(self.inputTerm, SIGNAL('tabPressed()'),
+                     self.autocomplete)
+        self.connect(self.inputTerm, SIGNAL('updateCompletionPrefix()'),
+                     self.updateCompletionPrefix)
 
-#        self.connect(self.inputTerm, SIGNAL('textEdited(const QString&)'), 
-#                     self.resetSuggestions)
         self.connect(self.inputTerm, SIGNAL('returnPressed()'), 
                      self.parseCommand)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
                         self.moveSplitterLeft)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,
                         self.moveSplitterRight)
-#        self.connect(self.inputTerm, SIGNAL('shiftTabPressed'), 
-#                     self.prevSuggestion)
     
+
+    # ==== Autocomplete ========================== #
+
+    def getAutocompletableText(self):
+        cmds = ('o', 's')
+        text = self.inputTerm.text()
+        for c in cmds:
+            if text.startswith(c + ' '):
+                return text[:2], text[2:]
+        return False, False
+
+
+    def autocomplete(self):
+        cmdprefix, ac_text = self.getAutocompletableText()
+        if not ac_text:
+            return
+
+        separator = QDir.separator()
+
+        isdir = os.path.isdir(self.completer.currentCompletion())
+        if ac_text == self.completer.currentCompletion() + separator*isdir:
+            if not self.completer.setCurrentRow(self.completer.currentRow() + 1):
+                self.completer.setCurrentRow(0)
+
+        prefix = self.completer.completionPrefix()
+        suggestion = self.completer.currentCompletion()
+        newisdir = os.path.isdir(self.completer.currentCompletion())
+        self.inputTerm.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
+        # self.inputTerm.setSelection(len(cmdprefix + prefix), len(cmdprefix + suggestion) + newisdir)
+
+    def updateCompletionPrefix(self):
+        cmdprefix, ac_text = self.getAutocompletableText()
+        if not ac_text:
+            return
+        self.completer.setCompletionPrefix(ac_text)
+
+
+    # ==== Splitter ============================== #
+
     def moveSplitter(self, dir):
         s1, s2 = self.sizes()
         jump = int((s1 + s2) * 0.1)
@@ -80,64 +143,10 @@ class Terminal(QtGui.QSplitter):
         self.moveSplitter('right')
 
 
+    # ==== Misc ================================= #
+
     def switchFocus(self):
         self.main.textarea.setFocus()
-
-
-    def setTextColor(self, color):
-        if color == 'gray':
-            color = Qt.darkGray
-        else:
-            color = QtGui.QPalette.Dark
-        p = self.inputTerm.palette()
-        p.setColor(QtGui.QPalette.Text, color)
-        self.inputTerm.setPalette(p)
-
-    ### UNUSED ###
-    def autoComplete(self):
-        if self.sugindex != -1:
-            self.nextSuggestion()
-        else:
-            text = self.inputTerm.text()
-            path, name = os.path.split(text)
-            print(path, name)
-            if path != os.path.expanduser(path):
-                self.inputTerm.setText(os.path.join(os.path.expanduser(path),
-                                                    name))
-                return
-            if text == '~':
-                self.inputTerm.setText(os.path.expanduser(text))
-                return
-            if os.path.isdir(path):
-                self.sugs = sorted([x for x in os.listdir(path) 
-                            if x.startswith(name) and x != name]) + [name]
-                self.sugs = [os.path.join(path,x) for x in self.sugs]
-                #self.sugs = [x + os.path.isdir(x) * os.sep for x in self.sugs]
-                self.sugindex = 0
-                self.setText(self.sugs[self.sugindex], 
-                             gray=os.path.isdir(self.sugs[self.sugindex]))
-
-    ### UNUSED ###            
-    def prevSuggestion(self):
-        if self.sugindex == -1:
-            return
-        self.sugindex -= 1
-        if self.sugindex == -1:
-            self.sugindex = len(self.sugs)-1
-        self.setText(self.sugs[self.sugindex], 
-                     gray=os.path.isdir(self.sugs[self.sugindex]))
-
-    ### UNUSED ###
-    def nextSuggestion(self):
-        self.sugindex += 1
-        if self.sugindex == len(self.sugs):
-            self.sugindex = 0
-        self.setText(self.sugs[self.sugindex], 
-                     gray=os.path.isdir(self.sugs[self.sugindex]))
-
-    ### UNUSED ###
-    def resetSuggestions(self):
-        self.sugindex = -1
 
 
     def parseCommand(self):
@@ -151,14 +160,6 @@ class Terminal(QtGui.QSplitter):
             self.cmds[cmd][0](self, text[len(cmd)+1:])
         else:
             self.error('No such function (? for help)')
-
-
-    def setText(self, text, gray=False):
-        self.inputTerm.setText(text)
-        if gray:
-            self.setTextColor('gray')
-        elif self.inputTerm.palette().color(QtGui.QPalette.Text) == Qt.darkGray:
-            self.setTextColor('black')
 
 
     def print_(self, text):
