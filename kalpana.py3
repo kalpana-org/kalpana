@@ -90,6 +90,8 @@ class MainWindow(QtGui.QMainWindow):
         self.terminal = Terminal(self, version, layoutwidget)
         layout0.addWidget(self.terminal)
         self.terminal.setVisible(False)
+        self.fontdialogopen = False
+        self.show_fonts_in_dialoglist = False
 
         # Misc settings etc
         self.filename = ''
@@ -129,6 +131,7 @@ class MainWindow(QtGui.QMainWindow):
         with open('defaultcfg.json', encoding='utf8') as f:
             self.defaultcfg = json.loads(f.read())
 
+        self.stylesheet_template = None
         self.readConfig()
 
         # Nano stuff including empty sidebar
@@ -193,17 +196,14 @@ class MainWindow(QtGui.QMainWindow):
 ## ==== Overrides ========================================================== ##
         
     def closeEvent(self, event):
-        if self.forcequit:
+        if not self.document.isModified() or self.forcequit:
+            self.writeConfig()
             event.accept()
-            return
-
-        if self.document.isModified():
+        else:
             self.terminal.setVisible(True)
             self.switchFocus()
             self.terminal.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
-        else:
-            event.accept()
 
     def dragEnterEvent(self, event):
 ##        if event.mimeData().hasFormat('text/plain'):
@@ -274,8 +274,12 @@ class MainWindow(QtGui.QMainWindow):
         self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
+        self.show_fonts_in_dialoglist = cfg['settings']['show_fonts_in_dialoglist']
 
         self.themedict = cfg['theme']
+
+        with open('qtstylesheet.css', encoding='utf8') as f:
+            self.stylesheet_template = f.read()
 
         self.updateTheme(cfg['theme'])
 
@@ -309,6 +313,7 @@ class MainWindow(QtGui.QMainWindow):
                 'linenumbers': self.textarea.number_bar.showbar,
                 'autoindent': self.autoindent,
                 'open_in_new_window': self.open_in_new_window,
+                'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
             },
             'theme': self.themedict,
             'nano': {
@@ -344,12 +349,12 @@ class MainWindow(QtGui.QMainWindow):
                 QMessageBox.critical(self, 'Bad themeconfig', text)
                 break
 
-        with open('qtstylesheet.css', encoding='utf8') as f:
-            stylesheet = f.read()
-
-        self.setStyleSheet(stylesheet.format(**themedict))
+        self.setStyleSheet(self.stylesheet_template.format(**themedict))
 
     def reloadTheme(self):
+        with open('qtstylesheet.css', encoding='utf8') as f:
+            self.stylesheet_template = f.read()
+
         with open(self.cfgpath, encoding='utf-8') as f:
             cfg = json.loads(f.read())
         self.updateTheme(cfg['theme'])

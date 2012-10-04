@@ -41,6 +41,12 @@ class Terminal(QtGui.QSplitter):
                 QtGui.QLineEdit.keyPressEvent(self, event)
                 self.emit(SIGNAL('updateCompletionPrefix()'))
                 return True
+            elif event.key() == Qt.Key_Up:
+                self.emit(SIGNAL('historyUp()'))
+                return True
+            elif event.key() == Qt.Key_Down:
+                self.emit(SIGNAL('historyDown()'))
+                return True
             return QtGui.QLineEdit.keyPressEvent(self, event)
   
     # This needs to be here for the stylesheet 
@@ -54,6 +60,8 @@ class Terminal(QtGui.QSplitter):
         self.main = main
         self.sugindex = -1
         self.version = version
+
+        self.history = []
 
         # Splitter settings
         self.setHandleWidth(2)
@@ -150,6 +158,23 @@ class Terminal(QtGui.QSplitter):
         self.moveSplitter('right')
 
 
+    # ==== History =============================== #
+
+    def historyUp(self):
+        pass
+        # if self.historyPosition > 0:
+        #     self.historyPosition -= 1:
+        #     self.inputTerm.setText(self.history[self.historyPosition])
+
+    def historyDown(self):
+        # if self.historyPosition < len(self.history)-1:
+        #     self.historyPosition += 1:
+        #     self.inputTerm.setText(self.history[self.historyPosition])
+        # elif self.historyPosition == len(self.history)-1 and self.inputTerm.text():
+        #     self.historyPosition += 1:
+        pass
+
+
     # ==== Misc ================================= #
 
     def switchFocus(self):
@@ -160,6 +185,8 @@ class Terminal(QtGui.QSplitter):
         text = self.inputTerm.text()
         if not text.strip():
             return
+        self.history.append(text)
+        self.historyPosition = len(self.history)
         self.inputTerm.setText('')
         cmd = text.split(' ', 1)[0]
         # If the command exists, run the callback function (a bit cryptic maybe)
@@ -219,14 +246,17 @@ class Terminal(QtGui.QSplitter):
         self.print_(' '.join(sorted(self.cmds)))
 
     def cmdChangeFont(self, arg):
+        if self.main.fontdialogopen:
+            self.error('Font dialog already open')
+            return
         if arg not in ('main', 'term', 'nano'):
             self.error('Argument should be main, term or nano')
             return
-        font = fontdialog.getFontInfo(self.main)
-        if font:
-            self.main.themedict[arg + '_fontfamily'] = font['name']
-            self.main.themedict[arg + '_fontsize'] = '{}pt'.format(font['size'])
-            self.main.updateTheme(self.main.themedict)
+        if arg == 'term':
+            self.print_('Räksmörgås?!')
+        self.main.fontdialogopen = True
+        fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist, 
+                                     arg + '_fontfamily', arg + '_fontsize')
 
     def cmdAutoIndent(self, arg):
         self.main.autoindent = not self.main.autoindent

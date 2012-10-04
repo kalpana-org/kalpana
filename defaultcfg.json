@@ -6,7 +6,8 @@
     "idealChLen": 3600
   }, 
   "settings": {
-    "autoindent": false,  
+    "autoindent": false,
+    "show_fonts_in_dialoglist": false,
     "lastdirectory": "", 
     "linenumbers": false, 
     "open_in_new_window": false, 

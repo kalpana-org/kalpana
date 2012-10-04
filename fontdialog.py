@@ -2,23 +2,48 @@ from PySide import QtGui
 from PySide.QtCore import SIGNAL, Qt
 
 class FontDialog(QtGui.QDialog):
-    def __init__(self, *args):
-        QtGui.QDialog.__init__(self, *args)
+    def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):
+        QtGui.QDialog.__init__(self, parent)
+
+        self.main = parent
+        self.fontfamily = fontfamily
+        self.fontsize = fontsize
 
         self.setWindowTitle('Choose font')
-
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setAttribute(Qt.WA_DeleteOnClose)
 
-        fontdb = QtGui.QFontDatabase()
+        fontdb = QtGui.QFontDatabase()            
 
+        # FONT FAMILY LIST
         fontlistwidget = QtGui.QListWidget(self)
-        fontlistwidget.addItems(fontdb.families())
-        fontlistwidget.setCurrentRow(0)
+        if show_fonts_in_dialoglist:
+            for f in fontdb.families():
+                w = QtGui.QListWidgetItem(f, fontlistwidget)
+                font = w.font()
+                font.setFamily(f)
+                w.setFont(font)
+        else:
+            fontlistwidget.addItems(fontdb.families())
+        # Start with the current fontfamily
+        if self.main.themedict[self.fontfamily] in fontdb.families():
+            fontlistwidget.setCurrentRow(fontdb.families().index(self.main.themedict[self.fontfamily]))
+        else:
+            fontlistwidget.setCurrentRow(0)
 
+        # FONT SIZE LIST
         sizelistwidget = QtGui.QListWidget(self)
-        sizelistwidget.addItems([str(s) for s in fontdb.standardSizes()])
-        sizelistwidget.setCurrentRow(0)
+        fontsizes = [str(s) for s in fontdb.standardSizes()]
+        sizelistwidget.addItems(fontsizes)
+        fsize = self.main.themedict[self.fontsize].rstrip('pt')
 
+        # Start with the current fontsize
+        if fsize in fontsizes:
+            sizelistwidget.setCurrentRow(fontsizes.index(fsize))
+        else:
+            sizelistwidget.setCurrentRow(0)
+
+        # Layout
         listslayout = QtGui.QGridLayout()
         listslayout.addWidget(fontlistwidget, 0, 0)
         listslayout.addWidget(sizelistwidget, 0, 1)
@@ -30,9 +55,9 @@ class FontDialog(QtGui.QDialog):
         self.connect(sizelistwidget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
                      self.setSize)
         self.connect(fontlistwidget, SIGNAL('itemActivated (QListWidgetItem *)'),
-                     self.accept)
+                     self.close)
         self.connect(sizelistwidget, SIGNAL('itemActivated (QListWidgetItem *)'),
-                     self.accept)
+                     self.close)
 
         def selectLeftList():
             fontlistwidget.setFocus()
@@ -41,44 +66,23 @@ class FontDialog(QtGui.QDialog):
 
         QtGui.QShortcut(QtGui.QKeySequence('Left'), self, selectLeftList)
         QtGui.QShortcut(QtGui.QKeySequence('Right'), self, selectRightList)
-
-        class FontExampleLabel(QtGui.QLabel):
-            pass
-        self.fontlabel = FontExampleLabel('Räksmörgås?!', self)
-        self.fontlabel.setAlignment(Qt.AlignCenter)
-
-        listslayout.addWidget(self.fontlabel, 1, 0, 1, 2)
-        listslayout.setRowStretch(0, 5)
-        listslayout.setRowStretch(1, 1)
+        QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.close)
 
         self.setLayout(listslayout)
 
-        self.chosenfont = fontdb.families()[0]
-        self.chosensize = fontdb.standardSizes()[0]
+        self.show()
+
+    def closeEvent(self, event):
+        self.main.fontdialogopen = False
+        event.accept()
 
     def setFont(self, new, old):
-        self.chosenfont = new.text()
-        self.updateFont()
+        self.main.themedict[self.fontfamily] = new.text()
+        self.main.updateTheme(self.main.themedict)
 
     def setSize(self, new, old):
-        self.chosensize = int(new.text())
-        self.updateFont()
-
-    def updateFont(self):
-        self.fontlabel.setFont(QtGui.QFont(self.chosenfont, self.chosensize))
-
-    def fontInfo(self):
-        return {'name': self.chosenfont, 'size': self.chosensize}
-
-
-
-def getFontInfo(parent):
-    window = FontDialog(parent)
-    if window.exec_():
-        return window.fontInfo()
-    else:
-        return None
-
+        self.main.themedict[self.fontsize] = new.text() + 'pt'
+        self.main.updateTheme(self.main.themedict)
 
 
 if __name__ == '__main__':
