@@ -96,15 +96,22 @@ class Terminal(QtGui.QSplitter):
         for c in cmds:
             if text.startswith(c + ' '):
                 return text[:2], text[2:]
-        return False, False
+        return None, None
 
 
     def autocomplete(self):
         cmdprefix, ac_text = self.getAutocompletableText()
-        if not ac_text:
+        if ac_text is None:
             return
-
+    
         separator = QDir.separator()
+
+        # Autocomplete with the working directory if the line is empty
+        if ac_text.strip() == '':
+            wd = os.path.abspath(self.main.filename)
+            self.completer.setCompletionPrefix(wd + separator)
+            self.inputTerm.setText(cmdprefix + wd + separator)
+            return
 
         isdir = os.path.isdir(self.completer.currentCompletion())
         if ac_text == self.completer.currentCompletion() + separator*isdir:
@@ -115,7 +122,7 @@ class Terminal(QtGui.QSplitter):
         suggestion = self.completer.currentCompletion()
         newisdir = os.path.isdir(self.completer.currentCompletion())
         self.inputTerm.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
-        # self.inputTerm.setSelection(len(cmdprefix + prefix), len(cmdprefix + suggestion) + newisdir)
+
 
     def updateCompletionPrefix(self):
         cmdprefix, ac_text = self.getAutocompletableText()
@@ -282,7 +289,13 @@ class Terminal(QtGui.QSplitter):
 
     def cmdReloadTheme(self, arg):
         self.main.reloadTheme()
+
+    def cmdQuit(self, arg):
+        self.main.close()
        
+    def cmdForceQuit(self, arg):
+        self.main.forcequit = True
+        self.main.close()
 
     cmds = {'o': (cmdOpen, 'Open [file]'),
             'n': (cmdNew, 'Open new file'),
@@ -299,4 +312,6 @@ class Terminal(QtGui.QSplitter):
             'v': (cmdVersion, 'Version info'),
             'wd': (cmdWhereAmI, 'Working directory'),
             'nn': (cmdNanoToggle, 'Start NaNo mode at [day]'),
-            'rt': (cmdReloadTheme, 'Reload theme from config')}
+            'rt': (cmdReloadTheme, 'Reload theme from config'),
+            'q': (cmdQuit, 'Quit Kalpana'),
+            'q!': (cmdForceQuit, 'Quit Kalpana without saving')}

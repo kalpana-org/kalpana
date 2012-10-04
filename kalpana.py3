@@ -57,6 +57,8 @@ class MainWindow(QtGui.QMainWindow):
         # Accept drag & drop events
         self.setAcceptDrops(True)
 
+        self.forcequit = False
+
         # Window title stuff
         self.wt_wordcount = 0
         self.wt_modified = False
@@ -191,12 +193,17 @@ class MainWindow(QtGui.QMainWindow):
 ## ==== Overrides ========================================================== ##
         
     def closeEvent(self, event):
-        if self.saveIfModified() == 'continue':
-            self.writeConfig()
+        if self.forcequit:
             event.accept()
-        else:
-            event.ignore()
+            return
 
+        if self.document.isModified():
+            self.terminal.setVisible(True)
+            self.switchFocus()
+            self.terminal.error('Unsaved changes! Force quit with q! or save first.')
+            event.ignore()
+        else:
+            event.accept()
 
     def dragEnterEvent(self, event):
 ##        if event.mimeData().hasFormat('text/plain'):
