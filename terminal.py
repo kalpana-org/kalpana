@@ -54,8 +54,8 @@ class Terminal(QtGui.QSplitter):
         pass
 
 
-    def __init__(self, main, version, *args):
-        QtGui.QSplitter.__init__(self, *args)
+    def __init__(self, main, version):
+        QtGui.QSplitter.__init__(self, parent=main)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1

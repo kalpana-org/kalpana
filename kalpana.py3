@@ -49,7 +49,7 @@ else:
     
     
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtGui.QFrame):
 
     def __init__(self, file_=''):
         super(MainWindow, self).__init__()
@@ -65,30 +65,28 @@ class MainWindow(QtGui.QMainWindow):
         self.wt_file = ''
 
         # Layout
-        layout0widget = QtGui.QWidget(self)
-        layout0 = QtGui.QVBoxLayout(layout0widget)
-        layout0.setSpacing(0)
-        layout0.setContentsMargins(0,0,0,0)
-        layoutwidget = QtGui.QWidget(self)
-        layout = QtGui.QHBoxLayout(layoutwidget)
-        layout.setSpacing(0)
-        layout.setContentsMargins(0,0,0,0)
-        self.setCentralWidget(layout0widget)
-        layout0.addWidget(layoutwidget)
+        mainLayout = QtGui.QVBoxLayout(self)
+        mainLayout.setSpacing(0)
+        mainLayout.setContentsMargins(0,0,0,0)
+
+        topLayout = QtGui.QHBoxLayout()
+        topLayout.setSpacing(0)
+        topLayout.setContentsMargins(0,0,0,0)
+        mainLayout.addLayout(topLayout)
 
         # Text area
         self.textarea = LineTextWidget(self)
         self.document = self.textarea.document()
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.textarea.setTabStopWidth(30)
-        layout.addWidget(self.textarea)
+        topLayout.addWidget(self.textarea)
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
         
         # Terminal
-        self.terminal = Terminal(self, version, layoutwidget)
-        layout0.addWidget(self.terminal)
+        self.terminal = Terminal(self, version)
+        mainLayout.addWidget(self.terminal)
         self.terminal.setVisible(False)
         self.fontdialogopen = False
         self.show_fonts_in_dialoglist = False
@@ -153,8 +151,7 @@ class MainWindow(QtGui.QMainWindow):
         self.nanowidget.setFixedWidth((self.nanoWidth + 1)*charWidth)
         self.nanowidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.nanowidget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # layout is layout
-        layout.addWidget(self.nanowidget)
+        topLayout.addWidget(self.nanowidget)
         self.nanowidget.setVisible(False)
 
         # Choose pythonw on windows if possible
@@ -168,6 +165,7 @@ class MainWindow(QtGui.QMainWindow):
                 self.command = 'pythonw'
         # ...and python2 on Linux if possible
         elif system == 'Linux':
+            # TODO: THIS IS BORKEN
             # Or actually not, it takes the command from the first line
             # of itself (the file)
             with open(os.path.join(sys.path[0],
