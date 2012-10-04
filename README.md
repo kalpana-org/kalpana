@@ -11,6 +11,14 @@ Keyboard shortcuts not readily available anywhere else
 * `Alt + [Right/Left]`: Move the divider in the terminal
 
 
+Font change dialog howto
+------------------------
+* `Enter`: Finish and return with the chosen font
+* `Escape`: Exit without changing anything
+* `Left/Right` or `Tab`: Jump between the font and size lists
+* `Up/Down`: Why do I even write this
+
+
 The usual shortcuts
 -------------------
 * `Ctrl + N`: New
