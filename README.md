@@ -4,6 +4,13 @@ Kalpana
 A not so very user friendly text editor made probably not for you.
 
 
+Technical shit
+--------------
+* Written in Python 3, will not work on Python 2 or earlier
+* Requires either PySide or PyQt
+* Probably wont not work on Mac
+
+
 Keyboard shortcuts not readily available anywhere else
 ------------------------------------------------------
 * `Ctrl + Enter`: Toggles terminal
