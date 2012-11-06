@@ -153,33 +153,7 @@ class MainWindow(QtGui.QFrame):
         topLayout.addWidget(self.nanowidget)
         self.nanowidget.setVisible(False)
 
-        # Choose pythonw on windows if possible
-        self.command = 'python'
-        if system == 'Windows':
-            try:
-                subprocess.Popen(['pythonw'])
-            except WindowsError:
-                pass
-            else:
-                self.command = 'pythonw'
-        # ...and python2 on Linux if possible
-        elif system == 'Linux':
-            # TODO: THIS IS BORKEN
-            # Or actually not, it takes the command from the first line
-            # of itself (the file)
-            with open(os.path.join(sys.path[0],
-                                   os.path.basename(sys.argv[0]))) as f:
-                l = f.readline()
-            l = l.strip()[2:]
-            if os.path.exists(l):
-                self.command = l.strip()[2:]
-##            try:
-##                subprocess.Popen(['python2'])
-##            except OSError:
-##                pass
-##            else:
-##                self.command = 'python2'
-
+        
         if file_:
             if not self.openFile(file_):
                 self.close()            
@@ -219,7 +193,7 @@ class MainWindow(QtGui.QFrame):
         if parsedurls:
             self.open_(filename=parsedurls[0])
         for u in parsedurls[1:]:
-            subprocess.Popen([self.command, sys.argv[0], u])
+            subprocess.Popen([sys.executable, sys.argv[0], u])
         event.acceptProposedAction();
 
 
@@ -691,7 +665,7 @@ class MainWindow(QtGui.QFrame):
     def new(self):
         """ Create a new file. Save the old one if needed. """
         if self.open_in_new_window and not self.newAndEmpty():
-            subprocess.Popen([self.command, sys.argv[0]])
+            subprocess.Popen([sys.executable, sys.argv[0]])
         elif self.saveIfModified() == 'continue':
             self.document.clear()
             self.document.setModified(False)
@@ -723,7 +697,7 @@ class MainWindow(QtGui.QFrame):
         
         if filename:
             if self.open_in_new_window and not self.newAndEmpty():
-                subprocess.Popen([self.command, sys.argv[0], filename])
+                subprocess.Popen([sys.executable, sys.argv[0], filename])
             else:
                 self.lastdir = os.path.dirname(filename)
                 self.openFile(filename)
