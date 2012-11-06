@@ -123,9 +123,9 @@ class MainWindow(QtGui.QFrame):
         if system == 'Linux':
             self.cfgpath = os.path.join(os.getenv('HOME'), '.kalpana')
         else:
-            self.cfgpath = os.path.join(sys.path[0], 'kalpana.json')
+            self.cfgpath = self.localPath('kalpana.json')
 
-        with open('defaultcfg.json', encoding='utf8') as f:
+        with open(self.localPath('defaultcfg.json'), encoding='utf8') as f:
             self.defaultcfg = json.loads(f.read())
 
         self.stylesheet_template = None
@@ -275,7 +275,7 @@ class MainWindow(QtGui.QFrame):
 
         self.themedict = cfg['theme']
 
-        with open('qtstylesheet.css', encoding='utf8') as f:
+        with open(self.localPath('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
         self.updateTheme(cfg['theme'])
@@ -341,6 +341,7 @@ class MainWindow(QtGui.QFrame):
             if not themedict[x]:
                 themedict[x] = themedict[y]
         for value in themedict.values():
+            # TODO: no graphical shit!!!
             if not value:
                 text = 'Some values in the themesection of the config is missing!'
                 QMessageBox.critical(self, 'Bad themeconfig', text)
@@ -349,7 +350,7 @@ class MainWindow(QtGui.QFrame):
         self.setStyleSheet(self.stylesheet_template.format(**themedict))
 
     def reloadTheme(self):
-        with open('qtstylesheet.css', encoding='utf8') as f:
+        with open(self.localPath('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
         with open(self.cfgpath, encoding='utf-8') as f:
@@ -508,6 +509,9 @@ class MainWindow(QtGui.QFrame):
 
 
 ## ==== Misc =============================================================== ##
+
+    def localPath(self, path):
+        return os.path.join(sys.path[0], path)
 
     def generateMsgbox(self):
         """ Create a certain message box. (Should be obvious which.) """
