@@ -19,9 +19,14 @@
 import os.path
 import fontdialog
 
-from PySide import QtGui
-from PySide.QtCore import Qt, SIGNAL, QDir, QEvent
-
+try:
+    from PySide import QtGui
+    from PySide.QtCore import Qt, SIGNAL, QDir, QEvent
+    qtversion = 'pyside'
+except ImportError:
+    from PyQt4 import QtGui
+    from PyQt4.QtCore import Qt, SIGNAL, QDir, QEvent
+    qtversion = 'pyqt'
 
 class Terminal(QtGui.QSplitter):
 
@@ -33,21 +38,27 @@ class Terminal(QtGui.QSplitter):
             if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Tab and\
                         event.modifiers() == Qt.NoModifier:
                 self.emit(SIGNAL('tabPressed()'))
-                return True
-            return QtGui.QLineEdit.event(self, event)
+                if qtversion == 'pyside':
+                    return True
+            else:
+                return QtGui.QLineEdit.event(self, event)
 
         def keyPressEvent(self, event):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
                 QtGui.QLineEdit.keyPressEvent(self, event)
                 self.emit(SIGNAL('updateCompletionPrefix()'))
-                return True
+                if qtversion == 'pyside':
+                    return True
             elif event.key() == Qt.Key_Up:
                 self.emit(SIGNAL('historyUp()'))
-                return True
+                if qtversion == 'pyside':
+                    return True
             elif event.key() == Qt.Key_Down:
                 self.emit(SIGNAL('historyDown()'))
-                return True
-            return QtGui.QLineEdit.keyPressEvent(self, event)
+                if qtversion == 'pyside':
+                    return True
+            else:
+                return QtGui.QLineEdit.keyPressEvent(self, event)
   
     # This needs to be here for the stylesheet 
     class OutputBox(QtGui.QLineEdit):

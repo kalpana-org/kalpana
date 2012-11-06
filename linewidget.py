@@ -21,8 +21,12 @@
 # Note: taken from http://john.nachtimwald.com/2009/08/15/qtextedit-with-line-numbers/
 # Or more precisely: http://www.japh.de/blog/qtextedit-with-line-numbers/
 
-from PySide import QtGui
-from PySide.QtCore import Qt, SIGNAL
+try:
+    from PySide import QtGui
+    from PySide.QtCore import Qt, SIGNAL
+except ImportError:
+    from PyQt4 import QtGui
+    from PyQt4.QtCore import Qt, SIGNAL
 
 class LineTextWidget(QtGui.QPlainTextEdit):
  

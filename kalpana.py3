@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright nycz, cefyr 2011-2012
 
 # This file is part of Kalpana.
@@ -37,17 +38,15 @@ from math import ceil
 from terminal import Terminal
 from linewidget import LineTextWidget
 
-from PySide import QtCore, QtGui
-from PySide.QtCore import SIGNAL, Qt
-from PySide.QtGui import QMessageBox
 try:
-    from PySide.QtGui import QGtkStyle
+    from PySide import QtCore, QtGui
+    from PySide.QtCore import SIGNAL, Qt
+    from PySide.QtGui import QMessageBox
 except ImportError:
-    gtkpresent = False
-else:
-    gtkpresent = True
-    
-    
+    from PyQt4 import QtCore, QtGui
+    from PyQt4.QtCore import SIGNAL, Qt
+    from PyQt4.QtGui import QMessageBox
+
 
 class MainWindow(QtGui.QFrame):
 
@@ -807,9 +806,6 @@ if __name__ == '__main__':
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     files = getValidFiles()
     app = QtGui.QApplication(sys.argv)
-##    app.setOverrideCursor(Qt.BlankCursor)
-    # if gtkpresent:
-    #     app.setStyle(QGtkStyle())
 
     if not files:
         a = MainWindow()
