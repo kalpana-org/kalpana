@@ -87,15 +87,11 @@ class MainWindow(QtGui.QFrame):
         mainLayout.addWidget(self.terminal)
         self.terminal.setVisible(False)
         self.fontdialogopen = False
-        self.show_fonts_in_dialoglist = False
 
         # Misc settings etc
         self.filename = ''
-        self.autoindent = False
         self.blocks = 1
         self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
-        self.generateMsgbox()
-        self.open_in_new_window = False
 
         # Signals/slots
         self.connect(self.document, SIGNAL('modificationChanged(bool)'),
@@ -106,10 +102,10 @@ class MainWindow(QtGui.QFrame):
                      self.newLine)
 
         # Keyboard shortcuts
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new_t)
+        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+O'), self, self.open_k)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+S'), self, self.save)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs)
+        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+S'), self, self.save_k)
+        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs_k)
         QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+P'), self, 
                         self.nanoToggleSidebar)
@@ -171,7 +167,7 @@ class MainWindow(QtGui.QFrame):
             event.accept()
         else:
             self.terminal.setVisible(True)
-            self.switchFocus()
+            self.switchFocusToTerm()
             self.terminal.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
 
@@ -179,7 +175,6 @@ class MainWindow(QtGui.QFrame):
 ##        if event.mimeData().hasFormat('text/plain'):
         event.acceptProposedAction();
 
-        
     def dropEvent(self, event):
         urls = event.mimeData().urls()
         parsedurls = []
@@ -189,9 +184,7 @@ class MainWindow(QtGui.QFrame):
                 u = u[1:]
             parsedurls.append(u)
             
-        if parsedurls:
-            self.open_(filename=parsedurls[0])
-        for u in parsedurls[1:]:
+        for u in parsedurls:
             subprocess.Popen([sys.executable, sys.argv[0], u])
         event.acceptProposedAction();
 
@@ -245,6 +238,11 @@ class MainWindow(QtGui.QFrame):
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
         self.show_fonts_in_dialoglist = cfg['settings']['show_fonts_in_dialoglist']
+        self.guidialogs = cfg['settings']['guidialogs']
+        self.start_in_term = cfg['settings']['start_in_term']
+        if self.start_in_term:
+            self.terminal.setVisible(True)
+            self.switchFocusToTerm()
 
         self.themedict = cfg['theme']
 
@@ -284,6 +282,8 @@ class MainWindow(QtGui.QFrame):
                 'autoindent': self.autoindent,
                 'open_in_new_window': self.open_in_new_window,
                 'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
+                'guidialogs': self.guidialogs,
+                'start_in_term': self.start_in_term,
             },
             'theme': self.themedict,
             'nano': {
@@ -316,8 +316,7 @@ class MainWindow(QtGui.QFrame):
         for value in themedict.values():
             # TODO: no graphical shit!!!
             if not value:
-                text = 'Some values in the themesection of the config is missing!'
-                QMessageBox.critical(self, 'Bad themeconfig', text)
+                self.terminal.error('Themesection in the config is broken!')
                 break
 
         self.setStyleSheet(self.stylesheet_template.format(**themedict))
@@ -486,32 +485,26 @@ class MainWindow(QtGui.QFrame):
     def localPath(self, path):
         return os.path.join(sys.path[0], path)
 
-    def promptError(self, errortext):
-        self.terminal.setVisible(True)
-        self.switchFocus()
+    def promptError(self, errortext, defaultcmd=''):
         self.terminal.error(errortext)
+        self.promptTerm(defaultcmd)
 
-    def generateMsgbox(self):
-        """ Create a certain message box. (Should be obvious which.) """
-        self.msgbox = QMessageBox(self)
-        self.msgbox.setWindowTitle('Save changes?')
-        self.msgbox.setText('The document has been modified.')
-        self.msgbox.setInformativeText('Do you want to save your changes?')
-        self.msgbox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard |
-                                  QMessageBox.Cancel)
-        self.msgbox.setDefaultButton(QMessageBox.Save)
-        self.msgbox.setIcon(QMessageBox.Warning)
+    def promptTerm(self, defaultcmd=''):
+        if defaultcmd:
+            self.terminal.inputTerm.setText(defaultcmd)
+        self.terminal.setVisible(True)
+        self.switchFocusToTerm()
 
 
     def toggleTerminal(self):
         self.terminal.setVisible(abs(self.terminal.isVisible()-1))
         if self.terminal.isVisible():
-            self.switchFocus()
+            self.switchFocusToTerm()
         else:
             self.textarea.setFocus()
 
 
-    def switchFocus(self):
+    def switchFocusToTerm(self):
         self.terminal.inputTerm.setFocus()
 
 
@@ -650,37 +643,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== File operations: new/open/save ===================================== ##
 
-    # DEPRECATED
-    def saveIfModified(self):
-        """
-        Save the file if it has been modified.
-        
-        Return "abort" if it has been modified but has not been saved.
-        Otherwise, return "continue" (signaling that the parent script can go on
-        with whatever it was doing)
-        """
-        if self.document.isModified():
-            answer = self.msgbox.exec_()
-            if answer == QMessageBox.Save:
-                if not self.save():
-                    return 'abort'
-            elif answer == QMessageBox.Cancel:
-                return 'abort'
-        return 'continue'
-    
-    # DEPRECATED
-    def new(self):
-        """ Create a new file. Save the old one if needed. """
-        if self.open_in_new_window and not self.newAndEmpty():
-            subprocess.Popen([sys.executable, sys.argv[0]])
-        elif self.saveIfModified() == 'continue':
-            self.document.clear()
-            self.document.setModified(False)
-            self.toggleModified(False)
-            self.setFileName('NEW')
-            self.blocks = 1
-
-    def new_t(self, force=False):
+    def new(self, force=False):
         """ Create a new file. Terminal usage """
         if self.open_in_new_window and not self.newAndEmpty():
             subprocess.Popen([sys.executable, sys.argv[0]])
@@ -693,45 +656,18 @@ class MainWindow(QtGui.QFrame):
         else:
             self.promptError('Unsaved changes! Force new with n! or save first.')
 
-
-    # DEPRECATED
-    def open_(self, filename=''):
-        """
-        Prompts the user for a filename and then call the openFile function
-        to actually open and read the file. Save the old file if needed.
-        Open a file. 
-        If all encodings fail, the file will not be loaded.
-
-        devnote: Does not use Qt's built-in file loading since it frakked up
-        ansi/ascii files. This pure python method should work with utf-8
-        and latin1/ansi/ascii/thatcrap files.
-
-        NOTE that regardless of what encoding it used when loading the file, it
-        will always be saved in utf-8.
-        """
-        
-        if (self.open_in_new_window and not self.newAndEmpty())\
-                        or self.saveIfModified() == 'continue':
-            if not filename:
-                filename = QtGui.QFileDialog.getOpenFileName(self,
-                                                      dir=self.lastdir)[0]
-        
-        if filename:
-            if self.open_in_new_window and not self.newAndEmpty():
-                subprocess.Popen([sys.executable, sys.argv[0], filename])
-            else:
-                self.lastdir = os.path.dirname(filename)
-                self.openFile(filename)
-
     def open_k(self):
         """ Open, called from key shortcut """
-        if self.open_in_new_window or not self.document.isModified():
-            filename = QtGui.QFileDialog.getOpenFileName(self,
-                                                      dir=self.lastdir)[0]
-            if filename:
-                self.open_t(filename)
+        if not self.guidialogs:
+            self.promptTerm(defaultcmd='o ')
         else:
-            self.promptError('Unsaved changes! Force open with o! or save first.')
+            if (self.open_in_new_window or not self.document.isModified()):
+                filename = QtGui.QFileDialog.getOpenFileName(self,
+                                                      directory=self.lastdir)[0]
+                if filename:
+                    self.open_t(filename)
+            else:
+                self.promptError('Unsaved changes! Force open with o! or save first.')
 
     def open_t(self, filename, force=False):
         """ Open, called from terminal """
@@ -765,34 +701,32 @@ class MainWindow(QtGui.QFrame):
             self.terminal.error('File could not be decoded!')
             self.terminal.setVisible(True)
             return False
-                
-    # DEPRECATED
-    def save(self):
-        """
-        Save the file. Prompt the user for a path if it is a new file, otherwise
-        use the existing filename.
-        Log NaNo statistics if NaNo mode is on.
-        """
+
+
+    def save_k(self):
+        """ Called from hotkey when guidialogs is on """
         if not self.filename:
-            fname = QtGui.QFileDialog.getSaveFileName(self,
-                                                    dir=self.lastdir)[0]
-            if not fname:
-                return False
+            if self.guidialogs:
+                fname = QtGui.QFileDialog.getSaveFileName(self,
+                                    directory=self.lastdir)[0]
+                if fname:
+                    self.save_t(fname)
             else:
-                self.setFileName(fname)
-                self.lastdir = os.path.dirname(fname)
-        try:
-            with open(self.filename, 'w', encoding='utf-8') as f:
-                f.write(self.document.toPlainText())
-        except IOError as e:
-            print(e)
-            pass
+                self.promptError('File not saved yet! Save with s first.', 
+                                 defaultcmd='s ')
         else:
-            if self.nanoMode:
-                self.nanowidget.setPlainText(self.nanoGenerateStats())
-                self.nanoLogStats()
-            self.document.setModified(False)
-            return True
+            self.save_t()
+
+    def saveAs_k(self):
+        """ Called from hotkey when guidialogs is on """
+        if self.guidialogs:
+            fname = QtGui.QFileDialog.getSaveFileName(self,
+                                    directory=self.lastdir)[0]
+            if fname:
+                self.save_t(fname)
+        else:
+            self.promptTerm(defaultcmd='s ')
+            
 
     def save_t(self, filename=''):
         if filename:
@@ -811,18 +745,8 @@ class MainWindow(QtGui.QFrame):
             if self.nanoMode:
                 self.nanowidget.setPlainText(self.nanoGenerateStats())
                 self.nanoLogStats()
+            self.lastdir = os.path.dirname(savefname)
             self.document.setModified(False)
-
-    # DEPRECATED
-    def saveAs(self):
-        """
-        Prompt the user for a path, regardless if it is a new file or not. Then
-        save the file to that location, and continue editing that one (the new).
-        """
-        prevfile = self.filename
-        self.filename = ''
-        if not self.save():
-            self.filename = prevfile
 
 
 def getValidFiles(): 

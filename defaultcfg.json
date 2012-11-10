@@ -11,7 +11,9 @@
     "lastdirectory": "", 
     "linenumbers": false, 
     "open_in_new_window": false, 
-    "vscrollbar": "always"
+    "vscrollbar": "always",
+    "guidialogs": false,
+    "start_in_term": true
   }, 
   "theme": {
     "details_color": "#111", 
