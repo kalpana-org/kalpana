@@ -29,7 +29,6 @@
 # v0.5 - moved to git, converted to py3k, refactored, GPL'd
 
 
-version = 0.5
 
 import datetime, json, os, os.path, platform, re, sys, subprocess
 
@@ -84,7 +83,7 @@ class MainWindow(QtGui.QFrame):
         self.replace2text = ''
         
         # Terminal
-        self.terminal = Terminal(self, version)
+        self.terminal = Terminal(self)
         mainLayout.addWidget(self.terminal)
         self.terminal.setVisible(False)
         self.fontdialogopen = False
@@ -107,8 +106,8 @@ class MainWindow(QtGui.QFrame):
                      self.newLine)
 
         # Keyboard shortcuts
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+O'), self, self.open_)
+        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new_t)
+        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+O'), self, self.open_k)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+S'), self, self.save)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs)
         QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
@@ -487,6 +486,11 @@ class MainWindow(QtGui.QFrame):
     def localPath(self, path):
         return os.path.join(sys.path[0], path)
 
+    def promptError(self, errortext):
+        self.terminal.setVisible(True)
+        self.switchFocus()
+        self.terminal.error(errortext)
+
     def generateMsgbox(self):
         """ Create a certain message box. (Should be obvious which.) """
         self.msgbox = QMessageBox(self)
@@ -503,6 +507,8 @@ class MainWindow(QtGui.QFrame):
         self.terminal.setVisible(abs(self.terminal.isVisible()-1))
         if self.terminal.isVisible():
             self.switchFocus()
+        else:
+            self.textarea.setFocus()
 
 
     def switchFocus(self):
@@ -644,6 +650,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== File operations: new/open/save ===================================== ##
 
+    # DEPRECATED
     def saveIfModified(self):
         """
         Save the file if it has been modified.
@@ -661,7 +668,7 @@ class MainWindow(QtGui.QFrame):
                 return 'abort'
         return 'continue'
     
-
+    # DEPRECATED
     def new(self):
         """ Create a new file. Save the old one if needed. """
         if self.open_in_new_window and not self.newAndEmpty():
@@ -673,7 +680,21 @@ class MainWindow(QtGui.QFrame):
             self.setFileName('NEW')
             self.blocks = 1
 
+    def new_t(self, force=False):
+        """ Create a new file. Terminal usage """
+        if self.open_in_new_window and not self.newAndEmpty():
+            subprocess.Popen([sys.executable, sys.argv[0]])
+        elif not self.document.isModified() or force:
+            self.document.clear()
+            self.document.setModified(False)
+            self.toggleModified(False)
+            self.setFileName('NEW')
+            self.blocks = 1
+        else:
+            self.promptError('Unsaved changes! Force new with n! or save first.')
 
+
+    # DEPRECATED
     def open_(self, filename=''):
         """
         Prompts the user for a filename and then call the openFile function
@@ -702,6 +723,26 @@ class MainWindow(QtGui.QFrame):
                 self.lastdir = os.path.dirname(filename)
                 self.openFile(filename)
 
+    def open_k(self):
+        """ Open, called from key shortcut """
+        if self.open_in_new_window or not self.document.isModified():
+            filename = QtGui.QFileDialog.getOpenFileName(self,
+                                                      dir=self.lastdir)[0]
+            if filename:
+                self.open_t(filename)
+        else:
+            self.promptError('Unsaved changes! Force open with o! or save first.')
+
+    def open_t(self, filename, force=False):
+        """ Open, called from terminal """
+        if self.open_in_new_window and not self.newAndEmpty():
+            subprocess.Popen([sys.executable, sys.argv[0], filename])
+        elif not self.document.isModified() or force:
+            self.lastdir = os.path.dirname(filename)
+            self.openFile(filename)
+        else:
+            self.promptError('Unsaved changes! Force open with o! or save first.')
+
 
     def openFile(self, filename):
         encodings = ('utf-8', 'latin1')
@@ -721,12 +762,11 @@ class MainWindow(QtGui.QFrame):
                 self.textarea.moveCursor(QtGui.QTextCursor.Start)
                 return True
         if not readsuccess:
-            QMessageBox.critical(self, 'Kalpana - Encoding Error',
-                                 'The file could not be decoded!\n' +
-                                 filename, QMessageBox.Ok)
+            self.terminal.error('File could not be decoded!')
+            self.terminal.setVisible(True)
             return False
                 
-
+    # DEPRECATED
     def save(self):
         """
         Save the file. Prompt the user for a path if it is a new file, otherwise
@@ -754,7 +794,26 @@ class MainWindow(QtGui.QFrame):
             self.document.setModified(False)
             return True
 
+    def save_t(self, filename=''):
+        if filename:
+            savefname = filename
+        else:
+            savefname = self.filename
 
+        assert savefname.strip() != ''
+
+        try:
+            with open(savefname, 'w', encoding='utf-8') as f:
+                f.write(self.document.toPlainText())
+        except IOError as e:
+            print(e)
+        else:
+            if self.nanoMode:
+                self.nanowidget.setPlainText(self.nanoGenerateStats())
+                self.nanoLogStats()
+            self.document.setModified(False)
+
+    # DEPRECATED
     def saveAs(self):
         """
         Prompt the user for a path, regardless if it is a new file or not. Then
@@ -790,5 +849,5 @@ if __name__ == '__main__':
     else:
         a = MainWindow(file_=files[0])
         for f in files[1:]:
-            subprocess.Popen(['python', sys.argv[0], f.encode('utf-8')])
+            subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
     sys.exit(app.exec_())

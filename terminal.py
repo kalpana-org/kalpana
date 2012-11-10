@@ -57,12 +57,11 @@ class Terminal(QtGui.QSplitter):
         pass
 
 
-    def __init__(self, main, version):
+    def __init__(self, main):
         QtGui.QSplitter.__init__(self, parent=main)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1
-        self.version = version
 
         self.history = []
 
@@ -102,11 +101,11 @@ class Terminal(QtGui.QSplitter):
     # ==== Autocomplete ========================== #
 
     def getAutocompletableText(self):
-        cmds = ('o', 's')
+        cmds = ('o', 'o!', 's', 's!')
         text = self.inputTerm.text()
         for c in cmds:
             if text.startswith(c + ' '):
-                return text[:2], text[2:]
+                return text[:len(c)+1], text[len(c)+1:]
         return None, None
 
 
@@ -120,6 +119,8 @@ class Terminal(QtGui.QSplitter):
         # Autocomplete with the working directory if the line is empty
         if ac_text.strip() == '':
             wd = os.path.abspath(self.main.filename)
+            if not os.path.isdir(wd):
+                wd = os.path.dirname(wd)
             self.completer.setCompletionPrefix(wd + separator)
             self.inputTerm.setText(cmdprefix + wd + separator)
             return
@@ -191,16 +192,20 @@ class Terminal(QtGui.QSplitter):
         self.history.append(text)
         self.historyPosition = len(self.history)
         self.inputTerm.setText('')
+        self.outputTerm.setText('')
         cmd = text.split(' ', 1)[0]
         # If the command exists, run the callback function (a bit cryptic maybe)
         if cmd in self.cmds:
             self.cmds[cmd][0](self, text[len(cmd)+1:])
+        # Convenience for help and search: ?cf = ? cf, /lol = / lol
+        elif text[0] in ('?', '/'):
+            self.cmds[text[0]][0](self, text[1:])
         else:
             self.error('No such function (? for help)')
 
 
     def print_(self, text):
-        self.outputTerm.setText(text)
+        self.outputTerm.setText(str(text))
 
 
     def error(self, text):
@@ -208,18 +213,51 @@ class Terminal(QtGui.QSplitter):
 
 
     # ==== Commands ============================== #
-    def cmdOpen(self, arg):
+    def cmdOpen(self, arg, force=False):
         f = arg.strip()
         if os.path.isfile(f):
-            self.main.openFile(f)
+            self.main.open_t(f, force)
         else:
             self.error('Non-existing file')
 
-    def cmdNew(self, arg):
-        pass
+    def cmdForceOpen(self, arg):
+        self.cmdOpen(arg, force=True)
 
-    def cmdSave(self, arg):
-        pass
+
+    def cmdNew(self, arg):
+        self.main.new_t()
+
+    def cmdForceNew(self, arg):
+        self.main.new_t(force=True)
+
+
+    def cmdSave(self, arg, force=False):
+        f = arg.strip()
+        if not f:
+            if self.main.filename:
+                self.main.save_t()
+            else:
+                self.error('No filename')
+        else:
+            if os.path.isfile(f) and not force:
+                self.error('File already exists, use s! to overwrite')
+            # Make sure the parent directory actually exists
+            elif os.path.isdir(os.path.dirname(f)):
+                self.main.save_t(f)
+            else:
+                self.error('Invalid path')
+
+    def cmdOverwriteSave(self, arg):
+        self.cmdSave(arg, force=True)
+
+
+    def cmdQuit(self, arg):
+        self.main.close()
+       
+    def cmdForceQuit(self, arg):
+        self.main.forcequit = True
+        self.main.close()
+
 
     def cmdFind(self, arg):
         if arg:
@@ -245,15 +283,13 @@ class Terminal(QtGui.QSplitter):
             return
         self.main.replaceAll()
 
-    def cmdListCommands(self, arg):
-        self.print_(' '.join(sorted(self.cmds)))
 
     def cmdChangeFont(self, arg):
         if self.main.fontdialogopen:
             self.error('Font dialog already open')
             return
         if arg not in ('main', 'term', 'nano'):
-            self.error('Argument should be main, term or nano')
+            self.error('Wrong argument [main/term/nano]')
             return
         if arg == 'term':
             self.print_('Räksmörgås?!')
@@ -263,36 +299,36 @@ class Terminal(QtGui.QSplitter):
 
     def cmdAutoIndent(self, arg):
         self.main.autoindent = not self.main.autoindent
+        self.print_('Now ' + str(self.main.autoindent).lower())
 
     def cmdLineNumbers(self, arg):
         self.textarea.number_bar.showbar = not self.textarea.number_bar.showbar
         self.textarea.number_bar.update()
+        self.print_('Now ' + str(self.textarea.number_bar.showbar).lower())
 
     def cmdScrollbar(self, arg):
-        arg = arg.strip()
-        if arg == '0':
+        arg = arg.strip().lower()
+        if not arg:
+            self.print_(('Off','Maybe','On')[self.textarea.verticalScrollBarPolicy()])
+        elif arg == 'off':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        elif arg == '1':
+        elif arg == 'maybe':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        elif arg == '2':
+        elif arg == 'on':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         else:
-            self.error('Wrong argument')
+            self.error('Wrong argument [off/maybe/on]')
 
     def cmdNewWindow(self, arg):
         arg = arg.strip()
-        if arg == '0':
-            self.main.open_in_new_window = False
-        elif arg == '1':
+        if not arg:
+            self.print_(self.main.open_in_new_window)
+        elif arg == 'y':
             self.main.open_in_new_window = True
+        elif arg == 'n':
+            self.main.open_in_new_window = False
         else:
-            self.error('Wrong argument')
-
-    def cmdVersion(self, arg):
-        self.print_('Kalpana {0}'.format(self.version))
-
-    def cmdWhereAmI(self, arg):
-        self.print_(os.path.abspath(self.main.filename))
+            self.error('Wrong argument [y/n]')
 
     def cmdHelp(self, arg):
         if not arg:
@@ -323,28 +359,24 @@ class Terminal(QtGui.QSplitter):
     def cmdReloadTheme(self, arg):
         self.main.reloadTheme()
 
-    def cmdQuit(self, arg):
-        self.main.close()
-       
-    def cmdForceQuit(self, arg):
-        self.main.forcequit = True
-        self.main.close()
+
 
     cmds = {'o': (cmdOpen, 'Open [file]'),
+            'o!': (cmdForceOpen, 'Open [file] and discard the old'),
             'n': (cmdNew, 'Open new file'),
+            'n!': (cmdForceNew, 'Open new file and discard the old'),
             's': (cmdSave, 'Save (as) [file]'),
+            's!': (cmdOverwriteSave, 'Save (as) [file] and overwrite'),
+            'q': (cmdQuit, 'Quit Kalpana'),
+            'q!': (cmdForceQuit, 'Quit Kalpana without saving'),
             '/': (cmdFind, 'find (next) [string]'),
             'r': (cmdReplace, 'Replace (syntax help needed)'),
             'ra': (cmdReplaceAll, 'Replace all (syntax help needed)'),
             '?': (cmdHelp, 'List commands or help for [command]'),
-            'cf': (cmdChangeFont, 'Change font'),
+            'cf': (cmdChangeFont, 'Change font [main/term/nano]'),
             'ai': (cmdAutoIndent, 'Toggle auto indent'),
             'ln': (cmdLineNumbers, 'Toggle line numbers'),
-            'vs': (cmdScrollbar, 'Scrollbar [0,1,2] Off, Maybe, On'),
-            'nw': (cmdNewWindow, 'Open in new window [0,1] No, Yes'),
-            'v': (cmdVersion, 'Version info'),
-            'wd': (cmdWhereAmI, 'Working directory'),
+            'vs': (cmdScrollbar, 'Scrollbar [off/maybe/on]'),
+            'nw': (cmdNewWindow, 'Open in new window [y/n]'),
             'nn': (cmdNanoToggle, 'Start NaNo mode at [day]'),
-            'rt': (cmdReloadTheme, 'Reload theme from config'),
-            'q': (cmdQuit, 'Quit Kalpana'),
-            'q!': (cmdForceQuit, 'Quit Kalpana without saving')}
+            'rt': (cmdReloadTheme, 'Reload theme from config')}
