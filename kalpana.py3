@@ -746,6 +746,7 @@ class MainWindow(QtGui.QFrame):
                 self.nanowidget.setPlainText(self.nanoGenerateStats())
                 self.nanoLogStats()
             self.lastdir = os.path.dirname(savefname)
+            self.setFileName(savefname)
             self.document.setModified(False)
 
 
