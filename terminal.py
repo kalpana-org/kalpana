@@ -341,15 +341,15 @@ class Terminal(QtGui.QSplitter):
     def cmdNanoToggle(self, arg):
         if arg.strip().isdigit():
             if int(arg.strip()) == 0:
-                self.main.nanoMode = False
+                self.main.nanowidget.nanoMode = False
                 self.print_('NaNo mode disabled')
-            elif int(arg.strip()) in range(1,self.main.days + 1):
-                self.main.myDay = int(arg.strip())
-                self.main.nanoMode = True
-                self.main.nanoCountWordsChapters()
-                self.main.myLastWcount = self.main.accWcount
-                self.main.nanoExtractOldStats()
-                self.main.nanowidget.setPlainText(self.main.nanoGenerateStats())
+            elif int(arg.strip()) in range(1,self.main.nanowidget.days + 1):
+                self.main.nanowidget.myDay = int(arg.strip())
+                self.main.nanowidget.nanoMode = True
+                self.main.nanowidget.nanoCountWordsChapters()
+                self.main.nanowidget.myLastWcount = self.main.nanowidget.accWcount
+                self.main.nanowidget.nanoExtractOldStats()
+                self.main.nanowidget.setPlainText(self.main.nanowidget.nanoGenerateStats())
                 self.print_('NaNo mode initiated')
             else:
                 self.error('Invalid date')

@@ -29,3 +29,5 @@ pip-log.txt
 # Kalpana specific
 kalpana.json
 encodingtests
+testnano*
+nano_prev_stats
