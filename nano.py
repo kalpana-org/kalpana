@@ -27,7 +27,7 @@ except ImportError:
     from PyQt4 import QtGui
     from PyQt4.QtCore import Qt
 
-class NaNoWidget(QtGui.QPlainTextEdit):
+class NaNoSidebar(QtGui.QPlainTextEdit):
     # Nano stuff including empty sidebar
     def __init__(self, parent):
         QtGui.QLineEdit.__init__(self, parent)
@@ -47,14 +47,7 @@ class NaNoWidget(QtGui.QPlainTextEdit):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-    # New class for the stylesheet
-    class NaNoSidebar(QtGui.QPlainTextEdit):
-        pass 
-
-## ==== Nano 3============================================================== ##
-    # TODO Double-check word-counter's view on whitespace in [ ]
     # TODO Double-check what happens when NaNo mode is toggled several times
-    # TODO Fix log files so they overwrite older dates with same wordcount
 
     def nanoToggleSidebar(self):
         """
