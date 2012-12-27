@@ -116,7 +116,8 @@ class MainWindow(QtGui.QFrame):
         # Config init
         system = platform.system()
         if system == 'Linux':
-            self.cfgpath = os.path.join(os.getenv('HOME'), '.kalpana')
+            self.cfgpath = os.path.join(os.getenv('HOME'), '.config', 
+                                        'kalpana', 'kalpana.conf')
         else:
             self.cfgpath = self.localPath('kalpana.json')
 
@@ -295,6 +296,9 @@ class MainWindow(QtGui.QFrame):
         }
 
         outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
+        if not os.path.exists(os.path.dirname(self.cfgpath)):
+            os.makedirs(os.path.dirname(self.cfgpath), mode=0o755, exist_ok=True)
+            print('Creating config path...')
         with open(self.cfgpath, 'w', encoding='utf-8') as f:
             f.write(outjson)
 
