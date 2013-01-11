@@ -339,6 +339,7 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmdNanoToggle(self, arg):
+        ### self.main.nanowidget.activate()
         if arg.strip().isdigit():
             if int(arg.strip()) == 0:
                 self.main.nanowidget.nanoMode = False

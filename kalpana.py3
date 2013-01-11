@@ -86,7 +86,6 @@ class MainWindow(QtGui.QFrame):
         # NaNoSidebar
         self.nanowidget = NaNoSidebar(self)
         topLayout.addWidget(self.nanowidget) 
-        self.nanowidget.setVisible(False)
 
         # Terminal
         self.terminal = Terminal(self)
@@ -114,7 +113,8 @@ class MainWindow(QtGui.QFrame):
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs_k)
         QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+P'), self, 
-                        self.nanowidget.nanoToggleSidebar)
+                        self.nanowidget.ToggleSidebar)
+                        ###self.nanowidget.update_sb())
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Return'), self, 
                         self.toggleTerminal)
 
@@ -456,6 +456,7 @@ class MainWindow(QtGui.QFrame):
     def updateWordCount(self):
         if self.nanowidget.nanoMode:
             self.nanowidget.nanoCountWordsChapters()
+            ##self.nanowidget.count_words()
         else:
             wcount = len(re.findall(r'\S+', self.document.toPlainText()))
             if not wcount == self.wt_wordcount:
@@ -577,6 +578,9 @@ class MainWindow(QtGui.QFrame):
             print(e)
         else:
             if self.nanowidget.nanoMode:
+				###self.nanowidget.update_sb()
+				###self.nanowidget.write_logs()
+				###self.nanowidget.check_force_exit()
                 self.nanowidget.setPlainText(self.nanowidget.nanoGenerateStats())
                 self.nanowidget.nanoLogStats()
             self.lastdir = os.path.dirname(savefname)
