@@ -1,0 +1,101 @@
+NaNo mode for kalpana
+Functions and shit that needs to be done
+
+=== AT INIT ===
+constructor takes values from config file
+    - endPoint, goal, days, idealChLen
+
+=== AT NANO MODE ON ===
+-- check cmd arg for errors --
+read_stats()
+read_logs()
+update_sb()
+
+=== AT MODIFIED ===
+count_words()
+
+=== AT CTRL+P ===
+update_sb()
+
+=== AT SAVE ===
+update_sb()
+write_logs()
+check_force_exit()
+
+
+Functions:
+read_stats() replaces nanoExtractOldStats
+  read old logs, extract stats from this day
+    - file -> array
+read_logs() replaces nanoCountWordsChapters + #12
+  read current logs, #12
+    - file -> array
+update_sb() replaces nanoGenerateStats + setVisible
+  wordcounts -> sidebar
+count_words() replaces nanoCountWordsChapters
+  count words per chapter
+    - exclude comments, #20
+    - regex + file? -> array
+write_logs() replaces nanoLogStats
+  write logs
+    - array -> file
+    - overwrite/non-overwrite, #21
+check_force_exit() replaces #16
+  check force-exit requirements, #16
+
+
+=== EXTRA ===
+* external script to handle non-compatible logs, #14
+
+=== AT INIT ===
+: constructor takes values from config file
+    - endPoint, goal, days, idealChLen
+* read old logs
+    - file -> array
+
+=== AT NANO MODE ON ===
+* read current logs, #12
+    - file -> array
+* wordcounts -> sidebar
+
+=== AT MODIFIED ===
+* count words per chapter
+    - exclude comments, #20
+    - regex + file? -> array
+
+=== AT CTRL+P ===
+* wordcounts -> sidebar
+
+=== AT SAVE ===
+* count words per chapter
+    - exclude comments, #20
+    - regex + file? -> array
+    - wordcounts -> sidebar
+* write logs
+    - array -> file
+    - overwrite/non-overwrite, #21
+* check force-exit requirements, #16
+
+
+
+Log syntax:
+date, nano_day, total_words
+chapter = words
+
+
+
+Sidebar syntax:
+DAY nano_day
+% of total goal
+
+Chapter Words Remaining
+...     ...   ...
+
+Total:
+Remaining today:
+Written today:
+
+Earlier years:
+Year diff_from_this_year
+
+

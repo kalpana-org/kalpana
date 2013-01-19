@@ -113,8 +113,7 @@ class MainWindow(QtGui.QFrame):
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs_k)
         QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+P'), self, 
-                        #self.nanowidget.nanoToggleSidebar)
-                        self.nanowidget.toggle())
+                        self.nanowidget.toggle_sidebar())
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Return'), self, 
                         self.toggleTerminal)
 
