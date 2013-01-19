@@ -29,3 +29,4 @@ pip-log.txt
 # Kalpana specific
 kalpana.json
 encodingtests
+plugins/

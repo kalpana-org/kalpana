@@ -63,28 +63,28 @@ class MainWindow(QtGui.QFrame):
         self.wt_file = ''
 
         # Layout
-        mainLayout = QtGui.QVBoxLayout(self)
-        mainLayout.setSpacing(0)
-        mainLayout.setContentsMargins(0,0,0,0)
+        main_layout = QtGui.QVBoxLayout(self)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0,0,0,0)
 
-        topLayout = QtGui.QHBoxLayout()
-        topLayout.setSpacing(0)
-        topLayout.setContentsMargins(0,0,0,0)
-        mainLayout.addLayout(topLayout)
+        top_layout = QtGui.QHBoxLayout()
+        top_layout.setSpacing(0)
+        top_layout.setContentsMargins(0,0,0,0)
+        main_layout.addLayout(top_layout)
 
         # Text area
         self.textarea = LineTextWidget(self)
         self.document = self.textarea.document()
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.textarea.setTabStopWidth(30)
-        topLayout.addWidget(self.textarea)
+        top_layout.addWidget(self.textarea)
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
         
         # Terminal
         self.terminal = Terminal(self)
-        mainLayout.addWidget(self.terminal)
+        main_layout.addWidget(self.terminal)
         self.terminal.setVisible(False)
         self.fontdialogopen = False
 
@@ -102,15 +102,19 @@ class MainWindow(QtGui.QFrame):
                      self.newLine)
 
         # Keyboard shortcuts
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+N'), self, self.new)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+O'), self, self.open_k)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+S'), self, self.save_k)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs_k)
-        QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+P'), self, 
-                        self.nanoToggleSidebar)
-        QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Return'), self, 
-                        self.toggleTerminal)
+        hotkeys = {
+            'Ctrl+N': self.new,
+            'Ctrl+O': self.open_k,
+            'Ctrl+S': self.save_k,
+            'Ctrl+Shift+S': self.saveAs_k,
+            'F3': self.findNext,
+            'Ctrl+Return': self.toggleTerminal
+        }
+
+        hotkeys.update(plugin_hotkeys)
+
+        for key, function in hotkeys:
+            QtGui.QShortcut(QtGui.QKeySequence(key), function)
 
 
         # Config init
@@ -146,7 +150,7 @@ class MainWindow(QtGui.QFrame):
         self.nanowidget.setFixedWidth((self.nanoWidth + 1)*charWidth)
         self.nanowidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.nanowidget.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        topLayout.addWidget(self.nanowidget)
+        top_layout.addWidget(self.nanowidget)
         self.nanowidget.setVisible(False)
 
         
