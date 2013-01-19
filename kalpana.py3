@@ -113,8 +113,8 @@ class MainWindow(QtGui.QFrame):
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Shift+S'), self, self.saveAs_k)
         QtGui.QShortcut(QtGui.QKeySequence('F3'), self, self.findNext)
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+P'), self, 
-                        self.nanowidget.ToggleSidebar)
-                        ###self.nanowidget.update_sb())
+                        #self.nanowidget.nanoToggleSidebar)
+                        self.nanowidget.toggle())
         QtGui.QShortcut(QtGui.QKeySequence('Ctrl+Return'), self, 
                         self.toggleTerminal)
 
@@ -453,15 +453,22 @@ class MainWindow(QtGui.QFrame):
         self.updateWindowTitle()
 
 
+#    def updateWordCount(self):
+#        if self.nanowidget.nanoMode:
+#            self.nanowidget.nanoCountWordsChapters()
+#        else:
+#            wcount = len(re.findall(r'\S+', self.document.toPlainText()))
+#            if not wcount == self.wt_wordcount:
+#                self.wt_wordcount = wcount
+#                self.updateWindowTitle()
+
+
     def updateWordCount(self):
-        if self.nanowidget.nanoMode:
-            self.nanowidget.nanoCountWordsChapters()
-            ##self.nanowidget.count_words()
-        else:
-            wcount = len(re.findall(r'\S+', self.document.toPlainText()))
-            if not wcount == self.wt_wordcount:
-                self.wt_wordcount = wcount
-                self.updateWindowTitle()
+        wcount = len(re.findall(r'\S+', self.document.toPlainText()))
+        wcount = self.nanowidget.update_wordcount()
+        if not wcount == self.wt_wordcount:
+            self.wt_wordcount = wcount
+            self.updateWindowTitle()
 
 
     def setFileName(self, filename):
@@ -577,12 +584,7 @@ class MainWindow(QtGui.QFrame):
         except IOError as e:
             print(e)
         else:
-            if self.nanowidget.nanoMode:
-				###self.nanowidget.update_sb()
-				###self.nanowidget.write_logs()
-				###self.nanowidget.check_force_exit()
-                self.nanowidget.setPlainText(self.nanowidget.nanoGenerateStats())
-                self.nanowidget.nanoLogStats()
+            self.nanowidget.save()
             self.lastdir = os.path.dirname(savefname)
             self.setFileName(savefname)
             self.document.setModified(False)

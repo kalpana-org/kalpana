@@ -339,23 +339,23 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmdNanoToggle(self, arg):
-        ### self.main.nanowidget.activate()
-        if arg.strip().isdigit():
-            if int(arg.strip()) == 0:
-                self.main.nanowidget.nanoMode = False
-                self.print_('NaNo mode disabled')
-            elif int(arg.strip()) in range(1,self.main.nanowidget.days + 1):
-                self.main.nanowidget.myDay = int(arg.strip())
-                self.main.nanowidget.nanoMode = True
-                self.main.nanowidget.nanoCountWordsChapters()
-                self.main.nanowidget.myLastWcount = self.main.nanowidget.accWcount
-                self.main.nanowidget.nanoExtractOldStats()
-                self.main.nanowidget.setPlainText(self.main.nanowidget.nanoGenerateStats())
-                self.print_('NaNo mode initiated')
-            else:
-                self.error('Invalid date')
-        else:
-            self.error('Invalid argument')
+        message, errorcode = self.main.nanowidget.activate(arg)
+#        if arg.strip().isdigit():
+#            if int(arg.strip()) == 0:
+#                self.main.nanowidget.nanoMode = False
+#                self.print_('NaNo mode disabled')
+#            elif int(arg.strip()) in range(1,self.main.nanowidget.days + 1):
+#                self.main.nanowidget.myDay = int(arg.strip())
+#                self.main.nanowidget.nanoMode = True
+#                self.main.nanowidget.nanoCountWordsChapters()
+#                self.main.nanowidget.myLastWcount = self.main.nanowidget.accWcount
+#                self.main.nanowidget.nanoExtractOldStats()
+#                self.main.nanowidget.setPlainText(self.main.nanowidget.nanoGenerateStats())
+#                self.print_('NaNo mode initiated')
+#            else:
+#                self.error('Invalid date')
+#        else:
+#            self.error('Invalid argument')
 
     def cmdReloadTheme(self, arg):
         self.main.reloadTheme()
