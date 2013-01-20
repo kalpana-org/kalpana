@@ -256,7 +256,7 @@ class Terminal(QtGui.QSplitter):
         self.main.close()
 
     def cmd_force_quit(self, arg):
-        self.main.forcequit = True
+        self.main.force_quit = True
         self.main.close()
 
 
