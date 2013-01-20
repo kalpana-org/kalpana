@@ -31,6 +31,7 @@
 
 
 import datetime, json, os, os.path, platform, re, sys, subprocess
+import importlib
 
 from math import ceil
 
@@ -107,8 +108,30 @@ class MainWindow(QtGui.QFrame):
             cfgdir = os.path.join(os.getenv('HOME'), '.config',
                                     'kalpana')
             self.cfgpath = os.path.join(cfgdir, 'kalpana.conf')
+            pluginpath = os.path.join(cfgdir, 'plugins')
         else:
             self.cfgpath = local_path('kalpana.json')
+            pluginpath = local_path('plugins')
+
+        # Plugins
+        def add_widget(widget, side):
+            from pluginlib import NORTH, SOUTH, EAST, WEST
+
+            if side in (NORTH, SOUTH):
+                layout = main_layout
+            elif side in (WEST, EAST):
+                layout = top_layout
+            if side in (NORTH, WEST):
+                layout.insertItem(0, widget)
+            elif side in (SOUTH, EAST):
+                layout.addItem(widget)
+
+
+        plugins = get_plugins(pluginpath)
+        plugin_hotkeys = {} # TODO: THIS
+        plugin_objects = [p.UserPlugin(self.document.toPlainText(),
+                                       add_widget)
+                          for p in plugins]
 
         # Keyboard shortcuts
         hotkeys = {
@@ -563,6 +586,18 @@ class MainWindow(QtGui.QFrame):
 
 def local_path(path):
     return os.path.join(sys.path[0], path)
+
+
+def get_plugins(pluginpath):
+    join = os.path.join
+    plugins = [(dirname, join(pluginpath, dirname))
+               for dirname in os.listdir(pluginpath)
+               if os.path.isfile(join(pluginpath, dirname, dirname+'.py'))]
+    imported_plugins = []
+    for name, path in plugins:
+        sys.path.append(path)
+        imported_plugins.append(importlib.import_module(name))
+    return imported_plugins
 
 
 def get_valid_files():
