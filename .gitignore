@@ -26,6 +26,9 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
+# Sublime Text
+*.sublime-*
+
 # Kalpana specific
 kalpana.json
 encodingtests
