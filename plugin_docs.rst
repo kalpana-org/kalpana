@@ -23,12 +23,23 @@ pluginlib Reference
 -------------------
 For all references to Qt classes, see http://www.riverbankcomputing.co.uk/static/Docs/PyQt4/html/classes.html
 
-.. _Python: http://www.python.org/
-
 Constants
 =========
 NORTH, SOUTH, EAST, WEST
-    The sides to which a widget can be added in ``add_widget()``.
+    * The sides to which a widget can be added in ``add_widget()``.
+
+Fields
+======
+GUIPlugin.commands
+    * A dict with terminal commands as key and a tuple with a function and a help-string as value. The function will be called when the command is entered in the terminal. The commands will **overwrite** vanilla commands and commands in earlier loaded plugins, if they are identical.
+    * The command should be a short string (1-2 characters preferably).
+    * *Example:* ``{'x': (self.explode, 'This will make everything explode')}``
+    * The function may return a tuple with a string to be printed to the terminal and a bool indication an error (``True`` for error, ``False`` for no error). If nothing is return, nothing will be printed.
+    * *Example:* ``("This is awesome", False)`` or ``("Oh shit everything blew up", True)``
+
+
+GUIPlugin.hotkeys
+    * A dict with keyboard shortcuts as key (see ``QKeySequence()``) and a function as value. The function will be called by Kalpana when the key (combination) is pressed. The key combinations will **overwrite** vanilla shortcuts and shortcuts in earlier loaded plugins, if they are identical.
 
 
 "Events"
@@ -36,13 +47,13 @@ NORTH, SOUTH, EAST, WEST
 *These methods are called by Kalpana itself. You most likely do not want to call them manually. The scare quotes are there to remind you that they are regular functions and all you need to do is overload them. Nothing fancy.*
 
 GUIPlugin.start(self)
-    Is called when the plugin has been initiated. This is the equivalent of a constructor. **Do not use __init__()!**
+    * Is called when the plugin has been initiated. This is the equivalent of a constructor. **Do not use __init__()!**
 
 GUIPlugin.read_config(self, path)
-    Is called when the config is (re)loaded. `path` is the path to the plugin's *directory*. The plugin must find and read its config file itself, if it has one.
+    * Is called when the config is (re)loaded. `path` is the path to the plugin's *directory*. The plugin must find and read its config file itself, if it has one.
 
 GUIPlugin.write_config(self, path)
-    Is called when the config is saved. `path` is the path to the plugin's *directory*. The plugin must find and write its config file itself, if it has one.
+    * Is called when the config is saved. `path` is the path to the plugin's *directory*. The plugin must find and write its config file itself, if it has one.
 
 
 Regular methods
@@ -50,8 +61,8 @@ Regular methods
 *These methods will never be called by Kalpana. You most likely do not want to overload them with your own versions.*
 
 GUIPlugin.add_widget(widget, side)
-    Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
-    All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
+    * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
+    * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
 
 GUIPlugin.get_text()
-    Return the text currently in the main textarea in Kalpana. This is a wrapper around ``QTextDocument.toPlainText()``.
+    * Return the text currently in the main textarea in Kalpana. This is a wrapper around ``QTextDocument.toPlainText()``.
