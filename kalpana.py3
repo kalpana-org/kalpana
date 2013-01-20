@@ -163,7 +163,6 @@ class MainWindow(QtGui.QFrame):
         with open(local_path('defaultcfg.json'), encoding='utf8') as f:
             defaultcfg = json.loads(f.read())
 
-        self.stylesheet_template = None
         self.read_config(defaultcfg)
 
         if file_:
@@ -262,9 +261,9 @@ class MainWindow(QtGui.QFrame):
         self.themedict = cfg['theme']
 
         with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            self.stylesheet_template = f.read()
+            stylesheet_template = f.read()
 
-        self.update_theme(cfg['theme'])
+        self.update_theme(cfg['theme'], stylesheet_template)
 
         for p in self.plugins:
             p.read_config()
@@ -310,7 +309,7 @@ class MainWindow(QtGui.QFrame):
             p.write_config()
 
 
-    def update_theme(self, themedict):
+    def update_theme(self, themedict, stylesheet_template):
         self.themedict = themedict.copy()
 
         overload = {
@@ -328,15 +327,21 @@ class MainWindow(QtGui.QFrame):
                 self.terminal.error('Themesection in the config is broken!')
                 break
 
-        self.setStyleSheet(self.stylesheet_template.format(**themedict))
+        stylesheet = stylesheet_template.format(**themedict)
+        for p in self.plugins:
+            if p.has_stylesheet:
+                tc = p.theme_config()
+                stylesheet += p.stylesheet.format(tc) if tc else p.stylesheet
+
+        self.setStyleSheet(stylesheet)
 
     def reload_theme(self):
         with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            self.stylesheet_template = f.read()
+            stylesheet_template = f.read()
 
         with open(self.cfgpath, encoding='utf-8') as f:
             cfg = json.loads(f.read())
-        self.update_theme(cfg['theme'])
+        self.update_theme(cfg['theme'], stylesheet_template)
 
 
 ## ==== Misc =============================================================== ##

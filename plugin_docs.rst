@@ -14,6 +14,8 @@ Every plugin consists (at least) of a directory containing a python plugin of th
 
 *Example:* ``~/.config/kalpana/plugins/myplugin/myplugin.py``
 
+If a file with the name ``qtstylesheet.css`` is present, it will be merged with the main stylesheet and applied to the program. When loaded, the stylesheet may be format()ed using a values from the plugin's config. **Remember to escape all { and } if you use a theme config!** Otherwise Kalpana will most likely explode.
+
 Apart from that, there can be as many other files in the plugin's directory as wanted.
 
 The main module must define a class called ``UserPlugin``, as a subclass of ``pluginlib.GUIPlugin``.
@@ -63,6 +65,12 @@ GUIPlugin.read_config(self)
 
 GUIPlugin.write_config(self)
     * Is called when the config is saved.
+
+GUIPlugin.theme_config(self)
+    * Is called whenever the theme is reloaded.
+    * Must return a dict with strings to be replaced with strings in the plugin's ``qtstylesheet.css``. See ``defaultcfg.json`` and ``qtstylesheet.css`` for real life examples.
+    * Do not overload it if you do not wish to modify the stylesheet with the config.
+    * *Example:* {"details_color": "#111", "term_fontfamily": "Monospace"}
 
 
 Regular methods
