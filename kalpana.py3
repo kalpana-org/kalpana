@@ -113,9 +113,8 @@ class MainWindow(QtGui.QFrame):
 
         hotkeys.update(plugin_hotkeys)
 
-        for key, function in hotkeys:
-            QtGui.QShortcut(QtGui.QKeySequence(key), function)
-
+        for key, function in hotkeys.items():
+            QtGui.QShortcut(QtGui.QKeySequence(key), self, function)
 
         # Config init
         system = platform.system()
