@@ -339,24 +339,6 @@ class Terminal(QtGui.QSplitter):
         else:
             self.error('No such command')
 
-    def cmd_nano_toggle(self, arg):
-        if arg.strip().isdigit():
-            if int(arg.strip()) == 0:
-                self.main.nanoMode = False
-                self.print_('NaNo mode disabled')
-            elif int(arg.strip()) in range(1,self.main.days + 1):
-                self.main.myDay = int(arg.strip())
-                self.main.nanoMode = True
-                self.main.nanoCountWordsChapters()
-                self.main.myLastWcount = self.main.accWcount
-                self.main.nanoExtractOldStats()
-                self.main.nanowidget.setPlainText(self.main.nanoGenerateStats())
-                self.print_('NaNo mode initiated')
-            else:
-                self.error('Invalid date')
-        else:
-            self.error('Invalid argument')
-
     def cmd_reload_theme(self, arg):
         self.main.reloadTheme()
 
@@ -379,5 +361,4 @@ class Terminal(QtGui.QSplitter):
             'ln': (cmd_line_numbers, 'Toggle line numbers'),
             'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
             'nw': (cmd_new_window, 'Open in new window [y/n]'),
-            'nn': (cmd_nano_toggle, 'Start NaNo mode at [day]'),
             'rt': (cmd_reload_theme, 'Reload theme from config')}
