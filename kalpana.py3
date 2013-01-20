@@ -126,10 +126,10 @@ class MainWindow(QtGui.QFrame):
             self.cfgpath = self.local_path('kalpana.json')
 
         with open(self.local_path('defaultcfg.json'), encoding='utf8') as f:
-            self.defaultcfg = json.loads(f.read())
+            defaultcfg = json.loads(f.read())
 
         self.stylesheet_template = None
-        self.read_config()
+        self.read_config(defaultcfg)
 
         if file_:
             if not self.open_file(file_):
@@ -173,7 +173,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def read_config(self):
+    def read_config(self, defaultcfg):
         """ Read the config and update the appropriate variables. """
 
         optionalvalues = ('term_input_bgcolor',
@@ -181,7 +181,7 @@ class MainWindow(QtGui.QFrame):
                           'term_input_textcolor',
                           'term_output_textcolor')
 
-        def check_config(cfg, defaultcfg):
+        def check_config(cfg):
             """ Make sure the config is valid """
             out = {}
             for key, defvalue in defaultcfg.items():
@@ -201,9 +201,9 @@ class MainWindow(QtGui.QFrame):
                 rawcfg = json.loads(f.read())
         except (IOError, ValueError):
             print('no/bad config')
-            cfg = self.defaultcfg
+            cfg = defaultcfg
         else:
-            cfg = check_config(rawcfg, self.defaultcfg)
+            cfg = check_config(rawcfg)
 
         # Settings
         self.lastdir = cfg['settings']['lastdirectory']
