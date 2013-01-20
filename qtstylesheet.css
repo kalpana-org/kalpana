@@ -34,15 +34,6 @@ QPlainTextEdit {{
     selection-background-color: {main_textcolor};
 }}
 
-NaNoSidebar {{
-    font-family: {nano_fontfamily};
-    font-size: {nano_fontsize};
-    color: {nano_textcolor};
-    background: {nano_bgcolor};
-    selection-color: {nano_bgcolor};
-    selection-background-color: {nano_textcolor};
-}}
-
 /* VERTICAL SCROLLBAR */
 QScrollBar:vertical {{
     background: {main_bgcolor};
