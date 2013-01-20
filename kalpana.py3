@@ -308,7 +308,7 @@ class MainWindow(QtGui.QFrame):
 
     def prompt_term(self, defaultcmd=''):
         if defaultcmd:
-            self.terminal.inputTerm.setText(defaultcmd)
+            self.terminal.input_term.setText(defaultcmd)
         self.terminal.setVisible(True)
         self.switch_focus_to_term()
 
@@ -322,7 +322,7 @@ class MainWindow(QtGui.QFrame):
 
 
     def switch_focus_to_term(self):
-        self.terminal.inputTerm.setFocus()
+        self.terminal.input_term.setFocus()
 
 
     def new_line(self, blocks):
