@@ -86,7 +86,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal = Terminal(self)
         main_layout.addWidget(self.terminal)
         self.terminal.setVisible(False)
-        self.fontdialogopen = False
+        self.font_dialog_open = False
 
         # Misc settings etc
         self.filename = ''

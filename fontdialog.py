@@ -17,74 +17,74 @@ class FontDialog(QtGui.QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setAttribute(Qt.WA_DeleteOnClose)
 
-        fontdb = QtGui.QFontDatabase()            
+        fontdb = QtGui.QFontDatabase()
 
         # FONT FAMILY LIST
-        fontlistwidget = QtGui.QListWidget(self)
+        fontlist_widget = QtGui.QListWidget(self)
         if show_fonts_in_dialoglist:
             for f in fontdb.families():
-                w = QtGui.QListWidgetItem(f, fontlistwidget)
+                w = QtGui.QListWidgetItem(f, fontlist_widget)
                 font = w.font()
                 font.setFamily(f)
                 w.setFont(font)
         else:
-            fontlistwidget.addItems(fontdb.families())
+            fontlist_widget.addItems(fontdb.families())
         # Start with the current fontfamily
         if self.main.themedict[self.fontfamily] in fontdb.families():
-            fontlistwidget.setCurrentRow(fontdb.families().index(self.main.themedict[self.fontfamily]))
+            fontlist_widget.setCurrentRow(fontdb.families().index(self.main.themedict[self.fontfamily]))
         else:
-            fontlistwidget.setCurrentRow(0)
+            fontlist_widget.setCurrentRow(0)
 
         # FONT SIZE LIST
-        sizelistwidget = QtGui.QListWidget(self)
+        sizelist_widget = QtGui.QListWidget(self)
         fontsizes = [str(s) for s in fontdb.standardSizes()]
-        sizelistwidget.addItems(fontsizes)
+        sizelist_widget.addItems(fontsizes)
         fsize = self.main.themedict[self.fontsize].rstrip('pt')
 
         # Start with the current fontsize
         if fsize in fontsizes:
-            sizelistwidget.setCurrentRow(fontsizes.index(fsize))
+            sizelist_widget.setCurrentRow(fontsizes.index(fsize))
         else:
-            sizelistwidget.setCurrentRow(0)
+            sizelist_widget.setCurrentRow(0)
 
         # Layout
-        listslayout = QtGui.QGridLayout()
-        listslayout.addWidget(fontlistwidget, 0, 0)
-        listslayout.addWidget(sizelistwidget, 0, 1)
-        listslayout.setColumnStretch(0, 5)
-        listslayout.setColumnStretch(1, 1)
+        lists_layout = QtGui.QGridLayout()
+        lists_layout.addWidget(fontlist_widget, 0, 0)
+        lists_layout.addWidget(sizelist_widget, 0, 1)
+        lists_layout.setColumnStretch(0, 5)
+        lists_layout.setColumnStretch(1, 1)
 
-        self.connect(fontlistwidget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
-                     self.setFont)
-        self.connect(sizelistwidget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
-                     self.setSize)
-        self.connect(fontlistwidget, SIGNAL('itemActivated (QListWidgetItem *)'),
+        self.connect(fontlist_widget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
+                     self.set_font)
+        self.connect(sizelist_widget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
+                     self.set_size)
+        self.connect(fontlist_widget, SIGNAL('itemActivated (QListWidgetItem *)'),
                      self.close)
-        self.connect(sizelistwidget, SIGNAL('itemActivated (QListWidgetItem *)'),
+        self.connect(sizelist_widget, SIGNAL('itemActivated (QListWidgetItem *)'),
                      self.close)
 
-        def selectLeftList():
-            fontlistwidget.setFocus()
-        def selectRightList():
-            sizelistwidget.setFocus()
+        def select_left_list():
+            fontlist_widget.setFocus()
+        def select_right_list():
+            sizelist_widget.setFocus()
 
-        QtGui.QShortcut(QtGui.QKeySequence('Left'), self, selectLeftList)
-        QtGui.QShortcut(QtGui.QKeySequence('Right'), self, selectRightList)
+        QtGui.QShortcut(QtGui.QKeySequence('Left'), self, select_left_list)
+        QtGui.QShortcut(QtGui.QKeySequence('Right'), self, select_right_list)
         QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.close)
 
-        self.setLayout(listslayout)
+        self.setLayout(lists_layout)
 
         self.show()
 
     def closeEvent(self, event):
-        self.main.fontdialogopen = False
+        self.main.font_dialog_open = False
         event.accept()
 
-    def setFont(self, new, old):
+    def set_font(self, new, old):
         self.main.themedict[self.fontfamily] = new.text()
         self.main.updateTheme(self.main.themedict)
 
-    def setSize(self, new, old):
+    def set_size(self, new, old):
         self.main.themedict[self.fontsize] = new.text() + 'pt'
         self.main.updateTheme(self.main.themedict)
 
