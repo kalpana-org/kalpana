@@ -101,6 +101,15 @@ class MainWindow(QtGui.QFrame):
         self.connect(self.textarea, SIGNAL('blockCountChanged(int)'),
                      self.new_line)
 
+        # Paths init
+        system = platform.system()
+        if system == 'Linux':
+            cfgdir = os.path.join(os.getenv('HOME'), '.config',
+                                    'kalpana')
+            self.cfgpath = os.path.join(cfgdir, 'kalpana.conf')
+        else:
+            self.cfgpath = local_path('kalpana.json')
+
         # Keyboard shortcuts
         hotkeys = {
             'Ctrl+N': self.new,
@@ -116,15 +125,9 @@ class MainWindow(QtGui.QFrame):
         for key, function in hotkeys.items():
             QtGui.QShortcut(QtGui.QKeySequence(key), self, function)
 
-        # Config init
-        system = platform.system()
-        if system == 'Linux':
-            self.cfgpath = os.path.join(os.getenv('HOME'), '.config',
-                                        'kalpana', 'kalpana.conf')
-        else:
-            self.cfgpath = self.local_path('kalpana.json')
 
-        with open(self.local_path('defaultcfg.json'), encoding='utf8') as f:
+        # Config
+        with open(local_path('defaultcfg.json'), encoding='utf8') as f:
             defaultcfg = json.loads(f.read())
 
         self.stylesheet_template = None
@@ -225,7 +228,7 @@ class MainWindow(QtGui.QFrame):
 
         self.themedict = cfg['theme']
 
-        with open(self.local_path('qtstylesheet.css'), encoding='utf8') as f:
+        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
         self.update_theme(cfg['theme'])
@@ -289,7 +292,7 @@ class MainWindow(QtGui.QFrame):
         self.setStyleSheet(self.stylesheet_template.format(**themedict))
 
     def reload_theme(self):
-        with open(self.local_path('qtstylesheet.css'), encoding='utf8') as f:
+        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
         with open(self.cfgpath, encoding='utf-8') as f:
@@ -298,9 +301,6 @@ class MainWindow(QtGui.QFrame):
 
 
 ## ==== Misc =============================================================== ##
-
-    def local_path(self, path):
-        return os.path.join(sys.path[0], path)
 
     def prompt_error(self, errortext, defaultcmd=''):
         self.terminal.error(errortext)
@@ -559,6 +559,10 @@ class MainWindow(QtGui.QFrame):
             self.lastdir = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
+
+
+def local_path(path):
+    return os.path.join(sys.path[0], path)
 
 
 def get_valid_files():
