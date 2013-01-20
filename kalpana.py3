@@ -172,7 +172,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def read_config(self, defaultcfg):
+    def read_config(self, default_config):
         """ Read the config and update the appropriate variables. """
 
         optionalvalues = ('term_input_bgcolor',
@@ -180,10 +180,10 @@ class MainWindow(QtGui.QFrame):
                           'term_input_textcolor',
                           'term_output_textcolor')
 
-        def check_config(cfg):
+        def check_config(cfg, defcfg):
             """ Make sure the config is valid """
             out = {}
-            for key, defvalue in defaultcfg.items():
+            for key, defvalue in defcfg.items():
                 if key in cfg:
                     if type(defvalue) == dict:
                         out[key] = check_config(cfg[key], defvalue)
@@ -200,9 +200,9 @@ class MainWindow(QtGui.QFrame):
                 rawcfg = json.loads(f.read())
         except (IOError, ValueError):
             print('no/bad config')
-            cfg = defaultcfg
+            cfg = default_config
         else:
-            cfg = check_config(rawcfg)
+            cfg = check_config(rawcfg, default_config)
 
         # Settings
         self.lastdir = cfg['settings']['lastdirectory']
