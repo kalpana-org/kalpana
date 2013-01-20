@@ -55,7 +55,7 @@ class MainWindow(QtGui.QFrame):
         # Accept drag & drop events
         self.setAcceptDrops(True)
 
-        self.forcequit = False
+        self.force_quit = False
 
         # Window title stuff
         self.wt_wordcount = 0
@@ -95,20 +95,20 @@ class MainWindow(QtGui.QFrame):
 
         # Signals/slots
         self.connect(self.document, SIGNAL('modificationChanged(bool)'),
-                     self.toggleModified)
+                     self.toggle_modified)
         self.connect(self.document, SIGNAL('contentsChanged()'),
-                     self.updateWordCount)
+                     self.update_word_count)
         self.connect(self.textarea, SIGNAL('blockCountChanged(int)'),
-                     self.newLine)
+                     self.new_line)
 
         # Keyboard shortcuts
         hotkeys = {
             'Ctrl+N': self.new,
             'Ctrl+O': self.open_k,
             'Ctrl+S': self.save_k,
-            'Ctrl+Shift+S': self.saveAs_k,
-            'F3': self.findNext,
-            'Ctrl+Return': self.toggleTerminal
+            'Ctrl+Shift+S': self.save_as_k,
+            'F3': self.find_next,
+            'Ctrl+Return': self.toggle_terminal
         }
 
         hotkeys.update(plugin_hotkeys)
@@ -123,13 +123,13 @@ class MainWindow(QtGui.QFrame):
             self.cfgpath = os.path.join(os.getenv('HOME'), '.config',
                                         'kalpana', 'kalpana.conf')
         else:
-            self.cfgpath = self.localPath('kalpana.json')
+            self.cfgpath = self.local_path('kalpana.json')
 
-        with open(self.localPath('defaultcfg.json'), encoding='utf8') as f:
+        with open(self.local_path('defaultcfg.json'), encoding='utf8') as f:
             self.defaultcfg = json.loads(f.read())
 
         self.stylesheet_template = None
-        self.readConfig()
+        self.read_config()
 
         # Nano stuff including empty sidebar
         # New class for the stylesheet
@@ -155,11 +155,11 @@ class MainWindow(QtGui.QFrame):
 
 
         if file_:
-            if not self.openFile(file_):
+            if not self.open_file(file_):
                 self.close()
-            self.updateWindowTitle()
+            self.update_window_title()
         else:
-            self.setFileName('NEW')
+            self.set_file_name('NEW')
 
         self.show()
 
@@ -167,12 +167,12 @@ class MainWindow(QtGui.QFrame):
 ## ==== Overrides ========================================================== ##
 
     def closeEvent(self, event):
-        if not self.document.isModified() or self.forcequit:
-            self.writeConfig()
+        if not self.document.isModified() or self.force_quit:
+            self.write_config()
             event.accept()
         else:
             self.terminal.setVisible(True)
-            self.switchFocusToTerm()
+            self.switch_focus_to_term()
             self.terminal.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
 
@@ -196,7 +196,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def readConfig(self):
+    def read_config(self):
         """ Read the config and update the appropriate variables. """
 
         optionalvalues = ('term_input_bgcolor',
@@ -206,13 +206,13 @@ class MainWindow(QtGui.QFrame):
                           'term_output_textcolor',
                           'nano_textcolor')
 
-        def checkConfig(cfg, defaultcfg):
+        def check_config(cfg, defaultcfg):
             """ Make sure the config is valid """
             out = {}
             for key, defvalue in defaultcfg.items():
                 if key in cfg:
                     if type(defvalue) == dict:
-                        out[key] = checkConfig(cfg[key], defvalue)
+                        out[key] = check_config(cfg[key], defvalue)
                     elif not cfg[key] and key not in optionalvalues:
                         out[key] = defvalue
                     else:
@@ -228,17 +228,17 @@ class MainWindow(QtGui.QFrame):
             print('no/bad config')
             cfg = self.defaultcfg
         else:
-            cfg = checkConfig(rawcfg, self.defaultcfg)
+            cfg = check_config(rawcfg, self.defaultcfg)
 
         # Settings
         self.lastdir = cfg['settings']['lastdirectory']
         vscrollbar = cfg['settings']['vscrollbar']
         if vscrollbar == 'always':
-            self.sbAlwaysShow()
+            self.always_show_scrollbar()
         elif vscrollbar == 'needed':
-            self.sbNeededShow()
+            self.show_scrollbar_when_needed()
         elif vscrollbar == 'never':
-            self.sbNeverShow()
+            self.never_show_scrollbar()
         self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
@@ -247,14 +247,14 @@ class MainWindow(QtGui.QFrame):
         self.start_in_term = cfg['settings']['start_in_term']
         if self.start_in_term:
             self.terminal.setVisible(True)
-            self.switchFocusToTerm()
+            self.switch_focus_to_term()
 
         self.themedict = cfg['theme']
 
-        with open(self.localPath('qtstylesheet.css'), encoding='utf8') as f:
+        with open(self.local_path('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
-        self.updateTheme(cfg['theme'])
+        self.update_theme(cfg['theme'])
 
         # NaNo
         self.endPoint = cfg['nano']['endpoint']
@@ -263,7 +263,7 @@ class MainWindow(QtGui.QFrame):
         self.idealChLen = cfg['nano']['idealChLen']
 
 
-    def writeConfig(self):
+    def write_config(self):
         """
         Read the config, update the info with appropriate variables (optional)
         and then overwrite the old file with the updated config.
@@ -307,7 +307,7 @@ class MainWindow(QtGui.QFrame):
             f.write(outjson)
 
 
-    def updateTheme(self, themedict):
+    def update_theme(self, themedict):
         self.themedict = themedict.copy()
 
         overload = {
@@ -329,13 +329,13 @@ class MainWindow(QtGui.QFrame):
 
         self.setStyleSheet(self.stylesheet_template.format(**themedict))
 
-    def reloadTheme(self):
-        with open(self.localPath('qtstylesheet.css'), encoding='utf8') as f:
+    def reload_theme(self):
+        with open(self.local_path('qtstylesheet.css'), encoding='utf8') as f:
             self.stylesheet_template = f.read()
 
         with open(self.cfgpath, encoding='utf-8') as f:
             cfg = json.loads(f.read())
-        self.updateTheme(cfg['theme'])
+        self.update_theme(cfg['theme'])
 
 
 ## ==== Nano 3============================================================== ##
@@ -356,7 +356,7 @@ class MainWindow(QtGui.QFrame):
         Count words per chapter, create current wordcount as chapter array and
         total wordcount.
         Split chapter at text 'KAPITEL' or 'CHAPTER'.
-        Should override updateWordCount.
+        Should override update_word_count.
         """
         # Join lines and remove comments.
         # Split into chapters at (newlines + chapter start)
@@ -368,10 +368,10 @@ class MainWindow(QtGui.QFrame):
             chLength = len(re.findall(r'\S+', i.split(self.endPoint)[0]))
             self.wordsPerChapter.append(chLength)
             self.accWcount += chLength
-        # Very much stolen from updateWordCount()
+        # Very much stolen from update_word_count()
         if not self.accWcount == self.wt_wordcount:
             self.wt_wordcount = self.accWcount
-            self.updateWindowTitle()
+            self.update_window_title()
 
     def nanoLogStats(self):
         """
@@ -490,33 +490,33 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Misc =============================================================== ##
 
-    def localPath(self, path):
+    def local_path(self, path):
         return os.path.join(sys.path[0], path)
 
-    def promptError(self, errortext, defaultcmd=''):
+    def prompt_error(self, errortext, defaultcmd=''):
         self.terminal.error(errortext)
-        self.promptTerm(defaultcmd)
+        self.prompt_term(defaultcmd)
 
-    def promptTerm(self, defaultcmd=''):
+    def prompt_term(self, defaultcmd=''):
         if defaultcmd:
             self.terminal.inputTerm.setText(defaultcmd)
         self.terminal.setVisible(True)
-        self.switchFocusToTerm()
+        self.switch_focus_to_term()
 
 
-    def toggleTerminal(self):
+    def toggle_terminal(self):
         self.terminal.setVisible(abs(self.terminal.isVisible()-1))
         if self.terminal.isVisible():
-            self.switchFocusToTerm()
+            self.switch_focus_to_term()
         else:
             self.textarea.setFocus()
 
 
-    def switchFocusToTerm(self):
+    def switch_focus_to_term(self):
         self.terminal.inputTerm.setFocus()
 
 
-    def newLine(self, blocks):
+    def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
         if blocks > self.blocks and self.autoindent:
             cursor = self.textarea.textCursor()
@@ -526,58 +526,58 @@ class MainWindow(QtGui.QFrame):
             cursor.insertText(indent)
 
 
-    def newAndEmpty(self):
+    def new_and_empty(self):
         """ Return True if the file is empty and unsaved. """
         return not self.document.isModified() and not self.filename
 
     # ---- Vertical scrollbar -------------------------------------- #
 
-    def sbAlwaysShow(self):
+    def always_show_scrollbar(self):
         """ Always show the vertical scrollbar. Convenience function. """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
-    def sbNeededShow(self):
+    def show_scrollbar_when_needed(self):
         """
         Only show the vertical scrollbar when needed.
         Convenience function.
         """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-    def sbNeverShow(self):
+    def never_show_scrollbar(self):
         """ Never show the vertical scrollbar. Convenience function. """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     # -------------------------------------------------------------- #
 
 
-    def findNext(self):
+    def find_next(self):
         if not self.findtext:
             self.terminal.error("No previous searches")
             return
-        tempCursor = self.textarea.textCursor()
+        temp_cursor = self.textarea.textCursor()
         found = self.textarea.find(self.findtext)
         if not found:
             if not self.textarea.textCursor().atStart():
                 self.textarea.moveCursor(QtGui.QTextCursor.Start)
                 found = self.textarea.find(self.findtext)
                 if not found:
-                    self.textarea.setTextCursor(tempCursor)
+                    self.textarea.setTextCursor(temp_cursor)
                     self.terminal.error('[find] Text not found')
 
 
-    def replaceNext(self):
+    def replace_next(self):
         if not self.replace1text:
             self.terminal.error("No previous replaces")
             return
 
-        tempCursor = self.textarea.textCursor()
+        temp_cursor = self.textarea.textCursor()
         found = self.textarea.find(self.replace1text)
         if not found:
             if not self.textarea.textCursor().atStart():
                 self.textarea.moveCursor(QtGui.QTextCursor.Start)
                 found = self.textarea.find(self.replace1text)
                 if not found:
-                    self.textarea.setTextCursor(tempCursor)
+                    self.textarea.setTextCursor(temp_cursor)
         if found:
             self.textarea.textCursor().insertText(self.replace2text)
             self.terminal.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
@@ -585,12 +585,12 @@ class MainWindow(QtGui.QFrame):
             self.terminal.error('[replace] Text not found')
 
 
-    def replaceAll(self):
+    def replace_all(self):
         if not self.replace1text:
             self.terminal.error("No previous replaces")
             return
 
-        tempCursor = self.textarea.textCursor()
+        temp_cursor = self.textarea.textCursor()
         times = 0
         while True:
             found = self.textarea.find(self.replace1text)
@@ -606,38 +606,38 @@ class MainWindow(QtGui.QFrame):
         if times:
             self.terminal.print_('{0} instances replaced'.format(times))
         else:
-            self.textarea.setTextCursor(tempCursor)
-            self.terminal.error('[replaceall] Text not found')
+            self.textarea.setTextCursor(temp_cursor)
+            self.terminal.error('[replace_all] Text not found')
 
 
 ## ==== Window title ===================================== ##
 
-    def updateWindowTitle(self):
+    def update_window_title(self):
         self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
                                                      self.wt_wordcount,
                                                      self.wt_file))
 
 
-    def toggleModified(self, modified):
+    def toggle_modified(self, modified):
         """
         Toggle the asterisks in the title depending on if the file has been
         modified since last save/open or not.
         """
         self.wt_modified = modified
-        self.updateWindowTitle()
+        self.update_window_title()
 
 
-    def updateWordCount(self):
+    def update_word_count(self):
         if self.nanoMode:
             self.nanoCountWordsChapters()
         else:
             wcount = len(re.findall(r'\S+', self.document.toPlainText()))
             if not wcount == self.wt_wordcount:
                 self.wt_wordcount = wcount
-                self.updateWindowTitle()
+                self.update_window_title()
 
 
-    def setFileName(self, filename):
+    def set_file_name(self, filename):
         """ Set both the output file and the title to filename. """
         if filename == 'NEW':
             self.filename = ''
@@ -645,7 +645,7 @@ class MainWindow(QtGui.QFrame):
         else:
             self.filename = filename
             self.wt_file = os.path.basename(filename)
-        self.updateWindowTitle()
+        self.update_window_title()
 
 
 
@@ -653,42 +653,42 @@ class MainWindow(QtGui.QFrame):
 
     def new(self, force=False):
         """ Create a new file. Terminal usage """
-        if self.open_in_new_window and not self.newAndEmpty():
+        if self.open_in_new_window and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0]])
         elif not self.document.isModified() or force:
             self.document.clear()
             self.document.setModified(False)
-            self.toggleModified(False)
-            self.setFileName('NEW')
+            self.toggle_modified(False)
+            self.set_file_name('NEW')
             self.blocks = 1
         else:
-            self.promptError('Unsaved changes! Force new with n! or save first.')
+            self.prompt_error('Unsaved changes! Force new with n! or save first.')
 
     def open_k(self):
         """ Open, called from key shortcut """
         if not self.guidialogs:
-            self.promptTerm(defaultcmd='o ')
+            self.prompt_term(defaultcmd='o ')
         else:
             if (self.open_in_new_window or not self.document.isModified()):
-                filename = QtGui.QFileDialog.getOpenFileName(self,
+                filename = QtGui.QFileDialog.getopen_fileName(self,
                                                       directory=self.lastdir)[0]
                 if filename:
                     self.open_t(filename)
             else:
-                self.promptError('Unsaved changes! Force open with o! or save first.')
+                self.prompt_error('Unsaved changes! Force open with o! or save first.')
 
     def open_t(self, filename, force=False):
         """ Open, called from terminal """
-        if self.open_in_new_window and not self.newAndEmpty():
+        if self.open_in_new_window and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
             self.lastdir = os.path.dirname(filename)
-            self.openFile(filename)
+            self.open_file(filename)
         else:
-            self.promptError('Unsaved changes! Force open with o! or save first.')
+            self.prompt_error('Unsaved changes! Force open with o! or save first.')
 
 
-    def openFile(self, filename):
+    def open_file(self, filename):
         encodings = ('utf-8', 'latin1')
         readsuccess = False
         for e in encodings:
@@ -701,7 +701,7 @@ class MainWindow(QtGui.QFrame):
                 readsuccess = True
                 self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
-                self.setFileName(filename)
+                self.set_file_name(filename)
                 self.blocks = self.document.blockCount()
                 self.textarea.moveCursor(QtGui.QTextCursor.Start)
                 return True
@@ -720,12 +720,12 @@ class MainWindow(QtGui.QFrame):
                 if fname:
                     self.save_t(fname)
             else:
-                self.promptError('File not saved yet! Save with s first.',
+                self.prompt_error('File not saved yet! Save with s first.',
                                  defaultcmd='s ')
         else:
             self.save_t()
 
-    def saveAs_k(self):
+    def save_as_k(self):
         """ Called from hotkey when guidialogs is on """
         if self.guidialogs:
             fname = QtGui.QFileDialog.getSaveFileName(self,
@@ -733,7 +733,7 @@ class MainWindow(QtGui.QFrame):
             if fname:
                 self.save_t(fname)
         else:
-            self.promptTerm(defaultcmd='s ')
+            self.prompt_term(defaultcmd='s ')
 
 
     def save_t(self, filename=''):
@@ -754,11 +754,11 @@ class MainWindow(QtGui.QFrame):
                 self.nanowidget.setPlainText(self.nanoGenerateStats())
                 self.nanoLogStats()
             self.lastdir = os.path.dirname(savefname)
-            self.setFileName(savefname)
+            self.set_file_name(savefname)
             self.document.setModified(False)
 
 
-def getValidFiles():
+def get_valid_files():
     output = []
     for f in sys.argv[1:]:
         # try:
@@ -774,7 +774,7 @@ def getValidFiles():
 
 if __name__ == '__main__':
     os.environ['PYTHONIOENCODING'] = 'utf-8'
-    files = getValidFiles()
+    files = get_valid_files()
     app = QtGui.QApplication(sys.argv)
 
     if not files:
