@@ -219,10 +219,10 @@ class Terminal(QtGui.QSplitter):
 
 
     def cmdNew(self, arg):
-        self.main.new_t()
+        self.main.new()
 
     def cmdForceNew(self, arg):
-        self.main.new_t(force=True)
+        self.main.new(force=True)
 
 
     def cmdSave(self, arg, force=False):
