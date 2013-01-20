@@ -19,13 +19,7 @@
 import os.path
 import fontdialog
 
-try:
-    from PySide import QtGui
-    from PySide.QtCore import Qt, SIGNAL, QDir, QEvent
-except ImportError:
-    from PyQt4 import QtGui
-    from PyQt4.QtCore import Qt, SIGNAL, QDir, QEvent
-
+from imports import QtGui, SIGNAL, Qt, QDir, QEvent
 
 class Terminal(QtGui.QSplitter):
 
