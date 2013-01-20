@@ -289,8 +289,8 @@ class Terminal(QtGui.QSplitter):
         if self.main.fontdialogopen:
             self.error('Font dialog already open')
             return
-        if arg not in ('main', 'term', 'nano'):
-            self.error('Wrong argument [main/term/nano]')
+        if arg not in ('main', 'term'):
+            self.error('Wrong argument [main/term]')
             return
         if arg == 'term':
             self.print_('Räksmörgås?!')
@@ -356,7 +356,7 @@ class Terminal(QtGui.QSplitter):
             'r': (cmd_replace, 'Replace (syntax help needed)'),
             'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
             '?': (cmd_help, 'List commands or help for [command]'),
-            'cf': (cmd_change_font, 'Change font [main/term/nano]'),
+            'cf': (cmd_change_font, 'Change font [main/term]'),
             'ai': (cmd_autoindent, 'Toggle auto indent'),
             'ln': (cmd_line_numbers, 'Toggle line numbers'),
             'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
