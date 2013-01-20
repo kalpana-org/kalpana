@@ -41,6 +41,9 @@ GUIPlugin.commands
 GUIPlugin.hotkeys
     * A dict with keyboard shortcuts as key (see ``QKeySequence()``) and a function as value. The function will be called by Kalpana when the key (combination) is pressed. The key combinations will **overwrite** vanilla shortcuts and shortcuts in earlier loaded plugins, if they are identical.
 
+GUIPlugin.path
+    * A string with the path to the plugin's directory. This is where config files should be stored.
+
 
 "Events"
 ========
@@ -49,11 +52,17 @@ GUIPlugin.hotkeys
 GUIPlugin.start(self)
     * Is called when the plugin has been initiated. This is the equivalent of a constructor. **Do not use __init__()!**
 
-GUIPlugin.read_config(self, path)
-    * Is called when the config is (re)loaded. `path` is the path to the plugin's *directory*. The plugin must find and read its config file itself, if it has one.
+GUIPlugin.config_changed(self)
+    * Is called when the (text in the) document is modified.
 
-GUIPlugin.write_config(self, path)
-    * Is called when the config is saved. `path` is the path to the plugin's *directory*. The plugin must find and write its config file itself, if it has one.
+GUIPlugin.file_saved(self)
+    * Is called when the file is saved.
+
+GUIPlugin.read_config(self)
+    * Is called when the config is (re)loaded.
+
+GUIPlugin.write_config(self)
+    * Is called when the config is saved.
 
 
 Regular methods
@@ -63,6 +72,10 @@ Regular methods
 GUIPlugin.add_widget(widget, side)
     * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
     * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
+
+GUIPlugin.get_filename()
+    * Return the name of the file current open in Kalpana.
+    * If no file is open or saved, an empty string is returned.
 
 GUIPlugin.get_text()
     * Return the text currently in the main textarea in Kalpana. This is a wrapper around ``QTextDocument.toPlainText()``.

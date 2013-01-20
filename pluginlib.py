@@ -1,12 +1,18 @@
 NORTH, SOUTH, EAST, WEST, = list(range(4))
 
-hotkeys = {}
-commands = {}
-
 class GUIPlugin:
+    hotkeys = {}
+    commands = {}
 
-    def __init__(self, get_text, add_widget):
+    def __init__(self, get_text, get_filename, add_widget, path):
         self.get_text = get_text
+        self.get_filename = get_filename
+        self.add_widget = add_widget
+        self.path = path
+        self.start()
+
+    def start(self):
+        pass
 
     def read_config(self):
         pass
@@ -15,4 +21,7 @@ class GUIPlugin:
         pass
 
     def contents_changed(self):
+        pass
+
+    def file_saved(self):
         pass

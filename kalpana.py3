@@ -116,22 +116,27 @@ class MainWindow(QtGui.QFrame):
         # Plugins
         def add_widget(widget, side):
             from pluginlib import NORTH, SOUTH, EAST, WEST
-
             if side in (NORTH, SOUTH):
                 layout = main_layout
             elif side in (WEST, EAST):
                 layout = top_layout
             if side in (NORTH, WEST):
-                layout.insertItem(0, widget)
+                layout.insertWidget(0, widget)
             elif side in (SOUTH, EAST):
-                layout.addItem(widget)
+                layout.addWidget(widget)
 
+        self.plugins = []
+        for path, name, module in get_plugins(pluginpath):
+            try:
+                temp = module.UserPlugin(self.document.toPlainText(),
+                                         lambda:self.filename,
+                                         add_widget, path)
+            except AttributeError:
+                print('"{0}" is not a valid plugin and was not loaded.'\
+                      .format(name))
+            else:
+                self.plugins.append(temp)
 
-        plugins = get_plugins(pluginpath)
-        plugin_hotkeys = {} # TODO: THIS
-        plugin_objects = [p.UserPlugin(self.document.toPlainText(),
-                                       add_widget)
-                          for p in plugins]
 
         # Keyboard shortcuts
         hotkeys = {
@@ -143,7 +148,8 @@ class MainWindow(QtGui.QFrame):
             'Ctrl+Return': self.toggle_terminal
         }
 
-        hotkeys.update(plugin_hotkeys)
+        for p in self.plugins:
+            hotkeys.update(p.hotkeys)
 
         for key, function in hotkeys.items():
             QtGui.QShortcut(QtGui.QKeySequence(key), self, function)
@@ -256,6 +262,9 @@ class MainWindow(QtGui.QFrame):
 
         self.update_theme(cfg['theme'])
 
+        for p in self.plugins:
+            p.read_config()
+
     def write_config(self):
         """
         Read the config, update the info with appropriate variables (optional)
@@ -292,6 +301,9 @@ class MainWindow(QtGui.QFrame):
             print('Creating config path...')
         with open(self.cfgpath, 'w', encoding='utf-8') as f:
             f.write(outjson)
+
+        for p in self.plugins:
+            p.write_config()
 
 
     def update_theme(self, themedict):
@@ -452,6 +464,8 @@ class MainWindow(QtGui.QFrame):
         if not wcount == self.wt_wordcount:
             self.wt_wordcount = wcount
             self.update_window_title()
+        for p in self.plugins:
+            p.contents_changed()
 
 
     def update_window_title(self):
@@ -585,22 +599,25 @@ class MainWindow(QtGui.QFrame):
             self.lastdir = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
+            for p in self.plugins:
+                p.file_saved()
 
 
 def local_path(path):
     return os.path.join(sys.path[0], path)
 
 
-def get_plugins(pluginpath):
+def get_plugins(plugin_root_path):
     join = os.path.join
-    plugins = [(dirname, join(pluginpath, dirname))
-               for dirname in os.listdir(pluginpath)
-               if os.path.isfile(join(pluginpath, dirname, dirname+'.py'))]
-    imported_plugins = []
-    for name, path in plugins:
-        sys.path.append(path)
-        imported_plugins.append(importlib.import_module(name))
-    return imported_plugins
+    def get_plugin(plugin_root_path):
+        for name in os.listdir(plugin_root_path):
+            plugin_path = join(plugin_root_path, name)
+            if not os.path.isfile(join(plugin_path, name + '.py')):
+                continue
+            sys.path.append(plugin_path)
+            yield plugin_path, name, importlib.import_module(name)
+
+    return [x for x in get_plugin(plugin_root_path)]
 
 
 def get_valid_files():
