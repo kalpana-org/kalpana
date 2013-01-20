@@ -34,7 +34,8 @@ class Terminal(QtGui.QSplitter):
             QtGui.QLineEdit.__init__(self, *args)
 
         def event(self, event):
-            if event.type() == QEvent.KeyPress and event.key() == Qt.Key_Tab and\
+            if event.type() == QEvent.KeyPress and\
+                        event.key() == Qt.Key_Tab and\
                         event.modifiers() == Qt.NoModifier:
                 self.emit(SIGNAL('tabPressed()'))
                 return True
@@ -69,13 +70,13 @@ class Terminal(QtGui.QSplitter):
         self.setHandleWidth(2)
 
         # I/O fields creation
-        self.inputTerm = self.InputBox(self)
-        self.outputTerm = self.OutputBox(self)
-        self.outputTerm.setDisabled(True)
-        self.outputTerm.setAlignment(Qt.AlignRight)
+        self.input_term = self.InputBox(self)
+        self.output_term = self.OutputBox(self)
+        self.output_term.setDisabled(True)
+        self.output_term.setAlignment(Qt.AlignRight)
 
-        self.addWidget(self.inputTerm)
-        self.addWidget(self.outputTerm)
+        self.addWidget(self.input_term)
+        self.addWidget(self.output_term)
 
         # Autocomplete
         self.completer = QtGui.QCompleter(self)
@@ -85,12 +86,12 @@ class Terminal(QtGui.QSplitter):
         self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
         self.completer.setCaseSensitivity(Qt.CaseSensitive)
 
-        self.connect(self.inputTerm, SIGNAL('tabPressed()'),
+        self.connect(self.input_term, SIGNAL('tabPressed()'),
                      self.autocomplete)
-        self.connect(self.inputTerm, SIGNAL('update_completion_prefix()'),
+        self.connect(self.input_term, SIGNAL('update_completion_prefix()'),
                      self.update_completion_prefix)
 
-        self.connect(self.inputTerm, SIGNAL('returnPressed()'),
+        self.connect(self.input_term, SIGNAL('returnPressed()'),
                      self.parse_command)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
                         self.move_splitter_left)
@@ -102,7 +103,7 @@ class Terminal(QtGui.QSplitter):
 
     def get_autocompletable_text(self):
         cmds = ('o', 'o!', 's', 's!')
-        text = self.inputTerm.text()
+        text = self.input_term.text()
         for c in cmds:
             if text.startswith(c + ' '):
                 return text[:len(c)+1], text[len(c)+1:]
@@ -122,7 +123,7 @@ class Terminal(QtGui.QSplitter):
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
             self.completer.setCompletionPrefix(wd + separator)
-            self.inputTerm.setText(cmdprefix + wd + separator)
+            self.input_term.setText(cmdprefix + wd + separator)
             return
 
         isdir = os.path.isdir(self.completer.currentCompletion())
@@ -133,7 +134,7 @@ class Terminal(QtGui.QSplitter):
         prefix = self.completer.completionPrefix()
         suggestion = self.completer.currentCompletion()
         newisdir = os.path.isdir(self.completer.currentCompletion())
-        self.inputTerm.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
+        self.input_term.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
 
 
     def update_completion_prefix(self):
@@ -166,16 +167,16 @@ class Terminal(QtGui.QSplitter):
 
     def history_up(self):
         pass
-        # if self.historyPosition > 0:
-        #     self.historyPosition -= 1:
-        #     self.inputTerm.setText(self.history[self.historyPosition])
+        # if self.history_position > 0:
+        #     self.history_position -= 1:
+        #     self.input_term.setText(self.history[self.history_position])
 
     def history_down(self):
-        # if self.historyPosition < len(self.history)-1:
-        #     self.historyPosition += 1:
-        #     self.inputTerm.setText(self.history[self.historyPosition])
-        # elif self.historyPosition == len(self.history)-1 and self.inputTerm.text():
-        #     self.historyPosition += 1:
+        # if self.history_position < len(self.history)-1:
+        #     self.history_position += 1:
+        #     self.input_term.setText(self.history[self.history_position])
+        # elif self.history_position == len(self.history)-1 and self.input_term.text():
+        #     self.history_position += 1:
         pass
 
 
@@ -186,13 +187,13 @@ class Terminal(QtGui.QSplitter):
 
 
     def parse_command(self):
-        text = self.inputTerm.text()
+        text = self.input_term.text()
         if not text.strip():
             return
         self.history.append(text)
-        self.historyPosition = len(self.history)
-        self.inputTerm.setText('')
-        self.outputTerm.setText('')
+        self.history_position = len(self.history)
+        self.input_term.setText('')
+        self.output_term.setText('')
         cmd = text.split(' ', 1)[0]
         # If the command exists, run the callback function (a bit cryptic maybe)
         if cmd in self.cmds:
@@ -205,11 +206,11 @@ class Terminal(QtGui.QSplitter):
 
 
     def print_(self, text):
-        self.outputTerm.setText(str(text))
+        self.output_term.setText(str(text))
 
 
     def error(self, text):
-        self.outputTerm.setText('Error: ' + text)
+        self.output_term.setText('Error: ' + text)
 
 
     # ==== Commands ============================== #
