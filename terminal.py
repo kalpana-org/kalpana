@@ -44,15 +44,15 @@ class Terminal(QtGui.QSplitter):
         def keyPressEvent(self, event):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
                 QtGui.QLineEdit.keyPressEvent(self, event)
-                self.emit(SIGNAL('updateCompletionPrefix()'))
+                self.emit(SIGNAL('update_completion_prefix()'))
             elif event.key() == Qt.Key_Up:
-                self.emit(SIGNAL('historyUp()'))
+                self.emit(SIGNAL('history_up()'))
             elif event.key() == Qt.Key_Down:
-                self.emit(SIGNAL('historyDown()'))
+                self.emit(SIGNAL('history_down()'))
             else:
                 return QtGui.QLineEdit.keyPressEvent(self, event)
-  
-    # This needs to be here for the stylesheet 
+
+    # This needs to be here for the stylesheet
     class OutputBox(QtGui.QLineEdit):
         pass
 
@@ -84,23 +84,23 @@ class Terminal(QtGui.QSplitter):
         self.completer.setModel(fsmodel)
         self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
         self.completer.setCaseSensitivity(Qt.CaseSensitive)
-        
+
         self.connect(self.inputTerm, SIGNAL('tabPressed()'),
                      self.autocomplete)
-        self.connect(self.inputTerm, SIGNAL('updateCompletionPrefix()'),
-                     self.updateCompletionPrefix)
+        self.connect(self.inputTerm, SIGNAL('update_completion_prefix()'),
+                     self.update_completion_prefix)
 
-        self.connect(self.inputTerm, SIGNAL('returnPressed()'), 
-                     self.parseCommand)
+        self.connect(self.inputTerm, SIGNAL('returnPressed()'),
+                     self.parse_command)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
-                        self.moveSplitterLeft)
+                        self.move_splitter_left)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,
-                        self.moveSplitterRight)
-    
+                        self.move_splitter_right)
+
 
     # ==== Autocomplete ========================== #
 
-    def getAutocompletableText(self):
+    def get_autocompletable_text(self):
         cmds = ('o', 'o!', 's', 's!')
         text = self.inputTerm.text()
         for c in cmds:
@@ -110,10 +110,10 @@ class Terminal(QtGui.QSplitter):
 
 
     def autocomplete(self):
-        cmdprefix, ac_text = self.getAutocompletableText()
+        cmdprefix, ac_text = self.get_autocompletable_text()
         if ac_text is None:
             return
-    
+
         separator = QDir.separator()
 
         # Autocomplete with the working directory if the line is empty
@@ -136,8 +136,8 @@ class Terminal(QtGui.QSplitter):
         self.inputTerm.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
 
 
-    def updateCompletionPrefix(self):
-        cmdprefix, ac_text = self.getAutocompletableText()
+    def update_completion_prefix(self):
+        cmdprefix, ac_text = self.get_autocompletable_text()
         if not ac_text:
             return
         self.completer.setCompletionPrefix(ac_text)
@@ -145,7 +145,7 @@ class Terminal(QtGui.QSplitter):
 
     # ==== Splitter ============================== #
 
-    def moveSplitter(self, dir):
+    def move_splitter(self, dir):
         s1, s2 = self.sizes()
         jump = int((s1 + s2) * 0.1)
         if dir == 'left':
@@ -155,22 +155,22 @@ class Terminal(QtGui.QSplitter):
         new_s2 = s1 + s2 - new_s1
         self.setSizes((new_s1, new_s2))
 
-    def moveSplitterLeft(self):
-        self.moveSplitter('left')
+    def move_splitter_left(self):
+        self.move_splitter('left')
 
-    def moveSplitterRight(self):
-        self.moveSplitter('right')
+    def move_splitter_right(self):
+        self.move_splitter('right')
 
 
     # ==== History =============================== #
 
-    def historyUp(self):
+    def history_up(self):
         pass
         # if self.historyPosition > 0:
         #     self.historyPosition -= 1:
         #     self.inputTerm.setText(self.history[self.historyPosition])
 
-    def historyDown(self):
+    def history_down(self):
         # if self.historyPosition < len(self.history)-1:
         #     self.historyPosition += 1:
         #     self.inputTerm.setText(self.history[self.historyPosition])
@@ -185,7 +185,7 @@ class Terminal(QtGui.QSplitter):
         self.main.textarea.setFocus()
 
 
-    def parseCommand(self):
+    def parse_command(self):
         text = self.inputTerm.text()
         if not text.strip():
             return
@@ -213,25 +213,25 @@ class Terminal(QtGui.QSplitter):
 
 
     # ==== Commands ============================== #
-    def cmdOpen(self, arg, force=False):
+    def cmd_open(self, arg, force=False):
         f = arg.strip()
         if os.path.isfile(f):
             self.main.open_t(f, force)
         else:
             self.error('Non-existing file')
 
-    def cmdForceOpen(self, arg):
-        self.cmdOpen(arg, force=True)
+    def cmd_force_open(self, arg):
+        self.cmd_open(arg, force=True)
 
 
-    def cmdNew(self, arg):
+    def cmd_new(self, arg):
         self.main.new()
 
-    def cmdForceNew(self, arg):
+    def cmd_force_new(self, arg):
         self.main.new(force=True)
 
 
-    def cmdSave(self, arg, force=False):
+    def cmd_save(self, arg, force=False):
         f = arg.strip()
         if not f:
             if self.main.filename:
@@ -247,24 +247,24 @@ class Terminal(QtGui.QSplitter):
             else:
                 self.error('Invalid path')
 
-    def cmdOverwriteSave(self, arg):
-        self.cmdSave(arg, force=True)
+    def cmd_overwrite_save(self, arg):
+        self.cmd_save(arg, force=True)
 
 
-    def cmdQuit(self, arg):
+    def cmd_quit(self, arg):
         self.main.close()
-       
-    def cmdForceQuit(self, arg):
+
+    def cmd_force_quit(self, arg):
         self.main.forcequit = True
         self.main.close()
 
 
-    def cmdFind(self, arg):
+    def cmd_find(self, arg):
         if arg:
             self.main.findtext = arg
         self.main.findNext()
 
-    def setReplaceTexts(self, arg):
+    def set_replace_texts(self, arg):
         """ Try to set the find/replace texts to the args, return False if it fails """
         try:
             self.main.replace1text, self.main.replace2text = arg.split(' ', 1)
@@ -273,18 +273,18 @@ class Terminal(QtGui.QSplitter):
             return False
         return True
 
-    def cmdReplace(self, arg):
-        if arg and not self.setReplaceTexts(arg):
+    def cmd_replace(self, arg):
+        if arg and not self.set_replace_texts(arg):
             return
         self.main.replaceNext()
 
-    def cmdReplaceAll(self, arg):
-        if arg and not self.setReplaceTexts(arg):
+    def cmd_replace_all(self, arg):
+        if arg and not self.set_replace_texts(arg):
             return
         self.main.replaceAll()
 
 
-    def cmdChangeFont(self, arg):
+    def cmd_change_font(self, arg):
         if self.main.fontdialogopen:
             self.error('Font dialog already open')
             return
@@ -294,19 +294,19 @@ class Terminal(QtGui.QSplitter):
         if arg == 'term':
             self.print_('Räksmörgås?!')
         self.main.fontdialogopen = True
-        fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist, 
+        fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
                                      arg + '_fontfamily', arg + '_fontsize')
 
-    def cmdAutoIndent(self, arg):
+    def cmd_autoindent(self, arg):
         self.main.autoindent = not self.main.autoindent
         self.print_('Now ' + str(self.main.autoindent).lower())
 
-    def cmdLineNumbers(self, arg):
+    def cmd_line_numbers(self, arg):
         self.textarea.number_bar.showbar = not self.textarea.number_bar.showbar
         self.textarea.number_bar.update()
         self.print_('Now ' + str(self.textarea.number_bar.showbar).lower())
 
-    def cmdScrollbar(self, arg):
+    def cmd_scrollbar(self, arg):
         arg = arg.strip().lower()
         if not arg:
             self.print_(('Off','Maybe','On')[self.textarea.verticalScrollBarPolicy()])
@@ -319,7 +319,7 @@ class Terminal(QtGui.QSplitter):
         else:
             self.error('Wrong argument [off/maybe/on]')
 
-    def cmdNewWindow(self, arg):
+    def cmd_new_window(self, arg):
         arg = arg.strip()
         if not arg:
             self.print_(self.main.open_in_new_window)
@@ -330,7 +330,7 @@ class Terminal(QtGui.QSplitter):
         else:
             self.error('Wrong argument [y/n]')
 
-    def cmdHelp(self, arg):
+    def cmd_help(self, arg):
         if not arg:
             self.print_(' '.join(sorted(self.cmds)))
         elif arg in self.cmds:
@@ -338,7 +338,7 @@ class Terminal(QtGui.QSplitter):
         else:
             self.error('No such command')
 
-    def cmdNanoToggle(self, arg):
+    def cmd_nano_toggle(self, arg):
         if arg.strip().isdigit():
             if int(arg.strip()) == 0:
                 self.main.nanoMode = False
@@ -356,27 +356,27 @@ class Terminal(QtGui.QSplitter):
         else:
             self.error('Invalid argument')
 
-    def cmdReloadTheme(self, arg):
+    def cmd_reload_theme(self, arg):
         self.main.reloadTheme()
 
 
 
-    cmds = {'o': (cmdOpen, 'Open [file]'),
-            'o!': (cmdForceOpen, 'Open [file] and discard the old'),
-            'n': (cmdNew, 'Open new file'),
-            'n!': (cmdForceNew, 'Open new file and discard the old'),
-            's': (cmdSave, 'Save (as) [file]'),
-            's!': (cmdOverwriteSave, 'Save (as) [file] and overwrite'),
-            'q': (cmdQuit, 'Quit Kalpana'),
-            'q!': (cmdForceQuit, 'Quit Kalpana without saving'),
-            '/': (cmdFind, 'find (next) [string]'),
-            'r': (cmdReplace, 'Replace (syntax help needed)'),
-            'ra': (cmdReplaceAll, 'Replace all (syntax help needed)'),
-            '?': (cmdHelp, 'List commands or help for [command]'),
-            'cf': (cmdChangeFont, 'Change font [main/term/nano]'),
-            'ai': (cmdAutoIndent, 'Toggle auto indent'),
-            'ln': (cmdLineNumbers, 'Toggle line numbers'),
-            'vs': (cmdScrollbar, 'Scrollbar [off/maybe/on]'),
-            'nw': (cmdNewWindow, 'Open in new window [y/n]'),
-            'nn': (cmdNanoToggle, 'Start NaNo mode at [day]'),
-            'rt': (cmdReloadTheme, 'Reload theme from config')}
+    cmds = {'o': (cmd_open, 'Open [file]'),
+            'o!': (cmd_force_open, 'Open [file] and discard the old'),
+            'n': (cmd_new, 'Open new file'),
+            'n!': (cmd_force_new, 'Open new file and discard the old'),
+            's': (cmd_save, 'Save (as) [file]'),
+            's!': (cmd_overwrite_save, 'Save (as) [file] and overwrite'),
+            'q': (cmd_quit, 'Quit Kalpana'),
+            'q!': (cmd_force_quit, 'Quit Kalpana without saving'),
+            '/': (cmd_find, 'find (next) [string]'),
+            'r': (cmd_replace, 'Replace (syntax help needed)'),
+            'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
+            '?': (cmd_help, 'List commands or help for [command]'),
+            'cf': (cmd_change_font, 'Change font [main/term/nano]'),
+            'ai': (cmd_autoindent, 'Toggle auto indent'),
+            'ln': (cmd_line_numbers, 'Toggle line numbers'),
+            'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
+            'nw': (cmd_new_window, 'Open in new window [y/n]'),
+            'nn': (cmd_nano_toggle, 'Start NaNo mode at [day]'),
+            'rt': (cmd_reload_theme, 'Reload theme from config')}
