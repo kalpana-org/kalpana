@@ -83,12 +83,6 @@ class MainWindow(QtGui.QFrame):
         self.replace1text = ''
         self.replace2text = ''
 
-        # Terminal
-        self.terminal = Terminal(self)
-        main_layout.addWidget(self.terminal)
-        self.terminal.setVisible(False)
-        self.font_dialog_open = False
-
         # Misc settings etc
         self.filename = ''
         self.blocks = 1
@@ -136,6 +130,16 @@ class MainWindow(QtGui.QFrame):
                       .format(name))
             else:
                 self.plugins.append(temp)
+
+        plugincommands = {}
+        for p in self.plugins:
+            plugincommands.update(p.commands)
+
+        # Terminal
+        self.terminal = Terminal(self, plugincommands)
+        main_layout.addWidget(self.terminal)
+        self.terminal.setVisible(False)
+        self.font_dialog_open = False
 
 
         # Keyboard shortcuts

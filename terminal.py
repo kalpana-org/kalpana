@@ -58,13 +58,30 @@ class Terminal(QtGui.QSplitter):
         pass
 
 
-    def __init__(self, main):
+    def __init__(self, main, plugincommands):
         QtGui.QSplitter.__init__(self, parent=main)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1
 
         self.history = []
+
+        # Plugins
+        def run_plugin_command(function, arg):
+            result = function(arg)
+            if result:
+                text, error = result
+                if error:
+                    self.error(text)
+                else:
+                    self.print_(text)
+
+        for key, value in plugincommands.items():
+            function, help = value
+            run_function = lambda _,arg: run_plugin_command(function, arg)
+            plugincommands[key] = (run_function, help)
+
+        self.cmds.update(plugincommands)
 
         # Splitter settings
         self.setHandleWidth(2)
