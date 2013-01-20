@@ -98,7 +98,7 @@ class MainWindow(QtGui.QFrame):
         self.connect(self.document, SIGNAL('modificationChanged(bool)'),
                      self.toggle_modified)
         self.connect(self.document, SIGNAL('contentsChanged()'),
-                     self.update_word_count)
+                     self.contents_changed)
         self.connect(self.textarea, SIGNAL('blockCountChanged(int)'),
                      self.new_line)
 
@@ -444,6 +444,16 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Window title ===================================== ##
 
+    def contents_changed(self):
+        """
+        Update wordcount and stuff
+        """
+        wcount = len(re.findall(r'\S+', self.document.toPlainText()))
+        if not wcount == self.wt_wordcount:
+            self.wt_wordcount = wcount
+            self.update_window_title()
+
+
     def update_window_title(self):
         self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
                                                      self.wt_wordcount,
@@ -457,13 +467,6 @@ class MainWindow(QtGui.QFrame):
         """
         self.wt_modified = modified
         self.update_window_title()
-
-
-    def update_word_count(self):
-        wcount = len(re.findall(r'\S+', self.document.toPlainText()))
-        if not wcount == self.wt_wordcount:
-            self.wt_wordcount = wcount
-            self.update_window_title()
 
 
     def set_file_name(self, filename):
