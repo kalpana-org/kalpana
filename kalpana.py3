@@ -81,7 +81,7 @@ class MainWindow(QtGui.QFrame):
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
-        
+
         # Terminal
         self.terminal = Terminal(self)
         main_layout.addWidget(self.terminal)
@@ -96,9 +96,9 @@ class MainWindow(QtGui.QFrame):
         # Signals/slots
         self.connect(self.document, SIGNAL('modificationChanged(bool)'),
                      self.toggleModified)
-        self.connect(self.document, SIGNAL('contentsChanged()'), 
+        self.connect(self.document, SIGNAL('contentsChanged()'),
                      self.updateWordCount)
-        self.connect(self.textarea, SIGNAL('blockCountChanged(int)'), 
+        self.connect(self.textarea, SIGNAL('blockCountChanged(int)'),
                      self.newLine)
 
         # Keyboard shortcuts
@@ -120,7 +120,7 @@ class MainWindow(QtGui.QFrame):
         # Config init
         system = platform.system()
         if system == 'Linux':
-            self.cfgpath = os.path.join(os.getenv('HOME'), '.config', 
+            self.cfgpath = os.path.join(os.getenv('HOME'), '.config',
                                         'kalpana', 'kalpana.conf')
         else:
             self.cfgpath = self.localPath('kalpana.json')
@@ -134,10 +134,10 @@ class MainWindow(QtGui.QFrame):
         # Nano stuff including empty sidebar
         # New class for the stylesheet
         class NaNoSidebar(QtGui.QPlainTextEdit):
-            pass 
-        self.myDay = 0 
+            pass
+        self.myDay = 0
         self.nanoMode = False
-        self.nanoWidth = 20 
+        self.nanoWidth = 20
         self.nanowidget = NaNoSidebar(self)
         self.nanowidget.setLineWrapMode(QtGui.QPlainTextEdit.NoWrap)
         self.nanowidget.setReadOnly(True)
@@ -153,10 +153,10 @@ class MainWindow(QtGui.QFrame):
         top_layout.addWidget(self.nanowidget)
         self.nanowidget.setVisible(False)
 
-        
+
         if file_:
             if not self.openFile(file_):
-                self.close()            
+                self.close()
             self.updateWindowTitle()
         else:
             self.setFileName('NEW')
@@ -165,7 +165,7 @@ class MainWindow(QtGui.QFrame):
 
 
 ## ==== Overrides ========================================================== ##
-        
+
     def closeEvent(self, event):
         if not self.document.isModified() or self.forcequit:
             self.writeConfig()
@@ -188,7 +188,7 @@ class MainWindow(QtGui.QFrame):
             if not os.path.isfile(u) and u.startswith('/'):
                 u = u[1:]
             parsedurls.append(u)
-            
+
         for u in parsedurls:
             subprocess.Popen([sys.executable, sys.argv[0], u])
         event.acceptProposedAction();
@@ -354,7 +354,7 @@ class MainWindow(QtGui.QFrame):
     def nanoCountWordsChapters(self):
         """
         Count words per chapter, create current wordcount as chapter array and
-        total wordcount. 
+        total wordcount.
         Split chapter at text 'KAPITEL' or 'CHAPTER'.
         Should override updateWordCount.
         """
@@ -376,32 +376,32 @@ class MainWindow(QtGui.QFrame):
     def nanoLogStats(self):
         """
         Check if there is a statistics file; if not, create one.
-        Look for filename.log 
+        Look for filename.log
         This function is run during saving.
 
         Logfile part 1, written in stat1:
         STATISTICS FILE
         filename
         Date, time, myDay, total wordcount
-        
+
         Logfile part 2, written in stat2:
         CHAPTER = WORDS
         Chapter number = wordcount
-        
+
         BONUS HAMSTER:
         Read yesterday's last wordcount!
         """
         logfilename = self.filename + '.log'
         thistime = datetime.datetime.today()
         logstring = '{0}, {1} = {2}\n'
-        stat1 = logstring.format(thistime.strftime('%Y-%m-%d %H:%M:%S'), 
+        stat1 = logstring.format(thistime.strftime('%Y-%m-%d %H:%M:%S'),
                                  self.myDay, self.accWcount)
         stat2 = []
         for n,ch in enumerate(self.wordsPerChapter):
             stat2.append('{0} = {1}\n'.format(n, ch))
         if not os.path.isfile(logfilename):
             with open(logfilename, 'w', encoding='utf-8') as f:
-                logHeader = 'STATISTICS FILE\n{0}\n\nDAY, MY DAY = WORDS\nCHAPTER = WORDS\n\n'.format(self.filename) 
+                logHeader = 'STATISTICS FILE\n{0}\n\nDAY, MY DAY = WORDS\nCHAPTER = WORDS\n\n'.format(self.filename)
                 f.write(logHeader)
         with open(logfilename, 'r', encoding='utf-8') as lr:
             logLines = lr.readlines()
@@ -425,23 +425,23 @@ class MainWindow(QtGui.QFrame):
         prevStatsDir = 'nano_prev_stats'
         self.oldStats = []
         statsFiles = []
-        prevStatsDirPath = os.path.join(os.path.dirname(self.filename), 
-                                        prevStatsDir) 
+        prevStatsDirPath = os.path.join(os.path.dirname(self.filename),
+                                        prevStatsDir)
         try:
             # List of filenames without paths
-            statsFiles = os.listdir(os.path.join(os.path.dirname(self.filename), 
+            statsFiles = os.listdir(os.path.join(os.path.dirname(self.filename),
                                     prevStatsDir))
         except OSError:
             pass
         else:
             for stFile in statsFiles:
-                with open(os.path.join(prevStatsDirPath, stFile), 'r', 
+                with open(os.path.join(prevStatsDirPath, stFile), 'r',
                                  encoding='utf-8') as f:
                     statsByYearUnsplit = f.readlines()
                 statsByYear = []
                 for line in statsByYearUnsplit:
                     if len(line.split('\t'))>1:
-                        line = line.split('\t')[1] 
+                        line = line.split('\t')[1]
                     statsByYear.append(line)
                 self.oldStats.append(statsByYear)
         self.oldStats.sort()
@@ -454,7 +454,7 @@ class MainWindow(QtGui.QFrame):
         # Total width of stats window is hard-coded :(
         w = self.nanoWidth - 13
         # Building the array
-        statsText = ['DAY {0}, {1:.2%}\n\n'.format(self.myDay, 
+        statsText = ['DAY {0}, {1:.2%}\n\n'.format(self.myDay,
                      float(self.accWcount)/float(self.goal))]
         formStr = '{0:<{1}}{2:>5}{3:>7} \n'
         self.goalToday = int(ceil(float(self.goal)/float(self.days))*self.myDay)
@@ -470,17 +470,17 @@ class MainWindow(QtGui.QFrame):
         statsText.append(formStr.format('TOTAL', w, self.accWcount,
                          self.accWcount - self.goal))
         statsText.append('\n')
-        statsText.append(formStr.format('GOAL', w, 
+        statsText.append(formStr.format('GOAL', w,
                          self.goalToday, self.accWcount - self.goalToday))
-        statsText.append(formStr.format('TODAY', w, writtenToday, 
+        statsText.append(formStr.format('TODAY', w, writtenToday,
                                         diffToDaygoal))
         statsText.append('\nPREVIOUSLY\n')
-        prevStr = '{0:<{1}}{2:>5}{3:>7} \n' 
+        prevStr = '{0:<{1}}{2:>5}{3:>7} \n'
         for year in self.oldStats:
             # year is [20XX, words, words, words]
             diff = self.accWcount - int(year[self.myDay].strip())
             try:
-                statsText.append(prevStr.format(year[0].strip(), w, 
+                statsText.append(prevStr.format(year[0].strip(), w,
                                                 year[self.myDay].strip(), diff))
             except IndexError:
                 pass
@@ -531,25 +531,25 @@ class MainWindow(QtGui.QFrame):
         return not self.document.isModified() and not self.filename
 
     # ---- Vertical scrollbar -------------------------------------- #
-    
+
     def sbAlwaysShow(self):
         """ Always show the vertical scrollbar. Convenience function. """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        
+
     def sbNeededShow(self):
         """
         Only show the vertical scrollbar when needed.
         Convenience function.
         """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        
+
     def sbNeverShow(self):
         """ Never show the vertical scrollbar. Convenience function. """
         self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     # -------------------------------------------------------------- #
 
-    
+
     def findNext(self):
         if not self.findtext:
             self.terminal.error("No previous searches")
@@ -564,7 +564,7 @@ class MainWindow(QtGui.QFrame):
                     self.textarea.setTextCursor(tempCursor)
                     self.terminal.error('[find] Text not found')
 
-    
+
     def replaceNext(self):
         if not self.replace1text:
             self.terminal.error("No previous replaces")
@@ -583,8 +583,8 @@ class MainWindow(QtGui.QFrame):
             self.terminal.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
         else:
             self.terminal.error('[replace] Text not found')
-            
-    
+
+
     def replaceAll(self):
         if not self.replace1text:
             self.terminal.error("No previous replaces")
@@ -608,7 +608,7 @@ class MainWindow(QtGui.QFrame):
         else:
             self.textarea.setTextCursor(tempCursor)
             self.terminal.error('[replaceall] Text not found')
-            
+
 
 ## ==== Window title ===================================== ##
 
@@ -616,7 +616,7 @@ class MainWindow(QtGui.QFrame):
         self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
                                                      self.wt_wordcount,
                                                      self.wt_file))
-        
+
 
     def toggleModified(self, modified):
         """
@@ -645,8 +645,8 @@ class MainWindow(QtGui.QFrame):
         else:
             self.filename = filename
             self.wt_file = os.path.basename(filename)
-        self.updateWindowTitle()    
-    
+        self.updateWindowTitle()
+
 
 
 ## ==== File operations: new/open/save ===================================== ##
@@ -720,7 +720,7 @@ class MainWindow(QtGui.QFrame):
                 if fname:
                     self.save_t(fname)
             else:
-                self.promptError('File not saved yet! Save with s first.', 
+                self.promptError('File not saved yet! Save with s first.',
                                  defaultcmd='s ')
         else:
             self.save_t()
@@ -734,7 +734,7 @@ class MainWindow(QtGui.QFrame):
                 self.save_t(fname)
         else:
             self.promptTerm(defaultcmd='s ')
-            
+
 
     def save_t(self, filename=''):
         if filename:
@@ -758,7 +758,7 @@ class MainWindow(QtGui.QFrame):
             self.document.setModified(False)
 
 
-def getValidFiles(): 
+def getValidFiles():
     output = []
     for f in sys.argv[1:]:
         # try:
@@ -771,7 +771,7 @@ def getValidFiles():
             print('File not found:')
             print(f)
     return output
-        
+
 if __name__ == '__main__':
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     files = getValidFiles()
