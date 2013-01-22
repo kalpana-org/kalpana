@@ -257,10 +257,7 @@ class MainWindow(QtGui.QFrame):
 
         self.themedict = cfg['theme']
 
-        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            stylesheet_template = f.read()
-
-        self.update_theme(cfg['theme'], stylesheet_template)
+        self.update_theme(cfg['theme'])
 
         for p in self.plugins:
             p.read_config()
@@ -305,8 +302,11 @@ class MainWindow(QtGui.QFrame):
             p.write_config()
 
 
-    def update_theme(self, themedict, stylesheet_template):
+    def update_theme(self, themedict):
         self.themedict = themedict.copy()
+
+        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
+            stylesheet_template = f.read()
 
         overload = {
             'term_input_bgcolor': 'main_bgcolor',
@@ -332,12 +332,9 @@ class MainWindow(QtGui.QFrame):
         self.setStyleSheet(stylesheet)
 
     def reload_theme(self):
-        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            stylesheet_template = f.read()
-
         with open(self.cfgpath, encoding='utf-8') as f:
             cfg = json.loads(f.read())
-        self.update_theme(cfg['theme'], stylesheet_template)
+        self.update_theme(cfg['theme'])
 
 
 ## ==== Misc =============================================================== ##
