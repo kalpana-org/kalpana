@@ -274,7 +274,7 @@ class Terminal(QtGui.QSplitter):
     def cmd_find(self, arg):
         if arg:
             self.main.findtext = arg
-        self.main.findNext()
+        self.main.find_next()
 
     def set_replace_texts(self, arg):
         """ Try to set the find/replace texts to the args, return False if it fails """
@@ -288,16 +288,16 @@ class Terminal(QtGui.QSplitter):
     def cmd_replace(self, arg):
         if arg and not self.set_replace_texts(arg):
             return
-        self.main.replaceNext()
+        self.main.replace_next()
 
     def cmd_replace_all(self, arg):
         if arg and not self.set_replace_texts(arg):
             return
-        self.main.replaceAll()
+        self.main.replace_all()
 
 
     def cmd_change_font(self, arg):
-        if self.main.fontdialogopen:
+        if self.main.font_dialog_open:
             self.error('Font dialog already open')
             return
         if arg not in ('main', 'term'):
@@ -305,7 +305,7 @@ class Terminal(QtGui.QSplitter):
             return
         if arg == 'term':
             self.print_('Räksmörgås?!')
-        self.main.fontdialogopen = True
+        self.main.font_dialog_open = True
         fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
                                      arg + '_fontfamily', arg + '_fontsize')
 
@@ -351,7 +351,7 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmd_reload_theme(self, arg):
-        self.main.reloadTheme()
+        self.main.reload_theme()
 
 
 
