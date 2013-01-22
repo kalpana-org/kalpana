@@ -1,9 +1,4 @@
-try:
-    from PySide import QtGui
-    from PySide.QtCore import SIGNAL, Qt
-except ImportError:
-    from PyQt4 import QtGui
-    from PyQt4.QtCore import SIGNAL, Qt
+from imports import QtGui, SIGNAL, Qt
 
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):

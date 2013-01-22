@@ -38,14 +38,7 @@ from math import ceil
 from terminal import Terminal
 from linewidget import LineTextWidget
 
-try:
-    from PySide import QtCore, QtGui
-    from PySide.QtCore import SIGNAL, Qt
-    from PySide.QtGui import QMessageBox
-except ImportError:
-    from PyQt4 import QtCore, QtGui
-    from PyQt4.QtCore import SIGNAL, Qt
-    from PyQt4.QtGui import QMessageBox
+from imports import QtCore, QtGui, SIGNAL, Qt, QMessageBox
 
 
 class MainWindow(QtGui.QFrame):
