@@ -38,7 +38,7 @@ from math import ceil
 from terminal import Terminal
 from linewidget import LineTextWidget
 
-from imports import QtCore, QtGui, SIGNAL, Qt, QMessageBox
+from imports import QtCore, QtGui, SIGNAL, Qt
 
 
 class MainWindow(QtGui.QFrame):
@@ -113,11 +113,18 @@ class MainWindow(QtGui.QFrame):
                 layout.addWidget(widget)
 
         self.plugins = []
+        callbacks = (
+            self.document.toPlainText(), # get_text()
+            lambda:self.filename,        # get_filename()
+            add_widget,                  # add_widget()
+            self.new_file,               # new_file()
+            self.open_file,              # open_file()
+            self.save_file,              # save_file()
+            self.close,                  # quit()
+        )
         for path, name, module in get_plugins(pluginpath):
             try:
-                temp = module.UserPlugin(self.document.toPlainText(),
-                                         lambda:self.filename,
-                                         add_widget, path)
+                temp = module.UserPlugin(callbacks, path)
             except AttributeError:
                 print('"{0}" is not a valid plugin and was not loaded.'\
                       .format(name))
@@ -137,7 +144,7 @@ class MainWindow(QtGui.QFrame):
 
         # Keyboard shortcuts
         hotkeys = {
-            'Ctrl+N': self.new,
+            'Ctrl+N': self.new_k,
             'Ctrl+O': self.open_k,
             'Ctrl+S': self.save_k,
             'Ctrl+Shift+S': self.save_as_k,
@@ -175,9 +182,7 @@ class MainWindow(QtGui.QFrame):
             self.write_config()
             event.accept()
         else:
-            self.terminal.setVisible(True)
-            self.switch_focus_to_term()
-            self.terminal.error('Unsaved changes! Force quit with q! or save first.')
+            self.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
 
     def dragEnterEvent(self, event):
@@ -339,7 +344,8 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Misc =============================================================== ##
 
-    def prompt_error(self, errortext, defaultcmd=''):
+    def error(self, errortext, defaultcmd=''):
+        """ Show error in terminal """
         self.terminal.error(errortext)
         self.prompt_term(defaultcmd)
 
@@ -351,6 +357,7 @@ class MainWindow(QtGui.QFrame):
 
 
     def toggle_terminal(self):
+        """ Toggle terminal visibility and focus jointly """
         self.terminal.setVisible(abs(self.terminal.isVisible()-1))
         if self.terminal.isVisible():
             self.switch_focus_to_term()
@@ -499,46 +506,65 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== File operations: new/open/save ===================================== ##
 
-    def new(self, force=False):
-        """ Create a new file. Terminal usage """
+    def open_t(self, filename, force=False):
+        """ Called from terminal """
+        if self.open_in_new_window and not self.new_and_empty():
+            subprocess.Popen([sys.executable, sys.argv[0], filename])
+        elif not self.document.isModified() or force:
+            success = self.open_file(filename)
+            if not success:
+                self.error('File could not be decoded!')
+        else:
+            self.error('Unsaved changes! Force open with o! or save first.')
+
+
+    def new_k(self):
+        """ Called from key shortcut """
+        success = self.new_file()
+        if not success:
+            self.error('Unsaved changes! Force new with n! or save first.')
+
+    def open_k(self):
+        """ Called from key shortcut """
+        self.prompt_term(defaultcmd='o ')
+
+    def save_k(self):
+        """ Called from key shortcut """
+        if not self.filename:
+            self.error('File not saved yet! Save with s first.',
+                              defaultcmd='s ')
+        else:
+            result = self.save_file()
+            if not result:
+                self.error('File not saved! IOError!')
+
+    def save_as_k(self):
+        """ Called from key shortcut """
+        self.prompt_term(defaultcmd='s ')
+
+
+    def new_file(self, force=False):
+        """
+        Main new file function
+        """
         if self.open_in_new_window and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0]])
+            return True
         elif not self.document.isModified() or force:
             self.document.clear()
             self.document.setModified(False)
             self.toggle_modified(False)
             self.set_file_name('NEW')
             self.blocks = 1
+            return True
         else:
-            self.prompt_error('Unsaved changes! Force new with n! or save first.')
-
-    def open_k(self):
-        """ Open, called from key shortcut """
-        if not self.guidialogs:
-            self.prompt_term(defaultcmd='o ')
-        else:
-            if (self.open_in_new_window or not self.document.isModified()):
-                filename = QtGui.QFileDialog.getopen_fileName(self,
-                                                      directory=self.lastdir)[0]
-                if filename:
-                    self.open_t(filename)
-            else:
-                self.prompt_error('Unsaved changes! Force open with o! or save first.')
-
-    def open_t(self, filename, force=False):
-        """ Open, called from terminal """
-        if self.open_in_new_window and not self.new_and_empty():
-            subprocess.Popen([sys.executable, sys.argv[0], filename])
-        elif not self.document.isModified() or force:
-            self.lastdir = os.path.dirname(filename)
-            self.open_file(filename)
-        else:
-            self.prompt_error('Unsaved changes! Force open with o! or save first.')
-
+            return False
 
     def open_file(self, filename):
+        """
+        Main open file function
+        """
         encodings = ('utf-8', 'latin1')
-        readsuccess = False
         for e in encodings:
             try:
                 with open(filename, encoding=e) as f:
@@ -546,45 +572,24 @@ class MainWindow(QtGui.QFrame):
             except UnicodeDecodeError:
                 continue
             else:
-                readsuccess = True
+                self.lastdir = os.path.dirname(filename)
                 self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
                 self.set_file_name(filename)
                 self.blocks = self.document.blockCount()
                 self.textarea.moveCursor(QtGui.QTextCursor.Start)
                 return True
-        if not readsuccess:
-            self.terminal.error('File could not be decoded!')
-            self.terminal.setVisible(True)
-            return False
+        return False
 
 
-    def save_k(self):
-        """ Called from hotkey when guidialogs is on """
-        if not self.filename:
-            if self.guidialogs:
-                fname = QtGui.QFileDialog.getSaveFileName(self,
-                                    directory=self.lastdir)[0]
-                if fname:
-                    self.save_t(fname)
-            else:
-                self.prompt_error('File not saved yet! Save with s first.',
-                                 defaultcmd='s ')
-        else:
-            self.save_t()
+    def save_file(self, filename=''):
+        """
+        Main save file function
 
-    def save_as_k(self):
-        """ Called from hotkey when guidialogs is on """
-        if self.guidialogs:
-            fname = QtGui.QFileDialog.getSaveFileName(self,
-                                    directory=self.lastdir)[0]
-            if fname:
-                self.save_t(fname)
-        else:
-            self.prompt_term(defaultcmd='s ')
-
-
-    def save_t(self, filename=''):
+        Save the file with the specified filename.
+        If no filename is provided, save the file with the existing filename,
+        (aka don't save as, just save normally)
+        """
         if filename:
             savefname = filename
         else:
@@ -597,12 +602,14 @@ class MainWindow(QtGui.QFrame):
                 f.write(self.document.toPlainText())
         except IOError as e:
             print(e)
+            return False
         else:
             self.lastdir = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
             for p in self.plugins:
                 p.file_saved()
+            return True
 
 
 def local_path(path):

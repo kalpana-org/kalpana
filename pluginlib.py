@@ -4,11 +4,13 @@ class GUIPlugin:
     hotkeys = {}
     commands = {}
 
-    def __init__(self, get_text, get_filename, add_widget, path):
+    def __init__(self, callbacks, path):
         from os.path import isfile, join
-        self.get_text = get_text
-        self.get_filename = get_filename
-        self.add_widget = add_widget
+
+        self.get_text, self.get_filename, self.add_widget,\
+            self.new_file, self.open_file, self.save_file,\
+            self.quit = callbacks
+
         self.path = path
         self.has_stylesheet = isfile(join(path, 'qtstylesheet.css'))
         if self.has_stylesheet:

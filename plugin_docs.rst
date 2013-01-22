@@ -87,3 +87,20 @@ GUIPlugin.get_filename()
 
 GUIPlugin.get_text()
     * Return the text currently in the main textarea in Kalpana. This is a wrapper around ``QTextDocument.toPlainText()``.
+
+GUIPlugin.new_file(force=False)
+    * Try to open a new file.
+    * If ``force`` is True, ignore unsaved changes and create a new file anyway.
+    * Return True if it was successful, otherwise False
+
+GUIPlugin.open_file(filename)
+    * Try to open another file. ``filename`` is the file to be opened.
+    * Return True if it was successful, otherwise False
+
+GUIPlugin.save_file(filename="")
+    * Try to save the currently open file.
+    * If ``filename`` is not specified, save the file with the current filename.
+    * Return True if it was successful, otherwise False
+
+GUIPlugin.quit()
+    * Try to close Kalpana. Will not work unless all changes to the current file is saved.

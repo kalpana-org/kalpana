@@ -237,17 +237,21 @@ class Terminal(QtGui.QSplitter):
 
 
     def cmd_new(self, arg):
-        self.main.new()
+        success = self.main.new_file()
+        if not success:
+            self.error('Unsaved changes! Force new with n! or save first.')
 
     def cmd_force_new(self, arg):
-        self.main.new(force=True)
+        self.main.new_file(force=True)
 
 
     def cmd_save(self, arg, force=False):
         f = arg.strip()
         if not f:
             if self.main.filename:
-                self.main.save_t()
+                result = self.main.save_file()
+                if not result:
+                    self.error('File not saved! IOError!')
             else:
                 self.error('No filename')
         else:
@@ -255,7 +259,9 @@ class Terminal(QtGui.QSplitter):
                 self.error('File already exists, use s! to overwrite')
             # Make sure the parent directory actually exists
             elif os.path.isdir(os.path.dirname(f)):
-                self.main.save_t(f)
+                result = self.main.save_file(f)
+                if not result:
+                    self.error('File not saved! IOError!')
             else:
                 self.error('Invalid path')
 
