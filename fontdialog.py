@@ -77,11 +77,11 @@ class FontDialog(QtGui.QDialog):
 
     def set_font(self, new, old):
         self.main.themedict[self.fontfamily] = new.text()
-        self.main.updateTheme(self.main.themedict)
+        self.main.update_theme(self.main.themedict)
 
     def set_size(self, new, old):
         self.main.themedict[self.fontsize] = new.text() + 'pt'
-        self.main.updateTheme(self.main.themedict)
+        self.main.update_theme(self.main.themedict)
 
 
 if __name__ == '__main__':
