@@ -250,7 +250,6 @@ class MainWindow(QtGui.QFrame):
         self.autoindent = cfg['settings']['autoindent']
         self.open_in_new_window = cfg['settings']['open_in_new_window']
         self.show_fonts_in_dialoglist = cfg['settings']['show_fonts_in_dialoglist']
-        self.guidialogs = cfg['settings']['guidialogs']
         self.start_in_term = cfg['settings']['start_in_term']
         if self.start_in_term:
             self.terminal.setVisible(True)
@@ -290,7 +289,6 @@ class MainWindow(QtGui.QFrame):
                 'autoindent': self.autoindent,
                 'open_in_new_window': self.open_in_new_window,
                 'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
-                'guidialogs': self.guidialogs,
                 'start_in_term': self.start_in_term,
             },
             'theme': self.themedict
