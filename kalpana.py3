@@ -628,6 +628,8 @@ def get_plugins(root_path):
     # Generate all existing plugins
     rawplugins = {}
     plugin_root_path = join(root_path, 'plugins')
+    if not os.path.exists(plugin_root_path):
+        os.makedirs(plugin_root_path, exist_ok=True)
     for name in os.listdir(plugin_root_path):
         plugin_path = join(plugin_root_path, name)
         if not os.path.isfile(join(plugin_path, name + '.py')):
