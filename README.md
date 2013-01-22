@@ -58,4 +58,6 @@ Example: `~/.config/kalpana/plugins/myplugin/myplugin.py`
 
 The module must contain a class called UserPlugin that subclasses `pluginlib.GUIPlugin`.
 
+All plugins are loaded in a specific order dictated by `loadorder.conf`. This file is generated automatically and is not meant to be edited. To edit the load order, use the command `lo`. Plugins loaded after another plugin can override the previous plugin's edits, such as hotkeys, terminal commands and GUI widget placement.
+
 More info is available in `plugin_docs.rst`.
