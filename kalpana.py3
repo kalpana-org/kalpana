@@ -92,13 +92,11 @@ class MainWindow(QtGui.QFrame):
         # Paths init
         system = platform.system()
         if system == 'Linux':
-            cfgdir = os.path.join(os.getenv('HOME'), '.config',
-                                    'kalpana')
-            self.cfgpath = os.path.join(cfgdir, 'kalpana.conf')
-            pluginpath = os.path.join(cfgdir, 'plugins')
-        else:
-            self.cfgpath = local_path('kalpana.json')
-            pluginpath = local_path('plugins')
+            self.cfgdir = os.path.join(os.getenv('HOME'), '.config', 'kalpana')
+        else: # Windows
+            self.cfgdir = local_path('')
+
+        self.cfgpath = os.path.join(self.cfgdir, 'kalpana.conf')
 
         # Plugins
         def add_widget(widget, side):
@@ -122,7 +120,7 @@ class MainWindow(QtGui.QFrame):
             self.save_file,              # save_file()
             self.close,                  # quit()
         )
-        for path, name, module in get_plugins(pluginpath):
+        for path, name, module in get_plugins(self.cfgdir):
             try:
                 temp = module.UserPlugin(callbacks, path)
             except AttributeError:
@@ -611,17 +609,47 @@ def local_path(path):
     return os.path.join(sys.path[0], path)
 
 
-def get_plugins(plugin_root_path):
+def get_plugins(root_path):
     join = os.path.join
-    def get_plugin(plugin_root_path):
-        for name in os.listdir(plugin_root_path):
-            plugin_path = join(plugin_root_path, name)
-            if not os.path.isfile(join(plugin_path, name + '.py')):
-                continue
-            sys.path.append(plugin_path)
-            yield plugin_path, name, importlib.import_module(name)
+    loadorder_path = join(root_path, 'loadorder.conf')
 
-    return [x for x in get_plugin(plugin_root_path)]
+    # Get load order from file
+    try:
+        with open(loadorder_path, encoding='utf-8') as f:
+            loadorder = json.loads(f.read())
+            assert len(loadorder) > 0
+    except (IOError, AssertionError):
+        pluginlist, activelist = [],[]
+    else:
+        pluginlist, activelist = zip(*loadorder)
+        pluginlist = list(pluginlist)
+        activelist = list(activelist)
+
+    # Generate all existing plugins
+    rawplugins = {}
+    plugin_root_path = join(root_path, 'plugins')
+    for name in os.listdir(plugin_root_path):
+        plugin_path = join(plugin_root_path, name)
+        if not os.path.isfile(join(plugin_path, name + '.py')):
+            continue
+        if name not in pluginlist:
+            pluginlist.append(name)
+            activelist.append(True)
+        sys.path.append(plugin_path)
+        rawplugins[name] = (plugin_path, importlib.import_module(name))
+
+    # Update the load order
+    newpluginlist = [(p,a) for p,a in zip(pluginlist, activelist)
+                     if p in rawplugins]
+    with open(loadorder_path, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(newpluginlist, ensure_ascii=False, indent=2))
+
+    # Generate all the relevant plugins in the right order
+    plugins = [(p, rawplugins[p][0], rawplugins[p][1])
+               for p,is_active in zip(pluginlist, activelist)
+               if p in rawplugins and is_active]
+
+    return plugins
 
 
 def get_valid_files():

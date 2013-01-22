@@ -18,6 +18,7 @@
 
 import os.path
 import fontdialog
+import loadorderdialog
 
 from imports import QtGui, SIGNAL, Qt, QDir, QEvent
 
@@ -359,23 +360,29 @@ class Terminal(QtGui.QSplitter):
     def cmd_reload_theme(self, arg):
         self.main.reload_theme()
 
+    def cmd_load_order(self, arg):
+        lod = loadorderdialog.LoadOrderDialog(self.main)
+        lod.exec_()
 
 
-    cmds = {'o': (cmd_open, 'Open [file]'),
-            'o!': (cmd_force_open, 'Open [file] and discard the old'),
-            'n': (cmd_new, 'Open new file'),
-            'n!': (cmd_force_new, 'Open new file and discard the old'),
-            's': (cmd_save, 'Save (as) [file]'),
-            's!': (cmd_overwrite_save, 'Save (as) [file] and overwrite'),
-            'q': (cmd_quit, 'Quit Kalpana'),
-            'q!': (cmd_force_quit, 'Quit Kalpana without saving'),
-            '/': (cmd_find, 'find (next) [string]'),
-            'r': (cmd_replace, 'Replace (syntax help needed)'),
-            'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
-            '?': (cmd_help, 'List commands or help for [command]'),
-            'cf': (cmd_change_font, 'Change font [main/term]'),
-            'ai': (cmd_autoindent, 'Toggle auto indent'),
-            'ln': (cmd_line_numbers, 'Toggle line numbers'),
-            'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
-            'nw': (cmd_new_window, 'Open in new window [y/n]'),
-            'rt': (cmd_reload_theme, 'Reload theme from config')}
+    cmds = {
+        'o': (cmd_open, 'Open [file]'),
+        'o!': (cmd_force_open, 'Open [file] and discard the old'),
+        'n': (cmd_new, 'Open new file'),
+        'n!': (cmd_force_new, 'Open new file and discard the old'),
+        's': (cmd_save, 'Save (as) [file]'),
+        's!': (cmd_overwrite_save, 'Save (as) [file] and overwrite'),
+        'q': (cmd_quit, 'Quit Kalpana'),
+        'q!': (cmd_force_quit, 'Quit Kalpana without saving'),
+        '/': (cmd_find, 'find (next) [string]'),
+        'r': (cmd_replace, 'Replace (syntax help needed)'),
+        'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
+        '?': (cmd_help, 'List commands or help for [command]'),
+        'cf': (cmd_change_font, 'Change font [main/term]'),
+        'ai': (cmd_autoindent, 'Toggle auto indent'),
+        'ln': (cmd_line_numbers, 'Toggle line numbers'),
+        'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
+        'nw': (cmd_new_window, 'Open in new window [y/n]'),
+        'rt': (cmd_reload_theme, 'Reload theme from config'),
+        'lo': (cmd_load_order, 'Change the plugin load order')
+    }

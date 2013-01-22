@@ -45,6 +45,8 @@ Four values are non-essential and can be left blank:
 
 All others should be specified but Kalpana will probably run without them anyway.
 
+Also, http://qt-project.org/doc/qt-4.8/stylesheet-reference.html is documentation on how Qt's stylesheets work.
+
 
 Plugins
 -------

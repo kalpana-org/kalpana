@@ -73,13 +73,9 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
     background: none;
 }}
 
-/* FONT DIALOG */
-FontDialog {{
+QDialog {{
     background: {main_bgcolor};
     border: 0px;
-}}
-FontExampleLabel {{
-    color: {main_textcolor};
 }}
 
 QListWidget {{
@@ -101,4 +97,15 @@ QListView::item:selected:!active {{
 }}
 QListView::item:hover {{
     background: {fontdialog_normal_bgcolor};
+}}
+
+QListWidget::indicator:unchecked {{
+    background: {checkbox_bgcolor};
+}}
+QListWidget::indicator:checked {{
+    border: 4px solid {checkbox_bgcolor};
+    background: {checkbox_checked_color};
+}}
+QLabel {{
+    color: {fontdialog_normal_textcolor};
 }}

@@ -31,5 +31,6 @@ pip-log.txt
 
 # Kalpana specific
 kalpana.json
+*.conf
 encodingtests
 plugins/

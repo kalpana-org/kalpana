@@ -9,6 +9,8 @@
     "start_in_term": true
   },
   "theme": {
+    "checkbox_bgcolor": "#888",
+    "checkbox_checked_color": "black",
     "details_color": "#111",
     "fontdialog_normal_bgcolor": "#333",
     "fontdialog_normal_textcolor": "#ddd",
