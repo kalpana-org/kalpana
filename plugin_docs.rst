@@ -34,6 +34,8 @@ common Reference
 ----------------
 Use this library to import all your Qt-related stuff. **Do NOT import anything from PyQt4 or PySide!**
 
+common also includes some miscellaneous useful functions.
+
 Imports
 =======
 QtCore, QtGui, Qt
@@ -41,6 +43,14 @@ QtCore, QtGui, Qt
     * Do not import from common.QtCore or common.QtGui! common is not a package and it will not work. If you absolutely want a replacement for ``from PySide.QtCore import X``, use ``X = QtCore.X`` instead.
     * *Example (do like this):* ``from common import QtCore, QtGui, Qt``
 
+Functions
+=========
+read_json(path)
+    * Return the content of the json-config file as a corresponding python object (usually a dict, tuple or list)
+
+write_json(path, data)
+    * Write the ``data`` to the specified ``path``.
+    * ``data`` can be any python object (see the json library docs for more info) but most times you would want to use a dict, list or tuple. Lists' and tuples' order will be preserved.
 
 
 pluginlib Reference
