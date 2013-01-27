@@ -29,6 +29,10 @@ pip-log.txt
 # Sublime Text
 *.sublime-*
 
+# vim
+*.swp
+*.swo
+
 # Kalpana specific
 kalpana.json
 *.conf
