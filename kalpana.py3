@@ -112,7 +112,7 @@ class MainWindow(QtGui.QFrame):
 
         self.plugins = []
         callbacks = (
-            self.document.toPlainText(), # get_text()
+            self.document.toPlainText,   # get_text()
             lambda:self.filename,        # get_filename()
             add_widget,                  # add_widget()
             self.new_file,               # new_file()
