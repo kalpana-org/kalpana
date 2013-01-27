@@ -41,35 +41,40 @@ class NaNoSidebar(QtGui.QPlainTextEdit):
         font.setFamily("Monospace")
         font.setPointSize(10)
         self.setFont(font)
-        #self.nanoWidth = 20
-        # size is important
-        charWidth = self.fontMetrics().averageCharWidth()
-        self.setFixedWidth((self.nanoWidth + 1)*charWidth)
+        
+        self.nano_width = 20 #TODO What is this?
+        char_width = self.fontMetrics().averageCharWidth()
+        self.setFixedWidth((self.nano_width + 1)*char_width)
 
         self.nano_day = 0 
-        self.nanoMode = False
-        # endpoint, goal, days and idealChLength are taken from config
+        self.nano_mode = False
+        # endpoint, goal, days and ideal_length are taken from config
+        
         self.stats_dir = os.path.join(os.path.dirname(parent.cfgpath), 'nano')
+        self.filename = #TODO
+        self.logfile_days = #TODO
+        self.logfile_chapters = #TODO
 
     def activate(self, arg):
         """
-        At nn [cmd_arg], check cmd_arg for errors
-        read_stats()
-        read_logs()
-        update_sb()
+        Wrapper function to start NaNo mode.
+
+        Called from terminal.
         """
-        #TODO Double-check this code, change variables and shit
         if arg.strip().isdigit():
             if int(arg.strip()) == 0:
-                self.nanoMode = False
+                self.nano_mode = False
                 return 'NaNo mode disabled', False
             elif int(arg.strip()) in range(1,self.days + 1):
-                self.myDay = int(arg.strip())
-                self.nanoMode = True
+                self.inano_day = int(arg.strip())
+                self.nano_mode = True
                 read_stats(self.nano_day, self.stats_dir)
-                self.read_logs()
-                self.update_sb()
-                self.setPlainText(update_sb())
+                read_logs(self.logfile_days, self.nano_day)
+                raw_text = self.parent.document.toPlainText() 
+                sb_text = update_sb(raw_text, self.endpoint, self.goal, 
+                                    self.words_today, self.days, self.nano_day, 
+                                    self.ideal_length, self.stats)
+                self.setPlainText(sb_text)
                 return 'NaNo mode initiated', False
             else:
                 return 'Invalid date', True
@@ -77,16 +82,17 @@ class NaNoSidebar(QtGui.QPlainTextEdit):
             return 'Invalid argument', True
         
     def update_wordcount(self):
-        if self.nanoMode:
-            wcount = sum(self.count_words(self.endPoint, 
+        if self.nano_mode:
+            wcount = sum(self.count_words(self.endpoint, 
                          self.parent.document.toPlainText())) 
         return wcount
 
     def save(self):
-        if self.nanowidget.nanoMode:
+        if self.nanowidget.nano_mode:
             raw_text = self.parent.document.toPlainText() 
-            update_sb(raw_text, self.endPoint, self.goal, self.words_today, 
+            sb_text = update_sb(raw_text, self.endpoint, self.goal, self.words_today, 
                       self.days, self.nano_day, self.ideal_length, self.stats)
+            self.setPlainText(sb_text)
             write_logs()
             self.check_force_exit()
             #self.setPlainText(self.nanowidget.nanoGenerateStats())
@@ -95,10 +101,11 @@ class NaNoSidebar(QtGui.QPlainTextEdit):
     def toggle_sidebar(self):
         """
         """
-        if self.nanoMode:
+        if self.nano_mode:
             raw_text = self.parent.document.toPlainText() 
-            update_sb(raw_text, self.endPoint, self.goal, self.words_today, 
+            sb_text = update_sb(raw_text, self.endpoint, self.goal, self.words_today, 
                       self.days, self.nano_day, self.ideal_length, self.stats)
+            self.setPlainText(sb_text)
             self.setVisible(abs(self.isVisible()-1))
 
     def check_force_exit(self):
@@ -133,19 +140,25 @@ def read_stats(nano_day, stats_dir):
         stats.sort()
     return stats 
 
-def read_logs(log_file, nano_day):
+def read_logs(logfile, nano_day):
     """
+    Read log, return last day's wordcount.
+
     read_logs() replaces nanoCountWordsChapters + #12
     read current logs, #12
         - file -> array
     """
-    #TODO 
-    # Find yesterday's wordcount
-    # written_today is words - logged_words
     with open(logfile) as f:
         log_lines = f.read().splitlines()
-    while 
-    
+    logged_day = 0
+    logged_words = 0
+    for line in log_lines:
+        logged_day = int(line.split(', ')[1])
+        if logged_day < nano_day:
+            logged_words = int(line.split(', ')[2])
+        else:
+            break
+    return logged_words
 
 def write_logs():
     """
