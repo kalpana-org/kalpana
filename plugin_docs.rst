@@ -28,7 +28,8 @@ All plugins are loaded in a specific order dictated by ``loadorder.conf``. This 
 
 The point of the load order is to manage conflicts between plugins. Plugins loaded after another plugin can override the previous plugin's edits, such as hotkeys, terminal commands and GUI widget placement.
 
-Using `lo`` you can also deactivate mods without having to remove them from the ``plugins`` directory.
+Using ``lo`` you can also deactivate mods without having to remove them from the ``plugins`` directory.
+
 
 common Reference
 ----------------
@@ -68,12 +69,15 @@ GUIPlugin.commands
     * A dict with terminal commands as key and a tuple with a function and a help-string as value. The function will be called when the command is entered in the terminal. The commands will **overwrite** vanilla commands and commands in earlier loaded plugins, if they are identical.
     * The command should be a short string (1-2 characters preferably).
     * *Example:* ``{'x': (self.explode, 'This will make everything explode')}``
+    * The function must take one argument (the terminal argument) which will be a string (it may be an empty string).
+    * *Example:* ``def explode(self, argument):``
     * The function may return a tuple with a string to be printed to the terminal and a bool indication an error (``True`` for error, ``False`` for no error). If nothing is return, nothing will be printed.
     * *Example:* ``("This is awesome", False)`` or ``("Oh shit everything blew up", True)``
 
 
 GUIPlugin.hotkeys
     * A dict with keyboard shortcuts as key (see ``QKeySequence()``) and a function as value. The function will be called by Kalpana when the key (combination) is pressed. The key combinations will **overwrite** vanilla shortcuts and shortcuts in earlier loaded plugins, if they are identical.
+    * *Example:* ``{'Ctrl+Shift+X': self.do_something_useful()}``
 
 GUIPlugin.path
     * A string with the path to the plugin's directory. This is where config files should be stored.
