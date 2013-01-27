@@ -30,6 +30,18 @@ The point of the load order is to manage conflicts between plugins. Plugins load
 
 Using `lo`` you can also deactivate mods without having to remove them from the ``plugins`` directory.
 
+common Reference
+----------------
+Use this library to import all your Qt-related stuff. **Do NOT import anything from PyQt4 or PySide!**
+
+Imports
+=======
+QtCore, QtGui, Qt
+    * Import these instead of using PyQt or PySide directly.
+    * Do not import from common.QtCore or common.QtGui! common is not a package and it will not work. If you absolutely want a replacement for ``from PySide.QtCore import X``, use ``X = QtCore.X`` instead.
+    * *Example (do like this):* ``from common import QtCore, QtGui, Qt``
+
+
 
 pluginlib Reference
 -------------------

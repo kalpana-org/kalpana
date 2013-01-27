@@ -20,7 +20,7 @@ import os.path
 import fontdialog
 import loadorderdialog
 
-from imports import QtGui, SIGNAL, Qt, QDir, QEvent
+from common import QtGui, SIGNAL, Qt, QDir, QEvent
 
 class Terminal(QtGui.QSplitter):
 

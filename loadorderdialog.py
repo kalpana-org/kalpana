@@ -1,6 +1,6 @@
 import json, os.path
 
-from imports import QtGui, SIGNAL, Qt
+from common import QtGui, SIGNAL, Qt
 
 class LoadOrderDialog(QtGui.QDialog):
     def __init__(self, parent):
