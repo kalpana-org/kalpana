@@ -122,12 +122,12 @@ class MainWindow(QtGui.QFrame):
         )
         for path, name, module in get_plugins(self.cfgdir):
             try:
-                temp = module.UserPlugin(callbacks, path)
+                create_plugin = module.UserPlugin
             except AttributeError:
                 print('"{0}" is not a valid plugin and was not loaded.'\
                       .format(name))
             else:
-                self.plugins.append(temp)
+                self.plugins.append(create_plugin(callbacks, path))
 
         plugincommands = {}
         for p in self.plugins:
