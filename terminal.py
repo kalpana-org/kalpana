@@ -26,13 +26,11 @@ from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 class Terminal(QtGui.QSplitter):
 
     class InputBox(QtGui.QLineEdit):
-        def __init__(self, *args):
-            QtGui.QLineEdit.__init__(self, *args)
-
         tab_pressed = pyqtSignal()
         update_completion_prefix = pyqtSignal()
         history_up = pyqtSignal()
         history_down = pyqtSignal()
+        # This has to be here, keyPressEvent does not capture tab press
         def event(self, event):
             if event.type() == QEvent.KeyPress and\
                         event.key() == Qt.Key_Tab and\
