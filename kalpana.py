@@ -39,7 +39,7 @@ from terminal import Terminal
 from linewidget import LineTextWidget
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import SIGNAL, Qt
+from PyQt4.QtCore import Qt
 
 
 class MainWindow(QtGui.QFrame):
@@ -83,12 +83,9 @@ class MainWindow(QtGui.QFrame):
         self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
 
         # Signals/slots
-        self.connect(self.document, SIGNAL('modificationChanged(bool)'),
-                     self.toggle_modified)
-        self.connect(self.document, SIGNAL('contentsChanged()'),
-                     self.contents_changed)
-        self.connect(self.textarea, SIGNAL('blockCountChanged(int)'),
-                     self.new_line)
+        self.document.modificationChanged.connect(self.toggle_modified)
+        self.document.contentsChanged.connect(self.contents_changed)
+        self.document.blockCountChanged.connect(self.new_line)
 
         # Paths init
         system = platform.system()

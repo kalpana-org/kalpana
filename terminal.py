@@ -21,7 +21,7 @@ import fontdialog
 import loadorderdialog
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import SIGNAL, Qt, QDir, QEvent
+from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
 class Terminal(QtGui.QSplitter):
 
@@ -29,11 +29,15 @@ class Terminal(QtGui.QSplitter):
         def __init__(self, *args):
             QtGui.QLineEdit.__init__(self, *args)
 
+        tab_pressed = pyqtSignal()
+        update_completion_prefix = pyqtSignal()
+        history_up = pyqtSignal()
+        history_down = pyqtSignal()
         def event(self, event):
             if event.type() == QEvent.KeyPress and\
                         event.key() == Qt.Key_Tab and\
                         event.modifiers() == Qt.NoModifier:
-                self.emit(SIGNAL('tabPressed()'))
+                self.tab_pressed.emit()
                 return True
             else:
                 return QtGui.QLineEdit.event(self, event)
@@ -41,11 +45,11 @@ class Terminal(QtGui.QSplitter):
         def keyPressEvent(self, event):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
                 QtGui.QLineEdit.keyPressEvent(self, event)
-                self.emit(SIGNAL('update_completion_prefix()'))
+                self.update_completion_prefix.emit()
             elif event.key() == Qt.Key_Up:
-                self.emit(SIGNAL('history_up()'))
+                self.history_up.emit()
             elif event.key() == Qt.Key_Down:
-                self.emit(SIGNAL('history_down()'))
+                self.history_down.emit()
             else:
                 return QtGui.QLineEdit.keyPressEvent(self, event)
 
@@ -99,13 +103,11 @@ class Terminal(QtGui.QSplitter):
         self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
         self.completer.setCaseSensitivity(Qt.CaseSensitive)
 
-        self.connect(self.input_term, SIGNAL('tabPressed()'),
-                     self.autocomplete)
-        self.connect(self.input_term, SIGNAL('update_completion_prefix()'),
-                     self.update_completion_prefix)
+        # Signals/slots
+        self.input_term.tab_pressed.connect(self.autocomplete)
+        self.input_term.update_completion_prefix.connect(self.update_completion_prefix)
+        self.input_term.returnPressed.connect(self.parse_command)
 
-        self.connect(self.input_term, SIGNAL('returnPressed()'),
-                     self.parse_command)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
                         self.move_splitter_left)
         QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,

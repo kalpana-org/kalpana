@@ -1,5 +1,5 @@
 from PyQt4 import QtGui
-from PyQt4.QtCore import SIGNAL, Qt
+from PyQt4.QtCore import Qt
 
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):
@@ -50,14 +50,10 @@ class FontDialog(QtGui.QDialog):
         lists_layout.setColumnStretch(0, 5)
         lists_layout.setColumnStretch(1, 1)
 
-        self.connect(fontlist_widget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
-                     self.set_font)
-        self.connect(sizelist_widget, SIGNAL('currentItemChanged(QListWidgetItem *, QListWidgetItem *)'),
-                     self.set_size)
-        self.connect(fontlist_widget, SIGNAL('itemActivated (QListWidgetItem *)'),
-                     self.close)
-        self.connect(sizelist_widget, SIGNAL('itemActivated (QListWidgetItem *)'),
-                     self.close)
+        fontlist_widget.currentItemChanged.connect(self.set_font)
+        sizelist_widget.currentItemChanged.connect(self.set_size)
+        fontlist_widget.itemActivated.connect(self.close)
+        sizelist_widget.itemActivated.connect(self.close)
 
         def select_left_list():
             fontlist_widget.setFocus()
