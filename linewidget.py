@@ -22,7 +22,7 @@
 # Or more precisely: http://www.japh.de/blog/qtextedit-with-line-numbers/
 
 
-from common import QtGui, SIGNAL, Qt
+from PyQt4 import QtGui
 
 class LineTextWidget(QtGui.QPlainTextEdit):
 

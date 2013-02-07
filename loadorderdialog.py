@@ -1,6 +1,7 @@
 import json, os.path
 
-from common import QtGui, SIGNAL, Qt
+from PyQt4 import QtGui
+from PyQt4.QtCore import Qt
 
 class LoadOrderDialog(QtGui.QDialog):
     def __init__(self, parent):

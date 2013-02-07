@@ -1,4 +1,5 @@
-from common import QtGui, SIGNAL, Qt
+from PyQt4 import QtGui
+from PyQt4.QtCore import SIGNAL, Qt
 
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):

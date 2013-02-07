@@ -38,7 +38,8 @@ from math import ceil
 from terminal import Terminal
 from linewidget import LineTextWidget
 
-from common import QtCore, QtGui, SIGNAL, Qt
+from PyQt4 import QtGui
+from PyQt4.QtCore import SIGNAL, Qt
 
 
 class MainWindow(QtGui.QFrame):
