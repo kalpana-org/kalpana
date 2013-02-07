@@ -52,7 +52,7 @@ write_json(path, data)
 
 pluginlib Reference
 -------------------
-For all references to Qt classes, see http://www.riverbankcomputing.co.uk/static/Docs/PyQt4/html/classes.html
+For all references to Qt classes, see http://pyqt.sourceforge.net/Docs/PyQt4/classes.html
 
 Constants
 =========
