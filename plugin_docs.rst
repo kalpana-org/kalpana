@@ -117,8 +117,8 @@ GUIPlugin.add_widget(widget, side)
     * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
     * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
 
-GUIPlugin.get_filename()
-    * Return the name of the file current open in Kalpana.
+GUIPlugin.get_filepath()
+    * Return the path of the file currently open in Kalpana.
     * If no file is open or saved, an empty string is returned.
 
 GUIPlugin.get_text()

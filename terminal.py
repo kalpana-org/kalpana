@@ -131,7 +131,7 @@ class Terminal(QtGui.QSplitter):
 
         # Autocomplete with the working directory if the line is empty
         if ac_text.strip() == '':
-            wd = os.path.abspath(self.main.filename)
+            wd = os.path.abspath(self.main.filepath)
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
             self.completer.setCompletionPrefix(wd + separator)
@@ -249,7 +249,7 @@ class Terminal(QtGui.QSplitter):
     def cmd_save(self, arg, force=False):
         f = arg.strip()
         if not f:
-            if self.main.filename:
+            if self.main.filepath:
                 result = self.main.save_file()
                 if not result:
                     self.error('File not saved! IOError!')

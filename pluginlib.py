@@ -7,7 +7,7 @@ class GUIPlugin:
     def __init__(self, callbacks, path):
         from os.path import isfile, join
 
-        self.get_text, self.get_filename, self.add_widget,\
+        self.get_text, self.get_filepath, self.add_widget,\
             self.new_file, self.open_file, self.save_file,\
             self.quit = callbacks
 

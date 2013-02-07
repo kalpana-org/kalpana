@@ -77,7 +77,7 @@ class MainWindow(QtGui.QFrame):
         self.replace2text = ''
 
         # Misc settings etc
-        self.filename = ''
+        self.filepath = ''
         self.blocks = 1
         self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
 
@@ -113,7 +113,7 @@ class MainWindow(QtGui.QFrame):
         self.plugins = []
         callbacks = (
             self.document.toPlainText,   # get_text()
-            lambda:self.filename,        # get_filename()
+            lambda:self.filepath,        # get_filepath()
             add_widget,                  # add_widget()
             self.new_file,               # new_file()
             self.open_file,              # open_file()
@@ -374,7 +374,7 @@ class MainWindow(QtGui.QFrame):
 
     def new_and_empty(self):
         """ Return True if the file is empty and unsaved. """
-        return not self.document.isModified() and not self.filename
+        return not self.document.isModified() and not self.filepath
 
     # ---- Vertical scrollbar -------------------------------------- #
 
@@ -488,10 +488,10 @@ class MainWindow(QtGui.QFrame):
     def set_file_name(self, filename):
         """ Set both the output file and the title to filename. """
         if filename == 'NEW':
-            self.filename = ''
+            self.filepath = ''
             self.wt_file = 'New file'
         else:
-            self.filename = filename
+            self.filepath = filename
             self.wt_file = os.path.basename(filename)
         self.update_window_title()
 
@@ -523,7 +523,7 @@ class MainWindow(QtGui.QFrame):
 
     def save_k(self):
         """ Called from key shortcut """
-        if not self.filename:
+        if not self.filepath:
             self.error('File not saved yet! Save with s first.',
                               defaultcmd='s ')
         else:
@@ -586,7 +586,7 @@ class MainWindow(QtGui.QFrame):
         if filename:
             savefname = filename
         else:
-            savefname = self.filename
+            savefname = self.filepath
 
         assert savefname.strip() != ''
 
