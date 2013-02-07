@@ -37,8 +37,7 @@ class Terminal(QtGui.QSplitter):
                         event.modifiers() == Qt.NoModifier:
                 self.tab_pressed.emit()
                 return True
-            else:
-                return QtGui.QLineEdit.event(self, event)
+            return super().event(event)
 
         def keyPressEvent(self, event):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
@@ -49,7 +48,7 @@ class Terminal(QtGui.QSplitter):
             elif event.key() == Qt.Key_Down:
                 self.history_down.emit()
             else:
-                return QtGui.QLineEdit.keyPressEvent(self, event)
+                return super().keyPressEvent(event)
 
     # This needs to be here for the stylesheet
     class OutputBox(QtGui.QLineEdit):
@@ -57,7 +56,7 @@ class Terminal(QtGui.QSplitter):
 
 
     def __init__(self, main, plugincommands):
-        QtGui.QSplitter.__init__(self, parent=main)
+        super().__init__(parent=main)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1

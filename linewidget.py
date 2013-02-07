@@ -31,8 +31,8 @@ class LineTextWidget(QtGui.QPlainTextEdit):
 
     class NumberBar(QtGui.QWidget):
 
-        def __init__(self, *args):
-            QtGui.QWidget.__init__(self, *args)
+        def __init__(self, parent):
+            super().__init__(parent)
             self.edit = None
             # This is used to update the width of the control.
             # It is the highest line that is currently visibile.
@@ -51,7 +51,7 @@ class LineTextWidget(QtGui.QPlainTextEdit):
             if self.width() != width:
                 self.setFixedWidth(width)
                 self.edit.setViewportMargins(width,0,0,0)
-            QtGui.QWidget.update(self, *args)
+            super().update(*args)
 
         def paintEvent(self, event):
             contents_y = 0
@@ -107,11 +107,11 @@ class LineTextWidget(QtGui.QPlainTextEdit):
             self.highest_line = line_count
             painter.end()
 
-            QtGui.QWidget.paintEvent(self, event)
+            super().paintEvent(event)
 
 
-    def __init__(self, *args):
-        QtGui.QPlainTextEdit.__init__(self, *args)
+    def __init__(self, parent):
+        super().__init__(parent)
 
         self.number_bar = self.NumberBar(self)
         self.number_bar.set_text_edit(self)
@@ -120,7 +120,7 @@ class LineTextWidget(QtGui.QPlainTextEdit):
 
     def resizeEvent(self,e):
         self.number_bar.setFixedHeight(self.height())
-        QtGui.QPlainTextEdit.resizeEvent(self,e)
+        super().resizeEvent(e)
 
     def setDefaultFont(self,font):
       self.document().setDefaultFont(font)
@@ -132,4 +132,5 @@ class LineTextWidget(QtGui.QPlainTextEdit):
         if object is self.viewport():
             self.number_bar.update()
             return False
+        # Not sure how this would work with super so i'm letting it be //nycz
         return QtGui.QPlainTextEdit.eventFilter(object, event)

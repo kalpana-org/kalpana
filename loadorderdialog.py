@@ -5,7 +5,7 @@ from PyQt4.QtCore import Qt
 
 class LoadOrderDialog(QtGui.QDialog):
     def __init__(self, parent):
-        QtGui.QDialog.__init__(self, parent)
+        super().__init__(parent)
 
         self.main = parent
         self.setWindowTitle('Plugin load order')

@@ -45,7 +45,7 @@ from PyQt4.QtCore import Qt
 class MainWindow(QtGui.QFrame):
 
     def __init__(self, file_=''):
-        super(MainWindow, self).__init__()
+        super().__init__()
 
         # Accept drag & drop events
         self.setAcceptDrops(True)

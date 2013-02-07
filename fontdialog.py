@@ -3,7 +3,7 @@ from PyQt4.QtCore import Qt
 
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):
-        QtGui.QDialog.__init__(self, parent)
+        super().__init__(parent)
 
         self.main = parent
         self.fontfamily = fontfamily
