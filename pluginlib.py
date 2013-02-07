@@ -12,6 +12,7 @@ class GUIPlugin:
             self.quit = callbacks
 
         self.path = path
+
         self.has_stylesheet = isfile(join(path, 'qtstylesheet.css'))
         if self.has_stylesheet:
             with open(join(path, 'qtstylesheet.css'), encoding='utf8') as f:
