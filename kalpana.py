@@ -44,20 +44,19 @@ class MainWindow(QtGui.QFrame):
         # Accept drag & drop events
         self.setAcceptDrops(True)
 
-        self.force_quit = False
-
         # Window title stuff
         self.wt_wordcount = 0
         self.wt_modified = False
         self.wt_file = ''
 
+        # Misc settings etc
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
-
-        # Misc settings etc
         self.filepath = ''
         self.blocks = 1
+        self.font_dialog_open = False
+        self.force_quit = False
 
         # UI
         vert_layout, horz_layout, self.textarea, self.terminal\
@@ -65,16 +64,13 @@ class MainWindow(QtGui.QFrame):
         self.document = self.textarea.document()
 
         # Paths
-        self.config_file_path,\
-        self.config_dir,\
-        self.theme_path,\
-        self.loadorder_path\
+        self.config_file_path, self.config_dir,\
+        self.theme_path, self.loadorder_path\
             = get_paths()
 
         # Plugins
         self.plugins, plugin_commands = self.init_plugins(self.config_dir)
 
-        self.font_dialog_open = False
 
         self.terminal.update_commands(plugin_commands)
 
@@ -102,11 +98,9 @@ class MainWindow(QtGui.QFrame):
         for key, function in hotkeys.items():
             set_key_shortcut(key, self, function)
 
-
         # Config
         with open(local_path('defaultcfg.json'), encoding='utf8') as f:
             defaultcfg = json.loads(f.read())
-
         self.read_config(defaultcfg)
         self.set_theme()
 
