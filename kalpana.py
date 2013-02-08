@@ -49,7 +49,6 @@ class MainWindow(QtGui.QFrame):
 
         # Window title stuff
         self.wt_wordcount = 0
-        self.wt_modified = False
         self.wt_file = ''
 
         # Misc settings etc
@@ -82,7 +81,7 @@ class MainWindow(QtGui.QFrame):
         if file_:
             if not self.open_file(file_):
                 self.close()
-            self.update_window_title()
+            self.update_window_title(self.document.isModified())
         else:
             self.set_file_name('NEW')
 
@@ -153,6 +152,7 @@ class MainWindow(QtGui.QFrame):
         for p in plugins:
             self.read_plugin_config.connect(p.read_config)
             self.write_plugin_config.connect(p.write_config)
+            self.document.contentsChanged.connect(p.contents_changed)
             plugin_commands.update(p.commands)
 
         return plugins, plugin_commands
@@ -400,24 +400,13 @@ class MainWindow(QtGui.QFrame):
         wcount = len(re.findall(r'\S+', self.document.toPlainText()))
         if not wcount == self.wt_wordcount:
             self.wt_wordcount = wcount
-            self.update_window_title()
-        for p in self.plugins:
-            p.contents_changed()
+            self.update_window_title(self.document.isModified())
 
 
-    def update_window_title(self):
-        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
+    def update_window_title(self, modified):
+        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*modified,
                                                      self.wt_wordcount,
                                                      self.wt_file))
-
-
-    def toggle_modified(self, modified):
-        """
-        Toggle the asterisks in the title depending on if the file has been
-        modified since last save/open or not.
-        """
-        self.wt_modified = modified
-        self.update_window_title()
 
 
     def set_file_name(self, filename):
@@ -428,7 +417,7 @@ class MainWindow(QtGui.QFrame):
         else:
             self.filepath = filename
             self.wt_file = os.path.basename(filename)
-        self.update_window_title()
+        self.update_window_title(self.document.isModified())
 
 
 
@@ -507,7 +496,6 @@ class MainWindow(QtGui.QFrame):
         elif not self.document.isModified() or force:
             self.document.clear()
             self.document.setModified(False)
-            self.toggle_modified(False)
             self.set_file_name('NEW')
             self.blocks = 1
             return True
