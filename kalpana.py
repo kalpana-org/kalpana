@@ -51,22 +51,6 @@ class MainWindow(QtGui.QFrame):
         self.wt_modified = False
         self.wt_file = ''
 
-        # Layout
-        main_layout = QtGui.QVBoxLayout(self)
-        main_layout.setSpacing(0)
-        main_layout.setMargin(0)
-
-        top_layout = QtGui.QHBoxLayout()
-        top_layout.setSpacing(0)
-        top_layout.setMargin(0)
-        main_layout.addLayout(top_layout)
-
-        # Text area
-        self.textarea = LineTextWidget(self)
-        self.document = self.textarea.document()
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.textarea.setTabStopWidth(30)
-        top_layout.addWidget(self.textarea)
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
@@ -74,12 +58,11 @@ class MainWindow(QtGui.QFrame):
         # Misc settings etc
         self.filepath = ''
         self.blocks = 1
-        self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
 
-        # Signals/slots
-        self.document.modificationChanged.connect(self.toggle_modified)
-        self.document.contentsChanged.connect(self.contents_changed)
-        self.document.blockCountChanged.connect(self.new_line)
+        # UI
+        vert_layout, horz_layout, self.textarea, self.terminal\
+            = self.create_ui()
+        self.document = self.textarea.document()
 
         # Paths
         self.config_file_path,\
@@ -91,14 +74,14 @@ class MainWindow(QtGui.QFrame):
         # Plugins
         self.plugins, plugin_commands = self.init_plugins(self.config_dir)
 
-        # Terminal
-        self.terminal = Terminal(self, plugin_commands)
-        main_layout.addWidget(self.terminal)
-        self.terminal.setVisible(False)
         self.font_dialog_open = False
 
         self.terminal.update_commands(plugin_commands)
 
+        # Signals/slots
+        self.document.modificationChanged.connect(self.toggle_modified)
+        self.document.contentsChanged.connect(self.contents_changed)
+        self.document.blockCountChanged.connect(self.new_line)
         def open_loadorder_dialog():
             loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
@@ -138,7 +121,31 @@ class MainWindow(QtGui.QFrame):
 
 
     def create_ui(self):
-        pass
+        def kill_spacing(l):
+            l.setSpacing(0)
+            l.setMargin(0)
+
+        # Layout
+        vert_layout = QtGui.QVBoxLayout(self)
+        kill_spacing(vert_layout)
+
+        horz_layout = QtGui.QHBoxLayout()
+        kill_spacing(horz_layout)
+        vert_layout.addLayout(horz_layout)
+
+        # Text area
+        textarea = LineTextWidget(self)
+        textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        textarea.setTabStopWidth(30)
+        textarea.setContextMenuPolicy(Qt.PreventContextMenu)
+        horz_layout.addWidget(textarea)
+
+        # Terminal
+        terminal = Terminal(self, textarea)
+        terminal.setVisible(False)
+        vert_layout.addWidget(terminal)
+
+        return vert_layout, horz_layout, textarea, terminal
 
 
     def init_plugins(self, config_dir):

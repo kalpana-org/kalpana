@@ -58,9 +58,9 @@ class Terminal(QtGui.QSplitter):
 
     open_loadorder_dialog = pyqtSignal()
 
-    def __init__(self, main):
+    def __init__(self, main, textarea):
         super().__init__(parent=main)
-        self.textarea = main.textarea
+        self.textarea = textarea
         self.main = main
         self.sugindex = -1
 
