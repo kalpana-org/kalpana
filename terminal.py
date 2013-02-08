@@ -58,30 +58,13 @@ class Terminal(QtGui.QSplitter):
 
     open_loadorder_dialog = pyqtSignal()
 
-    def __init__(self, main, plugincommands):
+    def __init__(self, main):
         super().__init__(parent=main)
         self.textarea = main.textarea
         self.main = main
         self.sugindex = -1
 
         self.history = []
-
-        # Plugins
-        def run_plugin_command(function, arg):
-            result = function(arg)
-            if result:
-                text, error = result
-                if error:
-                    self.error(text)
-                else:
-                    self.print_(text)
-
-        for key, value in plugincommands.items():
-            function, help = value
-            run_function = lambda _,arg: run_plugin_command(function, arg)
-            plugincommands[key] = (run_function, help)
-
-        self.cmds.update(plugincommands)
 
         # Splitter settings
         self.setHandleWidth(2)
@@ -110,6 +93,24 @@ class Terminal(QtGui.QSplitter):
 
         set_key_shortcut('Alt+Left', self, self.move_splitter_left)
         set_key_shortcut('Alt+Right', self, self.move_splitter_right)
+
+    def update_commands(self, plugin_commands):
+        # Plugins
+        def run_plugin_command(function, arg):
+            result = function(arg)
+            if result:
+                text, error = result
+                if error:
+                    self.error(text)
+                else:
+                    self.print_(text)
+
+        for key, value in plugin_commands.items():
+            function, help = value
+            run_function = lambda _,arg: run_plugin_command(function, arg)
+            plugin_commands[key] = (run_function, help)
+
+        self.cmds.update(plugin_commands)
 
 
     # ==== Autocomplete ========================== #

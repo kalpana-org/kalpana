@@ -97,6 +97,8 @@ class MainWindow(QtGui.QFrame):
         self.terminal.setVisible(False)
         self.font_dialog_open = False
 
+        self.terminal.update_commands(plugin_commands)
+
         def open_loadorder_dialog():
             loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
