@@ -58,7 +58,7 @@ class MainWindow(QtGui.QFrame):
         self.filepath = ''
         self.blocks = 1
         self.font_dialog_open = False
-        self.force_quit = False
+        self.force_quit_flag = False
 
         # UI
         vert_layout, horz_layout, self.textarea, self.terminal\
@@ -81,6 +81,12 @@ class MainWindow(QtGui.QFrame):
 
         def open_loadorder_dialog():
             loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
+
+        self.terminal.request_new_file.connect(self.new_t)
+        self.terminal.request_save_file.connect(self.save_t)
+        self.terminal.request_open_file.connect(self.open_t)
+        self.terminal.request_quit.connect(self.quit)
+
         self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
         self.terminal.toggle_setting.connect(self.toggle_setting)
         self.terminal.give_up_focus.connect(self.textarea.setFocus)
@@ -219,12 +225,20 @@ class MainWindow(QtGui.QFrame):
 ## ==== Overrides ========================================================== ##
 
     def closeEvent(self, event):
-        if not self.document.isModified() or self.force_quit:
+        if not self.document.isModified() or self.force_quit_flag:
             self.write_config()
             event.accept()
         else:
             self.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
+
+    def quit(self, force):
+        if force:
+            self.force_quit_flag = True
+            self.close()
+        else:
+            self.force_quit_flag = False
+            self.close()
 
     def dragEnterEvent(self, event):
 ##        if event.mimeData().hasFormat('text/plain'):
@@ -350,8 +364,8 @@ class MainWindow(QtGui.QFrame):
 
     def set_scrollbar_visibility(self, when):
         # TODO: write_config
-        if when in ('on', 'auto', 'off'):
-            self.settings['vscrollbar'] = when
+        # if when in ('on', 'auto', 'off'):
+        #     self.settings['vscrollbar'] = when
         if when == 'on':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         elif when == 'auto':
@@ -470,6 +484,12 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== File operations: new/open/save ===================================== ##
 
+    def new_t(self, force=False):
+        """ Called from terminal """
+        success = self.new_file(force)
+        if not success:
+            self.error('Unsaved changes! Force new with n! or save first.')
+
     def open_t(self, filename, force=False):
         """ Called from terminal """
         if self.settings['open_in_new_window'] and not self.new_and_empty():
@@ -480,6 +500,26 @@ class MainWindow(QtGui.QFrame):
                 self.error('File could not be decoded!')
         else:
             self.error('Unsaved changes! Force open with o! or save first.')
+
+    def save_t(self, filename, force=False):
+        """ Called from terminal """
+        if not filename:
+            if self.filepath:
+                result = self.save_file()
+                if not result:
+                    self.error('File not saved! IOError!')
+            else:
+                self.error('No filename')
+        else:
+            if os.path.isfile(filename) and not force:
+                self.error('File already exists, use s! to overwrite')
+            # Make sure the parent directory actually exists
+            elif os.path.isdir(os.path.dirname(filename)):
+                result = self.save_file(filename)
+                if not result:
+                    self.error('File not saved! IOError!')
+            else:
+                self.error('Invalid path')
 
 
     def new_k(self):

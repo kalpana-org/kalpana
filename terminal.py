@@ -56,6 +56,11 @@ class Terminal(QtGui.QSplitter):
     class OutputBox(QtGui.QLineEdit):
         pass
 
+    request_new_file = pyqtSignal(bool)
+    request_open_file = pyqtSignal(str, bool)
+    request_save_file = pyqtSignal(str, bool)
+    request_quit = pyqtSignal(bool)
+
     show_value_of_setting = pyqtSignal(str)
     toggle_setting = pyqtSignal(str)
     give_up_focus = pyqtSignal()
@@ -234,54 +239,34 @@ class Terminal(QtGui.QSplitter):
 
     # ==== Commands ============================== #
     def cmd_open(self, arg, force=False):
-        f = arg.strip()
-        if os.path.isfile(f):
-            self.main.open_t(f, force)
-        else:
-            self.error('Non-existing file')
+        fname = arg.strip()
+        self.request_open_file.emit(fname, force)
 
     def cmd_force_open(self, arg):
         self.cmd_open(arg, force=True)
 
 
-    def cmd_new(self, arg):
-        success = self.main.new_file()
-        if not success:
-            self.error('Unsaved changes! Force new with n! or save first.')
+    def cmd_new(self, arg, force=False):
+        self.request_new_file.emit(force)
 
     def cmd_force_new(self, arg):
         self.main.new_file(force=True)
 
 
     def cmd_save(self, arg, force=False):
-        f = arg.strip()
-        if not f:
-            if self.main.filepath:
-                result = self.main.save_file()
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('No filename')
-        else:
-            if os.path.isfile(f) and not force:
-                self.error('File already exists, use s! to overwrite')
-            # Make sure the parent directory actually exists
-            elif os.path.isdir(os.path.dirname(f)):
-                result = self.main.save_file(f)
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('Invalid path')
+        fname = arg.strip()
+        self.request_save_file.emit(fname, force)
 
     def cmd_overwrite_save(self, arg):
         self.cmd_save(arg, force=True)
 
+
     def cmd_quit(self, arg):
-        self.main.close()
+        self.request_quit.emit(False)
 
     def cmd_force_quit(self, arg):
-        self.main.force_quit = True
-        self.main.close()
+        self.request_quit.emit(True)
+
 
     def cmd_find(self, arg):
         if arg:
