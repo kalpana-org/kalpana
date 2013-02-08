@@ -8,25 +8,6 @@
     "vscrollbar": "always",
     "start_in_term": true
   },
-  "theme": {
-    "checkbox_bgcolor": "#888",
-    "checkbox_checked_color": "black",
-    "details_color": "#111",
-    "fontdialog_normal_bgcolor": "#333",
-    "fontdialog_normal_textcolor": "#ddd",
-    "fontdialog_inactive_bgcolor": "#888",
-    "fontdialog_inactive_textcolor": "#111",
-    "main_bgcolor": "#222",
-    "main_fontfamily": "Serif",
-    "main_fontsize": "14pt",
-    "main_textcolor": "#ddd",
-    "term_fontfamily": "Monospace",
-    "term_fontsize": "12pt",
-    "term_input_bgcolor": "",
-    "term_input_textcolor": "",
-    "term_output_bgcolor": "#191919",
-    "term_output_textcolor": ""
-  },
   "window": {
     "height": 480,
     "maximized": false,
