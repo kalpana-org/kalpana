@@ -31,7 +31,7 @@ import subprocess
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from common import set_key_shortcut
+from common import set_key_shortcut, read_stylesheet
 from linewidget import LineTextWidget
 from terminal import Terminal
 
@@ -88,6 +88,7 @@ class MainWindow(QtGui.QFrame):
         else: # Windows
             self.cfgdir = local_path('')
 
+        self.theme_path = os.path.join(self.cfgdir, 'stylesheet.css')
         self.cfgpath = os.path.join(self.cfgdir, 'kalpana.conf')
 
         # Plugins
@@ -154,6 +155,7 @@ class MainWindow(QtGui.QFrame):
             defaultcfg = json.loads(f.read())
 
         self.read_config(defaultcfg)
+        self.set_theme()
 
         if file_:
             if not self.open_file(file_):
@@ -198,23 +200,22 @@ class MainWindow(QtGui.QFrame):
     def read_config(self, default_config):
         """ Read the config and update the appropriate variables. """
 
-        optionalvalues = ('term_input_bgcolor',
-                          'term_output_bgcolor',
-                          'term_input_textcolor',
-                          'term_output_textcolor')
-
         def check_config(cfg, defcfg):
             """ Make sure the config is valid """
             out = {}
             for key, defvalue in defcfg.items():
                 if key in cfg:
+                    # We need to go deeper
                     if type(defvalue) == dict:
                         out[key] = check_config(cfg[key], defvalue)
-                    elif not cfg[key] and key not in optionalvalues:
+                    # No value found, use default
+                    elif not cfg[key]:
                         out[key] = defvalue
+                    # Found it!
                     else:
                         out[key] = cfg[key]
                 else:
+                    # No key found, use default
                     out[key] = defvalue
             return out
 
@@ -245,12 +246,9 @@ class MainWindow(QtGui.QFrame):
             self.terminal.setVisible(True)
             self.switch_focus_to_term()
 
-        self.themedict = cfg['theme']
-
-        self.update_theme(cfg['theme'])
-
         for p in self.plugins:
             p.read_config()
+
 
     def write_config(self):
         """
@@ -277,8 +275,7 @@ class MainWindow(QtGui.QFrame):
                 'open_in_new_window': self.open_in_new_window,
                 'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
                 'start_in_term': self.start_in_term,
-            },
-            'theme': self.themedict
+            }
         }
 
         outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
@@ -292,39 +289,11 @@ class MainWindow(QtGui.QFrame):
             p.write_config()
 
 
-    def update_theme(self, themedict):
-        self.themedict = themedict.copy()
-
-        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            stylesheet_template = f.read()
-
-        overload = {
-            'term_input_bgcolor': 'main_bgcolor',
-            'term_output_bgcolor': 'main_bgcolor',
-            'term_input_textcolor': 'main_textcolor',
-            'term_output_textcolor': 'main_textcolor',
-        }
-        for x, y in overload.items():
-            if not themedict[x]:
-                themedict[x] = themedict[y]
-        for value in themedict.values():
-            # TODO: no graphical shit!!!
-            if not value:
-                self.terminal.error('Themesection in the config is broken!')
-                break
-
-        stylesheet = stylesheet_template.format(**themedict)
-        for p in self.plugins:
-            if p.has_stylesheet:
-                tc = p.theme_config()
-                stylesheet += p.stylesheet.format(tc) if tc else p.stylesheet
-
+    def set_theme(self):
+        stylesheet = read_stylesheet(self.theme_path)
+        plugin_themes = [p.get_theme() for p in self.plugins]
+        stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
-
-    def reload_theme(self):
-        with open(self.cfgpath, encoding='utf-8') as f:
-            cfg = json.loads(f.read())
-        self.update_theme(cfg['theme'])
 
 
 ## ==== Misc =============================================================== ##

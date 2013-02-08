@@ -31,10 +31,6 @@ class GUIPlugin:
 
         self.path = path
 
-        self.has_stylesheet = isfile(join(path, 'qtstylesheet.css'))
-        if self.has_stylesheet:
-            with open(join(path, 'qtstylesheet.css'), encoding='utf8') as f:
-                self.stylesheet = f.read()
         self.start()
 
     def start(self):
@@ -52,5 +48,8 @@ class GUIPlugin:
     def file_saved(self):
         pass
 
-    def theme_config(self):
-        pass
+    def get_theme(self):
+        from common import read_stylesheet
+        if not isfile(join(path, 'stylesheet.css')):
+            return ''
+        return read_stylesheet(join(self.path, 'stylesheet.css'))

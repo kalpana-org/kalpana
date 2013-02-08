@@ -17,6 +17,10 @@
 
 
 import json
+import os.path
+import re
+
+from PyQt4 import QtGui
 
 
 def read_json(path):
@@ -27,5 +31,25 @@ def write_json(path, data):
     with open(path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
 
+
 def set_key_shortcut(hotkey, obj, slot):
     QtGui.QShortcut(QtGui.QKeySequence(hotkey), obj, slot)
+
+
+def read_stylesheet(path):
+    if not os.path.isfile(path):
+        print('No theme found at. You should fix this.')
+        return ''
+    with open(path, encoding='utf-8') as f:
+        data = f.read()
+
+    re_values = re.compile(r'^(?P<key>\$\S+?)\s*:\s*(?P<value>\S+?);?$',
+                           re.MULTILINE)
+
+    stylesheet = '\n'.join([l for l in data.splitlines()
+                            if not l.startswith('$')])
+
+    for key, value in re_values.findall(data):
+        stylesheet = stylesheet.replace(key, value)
+
+    return stylesheet

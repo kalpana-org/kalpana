@@ -359,7 +359,7 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmd_reload_theme(self, arg):
-        self.main.reload_theme()
+        self.main.set_theme()
 
     def cmd_load_order(self, arg):
         lod = loadorderdialog.LoadOrderDialog(self.main)
