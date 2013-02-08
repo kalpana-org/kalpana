@@ -74,29 +74,8 @@ class MainWindow(QtGui.QFrame):
         self.plugins, plugin_commands = self.init_plugins(self.config_dir)
         self.terminal.update_commands(plugin_commands)
 
-        # Signals/slots
-        self.document.modificationChanged.connect(self.toggle_modified)
-        self.document.contentsChanged.connect(self.contents_changed)
-        self.document.blockCountChanged.connect(self.new_line)
-
-        def open_loadorder_dialog():
-            loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
-
-        self.terminal.request_new_file.connect(self.new_t)
-        self.terminal.request_save_file.connect(self.save_t)
-        self.terminal.request_open_file.connect(self.open_t)
-        self.terminal.request_quit.connect(self.quit)
-
-        self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
-        self.terminal.toggle_setting.connect(self.toggle_setting)
-        self.terminal.give_up_focus.connect(self.textarea.setFocus)
-        self.terminal.set_scrollbar_visibility.connect(self.set_scrollbar_visibility)
-        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
-        self.terminal.reload_theme.connect(self.set_theme)
-
-        # Keyboard shortcuts
+        self.connect_signals()
         self.create_key_shortcuts(self.plugins)
-
         self.settings = self.load_settings(self.config_file_path)
 
         if file_:
@@ -190,6 +169,29 @@ class MainWindow(QtGui.QFrame):
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
             set_key_shortcut(key, self, function)
+
+    def connect_signals(self):
+        self.document.modificationChanged.connect(self.update_window_title)
+        self.document.contentsChanged.connect(self.contents_changed)
+        self.document.blockCountChanged.connect(self.new_line)
+
+        # Terminal file operations
+        self.terminal.request_new_file.connect(self.new_t)
+        self.terminal.request_save_file.connect(self.save_t)
+        self.terminal.request_open_file.connect(self.open_t)
+        self.terminal.request_quit.connect(self.quit)
+
+        # Terminal settings
+        self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
+        self.terminal.toggle_setting.connect(self.toggle_setting)
+        self.terminal.set_scrollbar_visibility.connect(self.set_scrollbar_visibility)
+
+        # Terminal misc
+        def open_loadorder_dialog():
+            loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
+        self.terminal.give_up_focus.connect(self.textarea.setFocus)
+        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
+        self.terminal.reload_theme.connect(self.set_theme)
 
     def load_settings(self, config_file_path):
         with open(local_path('defaultcfg.json'), encoding='utf8') as f:
