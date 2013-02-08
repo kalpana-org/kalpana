@@ -34,7 +34,7 @@ class LoadOrderDialog(QtGui.QDialog):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setModal(True)
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtGui.QVBoxLayout(self)
 
         with open(self.loadorder_path, encoding='utf-8') as f:
             loadorder = json.loads(f.read())
@@ -79,8 +79,6 @@ class LoadOrderDialog(QtGui.QDialog):
             set_key_shortcut('Left', self, move_item_up)
             set_key_shortcut('Right', self, move_item_down)
             set_key_shortcut('Escape', self, self.close)
-
-        self.setLayout(layout)
 
         self.show()
 

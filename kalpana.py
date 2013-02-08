@@ -28,8 +28,9 @@ import sys
 import subprocess
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import pyqtSignal, Qt
 
+import common
 from common import set_key_shortcut, read_stylesheet
 from linewidget import LineTextWidget
 import loadorderdialog
@@ -37,6 +38,8 @@ from terminal import Terminal
 
 
 class MainWindow(QtGui.QFrame):
+    read_plugin_config = pyqtSignal()
+    write_plugin_config = pyqtSignal()
 
     def __init__(self, file_=''):
         super().__init__()
@@ -82,11 +85,7 @@ class MainWindow(QtGui.QFrame):
         # Keyboard shortcuts
         self.create_key_shortcuts(self.plugins)
 
-        # Config
-        with open(local_path('defaultcfg.json'), encoding='utf8') as f:
-            defaultcfg = json.loads(f.read())
-        self.read_config(defaultcfg)
-        self.set_theme()
+        self.settings = self.load_settings(self.config_file_path)
 
         if file_:
             if not self.open_file(file_):
@@ -160,6 +159,8 @@ class MainWindow(QtGui.QFrame):
 
         plugin_commands = {}
         for p in plugins:
+            self.read_plugin_config.connect(p.read_config)
+            self.write_plugin_config.connect(p.write_config)
             plugin_commands.update(p.commands)
 
         return plugins, plugin_commands
@@ -177,6 +178,21 @@ class MainWindow(QtGui.QFrame):
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
             set_key_shortcut(key, self, function)
+
+    def load_settings(self, config_file_path):
+        with open(local_path('defaultcfg.json'), encoding='utf8') as f:
+            defaultcfg = json.loads(f.read())
+        settings = self.read_config(config_file_path, defaultcfg)
+
+        if settings['start_in_term']:
+            self.terminal.setVisible(True)
+            self.switch_focus_to_term()
+        self.textarea.number_bar.showbar = settings['linenumbers']
+        self.set_scrollbar_visibility(settings['vscrollbar'])
+        self.read_plugin_config.emit()
+        self.set_theme()
+        return settings
+
 
 ## ==== Overrides ========================================================== ##
 
@@ -208,7 +224,7 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def read_config(self, default_config):
+    def read_config(self, config_file_path, default_config):
         """ Read the config and update the appropriate variables. """
 
         def check_config(cfg, defcfg):
@@ -231,34 +247,14 @@ class MainWindow(QtGui.QFrame):
             return out
 
         try:
-            with open(self.config_file_path, encoding='utf-8') as f:
-                rawcfg = json.loads(f.read())
+            rawcfg = common.read_json(config_file_path)
         except (IOError, ValueError):
             print('no/bad config')
             cfg = default_config
         else:
             cfg = check_config(rawcfg, default_config)
 
-        # Settings
-        self.lastdir = cfg['settings']['lastdirectory']
-        vscrollbar = cfg['settings']['vscrollbar']
-        if vscrollbar == 'always':
-            self.always_show_scrollbar()
-        elif vscrollbar == 'needed':
-            self.show_scrollbar_when_needed()
-        elif vscrollbar == 'never':
-            self.never_show_scrollbar()
-        self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
-        self.autoindent = cfg['settings']['autoindent']
-        self.open_in_new_window = cfg['settings']['open_in_new_window']
-        self.show_fonts_in_dialoglist = cfg['settings']['show_fonts_in_dialoglist']
-        self.start_in_term = cfg['settings']['start_in_term']
-        if self.start_in_term:
-            self.terminal.setVisible(True)
-            self.switch_focus_to_term()
-
-        for p in self.plugins:
-            p.read_config()
+        return cfg['settings']
 
 
     def write_config(self):
@@ -266,9 +262,8 @@ class MainWindow(QtGui.QFrame):
         Read the config, update the info with appropriate variables (optional)
         and then overwrite the old file with the updated config.
         """
-        vscrollbar = ('needed', 'never', 'always')
+        settings = self.settings # TEMPORARY
         sizepos = self.geometry()
-        font = self.document.defaultFont()
         cfg = {
             'window': {
                 'x': sizepos.left(),
@@ -277,28 +272,15 @@ class MainWindow(QtGui.QFrame):
                 'height': sizepos.height(),
                 'maximized': self.isMaximized(),
             },
-            'settings': {
-                'lastdirectory': self.lastdir,
-                'vscrollbar': vscrollbar[self.textarea.
-                                    verticalScrollBarPolicy()],
-                'linenumbers': self.textarea.number_bar.showbar,
-                'autoindent': self.autoindent,
-                'open_in_new_window': self.open_in_new_window,
-                'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
-                'start_in_term': self.start_in_term,
-            }
+            'settings': settings
         }
 
-        outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
         if not os.path.exists(os.path.dirname(self.config_file_path)):
             os.makedirs(os.path.dirname(self.config_file_path), mode=0o755, exist_ok=True)
             print('Creating config path...')
-        with open(self.config_file_path, 'w', encoding='utf-8') as f:
-            f.write(outjson)
+        common.write_json(self.config_file_path, cfg)
 
-        for p in self.plugins:
-            p.write_config()
-
+        self.write_plugin_config.emit()
 
     def set_theme(self):
         stylesheet = read_stylesheet(self.theme_path)
@@ -336,7 +318,7 @@ class MainWindow(QtGui.QFrame):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if blocks > self.blocks and self.autoindent:
+        if blocks > self.blocks and self.settings['autoindent']:
             cursor = self.textarea.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document.findBlockByNumber(blocknum-1)
@@ -344,28 +326,13 @@ class MainWindow(QtGui.QFrame):
             cursor.insertText(indent)
 
 
-    def new_and_empty(self):
-        """ Return True if the file is empty and unsaved. """
-        return not self.document.isModified() and not self.filepath
-
-    # ---- Vertical scrollbar -------------------------------------- #
-
-    def always_show_scrollbar(self):
-        """ Always show the vertical scrollbar. Convenience function. """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-
-    def show_scrollbar_when_needed(self):
-        """
-        Only show the vertical scrollbar when needed.
-        Convenience function.
-        """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-
-    def never_show_scrollbar(self):
-        """ Never show the vertical scrollbar. Convenience function. """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-    # -------------------------------------------------------------- #
+    def set_scrollbar_visibility(self, when):
+        if when == 'always':
+            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        elif when == 'needed':
+            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        elif when == 'never':
+            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
 
     def find_next(self):
@@ -473,7 +440,7 @@ class MainWindow(QtGui.QFrame):
 
     def open_t(self, filename, force=False):
         """ Called from terminal """
-        if self.open_in_new_window and not self.new_and_empty():
+        if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
             success = self.open_file(filename)
@@ -512,7 +479,7 @@ class MainWindow(QtGui.QFrame):
         """
         Main new file function
         """
-        if self.open_in_new_window and not self.new_and_empty():
+        if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0]])
             return True
         elif not self.document.isModified() or force:
@@ -537,7 +504,7 @@ class MainWindow(QtGui.QFrame):
             except UnicodeDecodeError:
                 continue
             else:
-                self.lastdir = os.path.dirname(filename)
+                self.settings['lastdirectory'] = os.path.dirname(filename)
                 self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
                 self.set_file_name(filename)
@@ -569,7 +536,7 @@ class MainWindow(QtGui.QFrame):
             print(e)
             return False
         else:
-            self.lastdir = os.path.dirname(savefname)
+            self.settings['lastdirectory'] = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
             for p in self.plugins:

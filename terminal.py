@@ -319,8 +319,8 @@ class Terminal(QtGui.QSplitter):
                                      arg + '_fontfamily', arg + '_fontsize')
 
     def cmd_autoindent(self, arg):
-        self.main.autoindent = not self.main.autoindent
-        self.print_('Now ' + str(self.main.autoindent).lower())
+        self.main.settings['autoindent'] = not self.main.settings['autoindent']
+        self.print_('Now ' + str(self.main.settings['autoindent']).lower())
 
     def cmd_line_numbers(self, arg):
         self.textarea.number_bar.showbar = not self.textarea.number_bar.showbar
@@ -329,25 +329,22 @@ class Terminal(QtGui.QSplitter):
 
     def cmd_scrollbar(self, arg):
         arg = arg.strip().lower()
+        alias = {'off': 'never', 'maybe': 'needed', 'on': 'always'}
         if not arg:
             self.print_(('Off','Maybe','On')[self.textarea.verticalScrollBarPolicy()])
-        elif arg == 'off':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        elif arg == 'maybe':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        elif arg == 'on':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        elif arg in ('off', 'maybe', 'on'):
+            self.main.set_scrollbar_visibility(alias[arg])
         else:
             self.error('Wrong argument [off/maybe/on]')
 
     def cmd_new_window(self, arg):
         arg = arg.strip()
         if not arg:
-            self.print_(self.main.open_in_new_window)
+            self.print_(self.main.settings['open_in_new_window'])
         elif arg == 'y':
-            self.main.open_in_new_window = True
+            self.main.settings['open_in_new_window'] = True
         elif arg == 'n':
-            self.main.open_in_new_window = False
+            self.main.settings['open_in_new_window'] = False
         else:
             self.error('Wrong argument [y/n]')
 
