@@ -32,6 +32,7 @@ from PyQt4.QtCore import pyqtSignal, Qt
 
 import common
 from common import set_key_shortcut, read_stylesheet
+import configlib
 from linewidget import LineTextWidget
 import loadorderdialog
 from terminal import Terminal
@@ -196,7 +197,7 @@ class MainWindow(QtGui.QFrame):
     def load_settings(self, config_file_path):
         with open(local_path('defaultcfg.json'), encoding='utf8') as f:
             defaultcfg = json.loads(f.read())
-        settings = self.read_config(config_file_path, defaultcfg)
+        settings = configlib.read_config(config_file_path, defaultcfg)
 
         if settings['start_in_term']:
             self.terminal.setVisible(True)
@@ -214,7 +215,7 @@ class MainWindow(QtGui.QFrame):
             self.terminal.print_('Current value: {}'.format(self.settings[key]))
 
     def toggle_setting(self, key):
-        # TODO: write_config
+        # TODO: save_settings
         if key in self.settings:
             self.settings[key] = not self.settings[key]
             if key == 'linenumbers':
@@ -228,7 +229,7 @@ class MainWindow(QtGui.QFrame):
 
     def closeEvent(self, event):
         if not self.document.isModified() or self.force_quit_flag:
-            self.write_config()
+            self.save_settings()
             event.accept()
         else:
             self.error('Unsaved changes! Force quit with q! or save first.')
@@ -262,62 +263,9 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def read_config(self, config_file_path, default_config):
-        """ Read the config and update the appropriate variables. """
-
-        def check_config(cfg, defcfg):
-            """ Make sure the config is valid """
-            out = {}
-            for key, defvalue in defcfg.items():
-                if key in cfg:
-                    # We need to go deeper
-                    if type(defvalue) == dict:
-                        out[key] = check_config(cfg[key], defvalue)
-                    # No value found, use default
-                    elif not cfg[key]:
-                        out[key] = defvalue
-                    # Found it!
-                    else:
-                        out[key] = cfg[key]
-                else:
-                    # No key found, use default
-                    out[key] = defvalue
-            return out
-
-        try:
-            rawcfg = common.read_json(config_file_path)
-        except (IOError, ValueError):
-            print('no/bad config')
-            cfg = default_config
-        else:
-            cfg = check_config(rawcfg, default_config)
-
-        return cfg['settings']
-
-
-    def write_config(self):
-        """
-        Read the config, update the info with appropriate variables (optional)
-        and then overwrite the old file with the updated config.
-        """
-        settings = self.settings # TEMPORARY
-        sizepos = self.geometry()
-        cfg = {
-            'window': {
-                'x': sizepos.left(),
-                'y': sizepos.top(),
-                'width': sizepos.width(),
-                'height': sizepos.height(),
-                'maximized': self.isMaximized(),
-            },
-            'settings': settings
-        }
-
-        if not os.path.exists(os.path.dirname(self.config_file_path)):
-            os.makedirs(os.path.dirname(self.config_file_path), mode=0o755, exist_ok=True)
-            print('Creating config path...')
-        common.write_json(self.config_file_path, cfg)
-
+    def save_settings(self):
+        configlib.write_config(self.config_file_path, self.settings,
+                               self.geometry())
         self.write_plugin_config.emit()
 
     def set_theme(self):
@@ -365,7 +313,7 @@ class MainWindow(QtGui.QFrame):
 
 
     def set_scrollbar_visibility(self, when):
-        # TODO: write_config
+        # TODO: save_settings
         # if when in ('on', 'auto', 'off'):
         #     self.settings['vscrollbar'] = when
         if when == 'on':
