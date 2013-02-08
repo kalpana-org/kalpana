@@ -362,6 +362,11 @@ class MainWindow(QtGui.QFrame):
             self.error('{} is not a valid option'.format(when))
 
 
+    def new_and_empty(self):
+        """ Return True if the file is empty and unsaved. """
+        return not self.document.isModified() and not self.filepath
+
+
     def find_next(self):
         if not self.findtext:
             self.terminal.error("No previous searches")
