@@ -17,11 +17,6 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
-import datetime
-import importlib
-import json
-from math import ceil
-import os
 from os.path import join
 import re
 import sys
@@ -31,10 +26,9 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
 import common
-from common import set_key_shortcut, read_stylesheet
 import configlib
 from linewidget import LineTextWidget
-import loadorderdialog
+from loadorderdialog import LoadOrderDialog
 from terminal import Terminal
 
 
@@ -68,7 +62,7 @@ class MainWindow(QtGui.QFrame):
         # Paths
         self.config_file_path, self.config_dir,\
         self.theme_path, self.loadorder_path\
-            = get_paths()
+            = configlib.get_paths()
 
         # Plugins
         self.plugins, plugin_commands = self.init_plugins(self.config_dir)
@@ -139,7 +133,7 @@ class MainWindow(QtGui.QFrame):
             self.save_file,              # save_file()
             self.close,                  # quit()
         ]
-        for name, path, module in get_plugins(config_dir):
+        for name, path, module in configlib.get_plugins(config_dir):
             try:
                 plugin_constructor = module.UserPlugin
             except AttributeError:
@@ -169,7 +163,7 @@ class MainWindow(QtGui.QFrame):
         for p in plugins:
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
-            set_key_shortcut(key, self, function)
+            common.set_key_shortcut(key, self, function)
 
     def connect_signals(self):
         self.document.modificationChanged.connect(self.update_window_title)
@@ -189,14 +183,13 @@ class MainWindow(QtGui.QFrame):
 
         # Terminal misc
         def open_loadorder_dialog():
-            loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
+            LoadOrderDialog(self, self.loadorder_path).exec_()
         self.terminal.give_up_focus.connect(self.textarea.setFocus)
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
         self.terminal.reload_theme.connect(self.set_theme)
 
     def load_settings(self, config_file_path):
-        with open(local_path('defaultcfg.json'), encoding='utf8') as f:
-            defaultcfg = json.loads(f.read())
+        defaultcfg = common.read_json(common.local_path('defaultcfg.json'))
         settings = configlib.read_config(config_file_path, defaultcfg)
 
         if settings['start_in_term']:
@@ -269,7 +262,7 @@ class MainWindow(QtGui.QFrame):
         self.write_plugin_config.emit()
 
     def set_theme(self):
-        stylesheet = read_stylesheet(self.theme_path)
+        stylesheet = common.read_stylesheet(self.theme_path)
         plugin_themes = [p.get_theme() for p in self.plugins]
         stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
@@ -554,69 +547,6 @@ class MainWindow(QtGui.QFrame):
             return True
 
 
-def get_paths():
-    import platform
-    # Paths init
-    if platform.system() == 'Linux':
-        config_dir = join(os.getenv('HOME'), '.config', 'kalpana')
-    else: # Windows
-        config_dir = local_path('')
-    path = lambda fname: join(config_dir, fname)
-
-    theme_path = path('stylesheet.css')
-    config_file_path = path('kalpana.conf')
-    loadorder_path = path('loadorder.conf')
-    return config_file_path, config_dir, theme_path, loadorder_path
-
-
-def local_path(path):
-    return join(sys.path[0], path)
-
-
-def get_plugins(root_path):
-    loadorder_path = join(root_path, 'loadorder.conf')
-
-    # Get load order from file
-    try:
-        with open(loadorder_path, encoding='utf-8') as f:
-            loadorder = json.loads(f.read())
-            assert len(loadorder) > 0
-    except (IOError, AssertionError):
-        pluginlist, activelist = [],[]
-    else:
-        pluginlist, activelist = zip(*loadorder)
-        pluginlist = list(pluginlist)
-        activelist = list(activelist)
-
-    # Generate all existing plugins
-    rawplugins = {}
-    plugin_root_path = join(root_path, 'plugins')
-    if not os.path.exists(plugin_root_path):
-        os.makedirs(plugin_root_path, exist_ok=True)
-    for name in os.listdir(plugin_root_path):
-        plugin_path = join(plugin_root_path, name)
-        if not os.path.isfile(join(plugin_path, name + '.py')):
-            continue
-        if name not in pluginlist:
-            pluginlist.append(name)
-            activelist.append(True)
-        sys.path.append(plugin_path)
-        rawplugins[name] = (plugin_path, importlib.import_module(name))
-
-    # Update the load order
-    newpluginlist = [(p,a) for p,a in zip(pluginlist, activelist)
-                     if p in rawplugins]
-    with open(loadorder_path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(newpluginlist, ensure_ascii=False, indent=2))
-
-    # Generate all the relevant plugins in the right order
-    plugins = [(p, rawplugins[p][0], rawplugins[p][1])
-               for p,is_active in zip(pluginlist, activelist)
-               if p in rawplugins and is_active]
-
-    return plugins
-
-
 def get_valid_files():
     output = []
     for f in sys.argv[1:]:
@@ -632,6 +562,7 @@ def get_valid_files():
     return output
 
 def main():
+    import os
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     files = get_valid_files()
     app = QtGui.QApplication(sys.argv)

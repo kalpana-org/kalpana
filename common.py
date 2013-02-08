@@ -19,6 +19,7 @@
 import json
 import os.path
 import re
+import sys
 
 from PyQt4 import QtGui
 
@@ -27,9 +28,13 @@ def read_json(path):
     with open(path, encoding='utf-8') as f:
         return json.loads(f.read())
 
-def write_json(path, data):
+def write_json(path, data, sort_keys=True):
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+        f.write(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=sort_keys))
+
+
+def local_path(path):
+    return os.path.join(sys.path[0], path)
 
 
 def set_key_shortcut(hotkey, obj, slot):
