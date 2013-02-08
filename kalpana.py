@@ -40,7 +40,6 @@ class MainWindow(QtGui.QFrame):
 
     def __init__(self, file_=''):
         super().__init__()
-
         # Accept drag & drop events
         self.setAcceptDrops(True)
 
@@ -70,8 +69,6 @@ class MainWindow(QtGui.QFrame):
 
         # Plugins
         self.plugins, plugin_commands = self.init_plugins(self.config_dir)
-
-
         self.terminal.update_commands(plugin_commands)
 
         # Signals/slots
@@ -83,20 +80,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
 
         # Keyboard shortcuts
-        hotkeys = {
-            'Ctrl+N': self.new_k,
-            'Ctrl+O': self.open_k,
-            'Ctrl+S': self.save_k,
-            'Ctrl+Shift+S': self.save_as_k,
-            'F3': self.find_next,
-            'Ctrl+Return': self.toggle_terminal
-        }
-
-        for p in self.plugins:
-            hotkeys.update(p.hotkeys)
-
-        for key, function in hotkeys.items():
-            set_key_shortcut(key, self, function)
+        self.create_key_shortcuts(self.plugins)
 
         # Config
         with open(local_path('defaultcfg.json'), encoding='utf8') as f:
@@ -141,7 +125,6 @@ class MainWindow(QtGui.QFrame):
 
         return vert_layout, horz_layout, textarea, terminal
 
-
     def init_plugins(self, config_dir):
         # Plugins
         def add_widget(widget, side):
@@ -181,7 +164,19 @@ class MainWindow(QtGui.QFrame):
 
         return plugins, plugin_commands
 
-
+    def create_key_shortcuts(self, plugins):
+        hotkeys = {
+            'Ctrl+N': self.new_k,
+            'Ctrl+O': self.open_k,
+            'Ctrl+S': self.save_k,
+            'Ctrl+Shift+S': self.save_as_k,
+            'F3': self.find_next,
+            'Ctrl+Return': self.toggle_terminal
+        }
+        for p in plugins:
+            hotkeys.update(p.hotkeys)
+        for key, function in hotkeys.items():
+            set_key_shortcut(key, self, function)
 
 ## ==== Overrides ========================================================== ##
 
