@@ -17,11 +17,13 @@
 
 
 import os.path
+
 import fontdialog
 import loadorderdialog
 
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
+
 
 class Terminal(QtGui.QSplitter):
 

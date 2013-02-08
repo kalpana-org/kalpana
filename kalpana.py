@@ -17,29 +17,22 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
-# [Kalpana]
-# Gender: Feminine
-# Usage: Indian
-# Other Scripts: कल्पना (Hindi)
-# Means "imagining, fantasy" in Sanskrit.
-
-# v0.2 - added line numbers, taken from
-# v0.3 - did sum shit, added dragndrop, made stuff better
-# v0.4 - find(/replace)
-# v0.5 - moved to git, converted to py3k, refactored, GPL'd
-
-
-
-import datetime, json, os, os.path, platform, re, sys, subprocess
+import datetime
 import importlib
-
+import json
 from math import ceil
-
-from terminal import Terminal
-from linewidget import LineTextWidget
+import os
+import os.path
+import platform
+import re
+import sys
+import subprocess
 
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
+
+from terminal import Terminal
+from linewidget import LineTextWidget
 
 
 class MainWindow(QtGui.QFrame):
