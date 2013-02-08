@@ -23,8 +23,6 @@ class GUIPlugin:
     commands = {}
 
     def __init__(self, callbacks, path):
-        from os.path import isfile, join
-
         self.get_text, self.get_filepath, self.add_widget,\
             self.new_file, self.open_file, self.save_file,\
             self.quit = callbacks
@@ -49,7 +47,8 @@ class GUIPlugin:
         pass
 
     def get_theme(self):
+        from os.path import isfile, join
         from common import read_stylesheet
-        if not isfile(join(path, 'stylesheet.css')):
+        if not isfile(join(self.path, 'stylesheet.css')):
             return ''
         return read_stylesheet(join(self.path, 'stylesheet.css'))
