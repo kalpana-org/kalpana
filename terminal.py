@@ -322,14 +322,20 @@ class Terminal(QtGui.QSplitter):
                                      arg + '_fontfamily', arg + '_fontsize')
 
     def cmd_autoindent(self, arg):
-        self.toggle_setting.emit('autoindent')
+        if arg == '?':
+            self.show_value_of_setting.emit('autoindent')
+        else:
+            self.toggle_setting.emit('autoindent')
 
     def cmd_line_numbers(self, arg):
-        self.toggle_setting.emit('linenumbers')
+        if arg == '?':
+            self.show_value_of_setting.emit('linenumbers')
+        else:
+            self.toggle_setting.emit('linenumbers')
 
     def cmd_scrollbar(self, arg):
         arg = arg.strip().lower()
-        if not arg:
+        if not arg or arg == '?':
             self.show_value_of_setting.emit('vscrollbar')
         else:
             self.set_scrollbar_visibility.emit(arg)
