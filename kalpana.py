@@ -78,9 +78,15 @@ class MainWindow(QtGui.QFrame):
         self.document.modificationChanged.connect(self.toggle_modified)
         self.document.contentsChanged.connect(self.contents_changed)
         self.document.blockCountChanged.connect(self.new_line)
+
         def open_loadorder_dialog():
             loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
+        self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
+        self.terminal.toggle_setting.connect(self.toggle_setting)
+        self.terminal.give_up_focus.connect(self.textarea.setFocus)
+        self.terminal.set_scrollbar_visibility.connect(self.set_scrollbar_visibility)
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
+        self.terminal.reload_theme.connect(self.set_theme)
 
         # Keyboard shortcuts
         self.create_key_shortcuts(self.plugins)
@@ -193,6 +199,22 @@ class MainWindow(QtGui.QFrame):
         self.set_theme()
         return settings
 
+    def show_value_of_setting(self, key):
+        if not key in self.settings:
+            self.error('{} is not a setting'.format(key))
+        else:
+            self.terminal.print_('Current value: {}'.format(self.settings[key]))
+
+    def toggle_setting(self, key):
+        # TODO: write_config
+        if key in self.settings:
+            self.settings[key] = not self.settings[key]
+            if key == 'linenumbers':
+                self.textarea.number_bar.showbar = self.settings['linenumbers']
+                self.textarea.number_bar.update()
+            self.terminal.print_('{} now {}'.format(key, self.settings[key]))
+        else:
+            self.error('No setting called "{}"'.format(key))
 
 ## ==== Overrides ========================================================== ##
 
@@ -327,12 +349,17 @@ class MainWindow(QtGui.QFrame):
 
 
     def set_scrollbar_visibility(self, when):
-        if when == 'always':
+        # TODO: write_config
+        if when in ('on', 'auto', 'off'):
+            self.settings['vscrollbar'] = when
+        if when == 'on':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        elif when == 'needed':
+        elif when == 'auto':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        elif when == 'never':
+        elif when == 'off':
             self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        else:
+            self.error('{} is not a valid option'.format(when))
 
 
     def find_next(self):

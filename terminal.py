@@ -56,7 +56,12 @@ class Terminal(QtGui.QSplitter):
     class OutputBox(QtGui.QLineEdit):
         pass
 
+    show_value_of_setting = pyqtSignal(str)
+    toggle_setting = pyqtSignal(str)
+    give_up_focus = pyqtSignal()
+    set_scrollbar_visibility = pyqtSignal(str)
     open_loadorder_dialog = pyqtSignal()
+    reload_theme = pyqtSignal()
 
     def __init__(self, main, textarea):
         super().__init__(parent=main)
@@ -197,7 +202,7 @@ class Terminal(QtGui.QSplitter):
     # ==== Misc ================================= #
 
     def switchFocus(self):
-        self.main.textarea.setFocus()
+        self.give_up_focus.emit()
 
 
     def parse_command(self):
@@ -271,14 +276,12 @@ class Terminal(QtGui.QSplitter):
     def cmd_overwrite_save(self, arg):
         self.cmd_save(arg, force=True)
 
-
     def cmd_quit(self, arg):
         self.main.close()
 
     def cmd_force_quit(self, arg):
         self.main.force_quit = True
         self.main.close()
-
 
     def cmd_find(self, arg):
         if arg:
@@ -319,23 +322,17 @@ class Terminal(QtGui.QSplitter):
                                      arg + '_fontfamily', arg + '_fontsize')
 
     def cmd_autoindent(self, arg):
-        self.main.settings['autoindent'] = not self.main.settings['autoindent']
-        self.print_('Now ' + str(self.main.settings['autoindent']).lower())
+        self.toggle_setting.emit('autoindent')
 
     def cmd_line_numbers(self, arg):
-        self.textarea.number_bar.showbar = not self.textarea.number_bar.showbar
-        self.textarea.number_bar.update()
-        self.print_('Now ' + str(self.textarea.number_bar.showbar).lower())
+        self.toggle_setting.emit('linenumbers')
 
     def cmd_scrollbar(self, arg):
         arg = arg.strip().lower()
-        alias = {'off': 'never', 'maybe': 'needed', 'on': 'always'}
         if not arg:
-            self.print_(('Off','Maybe','On')[self.textarea.verticalScrollBarPolicy()])
-        elif arg in ('off', 'maybe', 'on'):
-            self.main.set_scrollbar_visibility(alias[arg])
+            self.show_value_of_setting.emit('vscrollbar')
         else:
-            self.error('Wrong argument [off/maybe/on]')
+            self.set_scrollbar_visibility.emit(arg)
 
     def cmd_new_window(self, arg):
         arg = arg.strip()
@@ -357,7 +354,7 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmd_reload_theme(self, arg):
-        self.main.set_theme()
+        self.reload_theme.emit()
 
     def cmd_load_order(self, arg):
         self.open_loadorder_dialog.emit()
