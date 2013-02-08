@@ -364,6 +364,10 @@ class Terminal(QtGui.QSplitter):
         lod = loadorderdialog.LoadOrderDialog(self.main)
         lod.exec_()
 
+    def cmd_write_theme(self, arg):
+        self.main.write_theme()
+
+
 
     cmds = {
         'o': (cmd_open, 'Open [file]'),
@@ -384,5 +388,6 @@ class Terminal(QtGui.QSplitter):
         'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
         'nw': (cmd_new_window, 'Open in new window [y/n]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),
-        'lo': (cmd_load_order, 'Change the plugin load order')
+        'lo': (cmd_load_order, 'Change the plugin load order'),
+        'wt': (cmd_write_theme, 'Write the current theme to a file')
     }
