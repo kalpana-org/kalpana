@@ -88,44 +88,11 @@ class MainWindow(QtGui.QFrame):
         self.loadorder_path\
             = get_paths()
 
-
         # Plugins
-        def add_widget(widget, side):
-            from pluginlib import NORTH, SOUTH, EAST, WEST
-            if side in (NORTH, SOUTH):
-                layout = main_layout
-            elif side in (WEST, EAST):
-                layout = top_layout
-            if side in (NORTH, WEST):
-                layout.insertWidget(0, widget)
-            elif side in (SOUTH, EAST):
-                layout.addWidget(widget)
-
-        self.plugins = []
-        callbacks = (
-            self.document.toPlainText,   # get_text()
-            lambda:self.filepath,        # get_filepath()
-            add_widget,                  # add_widget()
-            self.new_file,               # new_file()
-            self.open_file,              # open_file()
-            self.save_file,              # save_file()
-            self.close,                  # quit()
-        )
-        for name, path, module in get_plugins(self.config_dir):
-            try:
-                plugin_constructor = module.UserPlugin
-            except AttributeError:
-                print('"{0}" is not a valid plugin and was not loaded.'\
-                      .format(name))
-            else:
-                self.plugins.append(plugin_constructor(callbacks, path))
-
-        plugincommands = {}
-        for p in self.plugins:
-            plugincommands.update(p.commands)
+        self.plugins, plugin_commands = self.init_plugins(self.config_dir)
 
         # Terminal
-        self.terminal = Terminal(self, plugincommands)
+        self.terminal = Terminal(self, plugin_commands)
         main_layout.addWidget(self.terminal)
         self.terminal.setVisible(False)
         self.font_dialog_open = False
@@ -170,6 +137,46 @@ class MainWindow(QtGui.QFrame):
 
     def create_ui(self):
         pass
+
+
+    def init_plugins(self, config_dir):
+        # Plugins
+        def add_widget(widget, side):
+            from pluginlib import NORTH, SOUTH, EAST, WEST
+            if side in (NORTH, SOUTH):
+                layout = main_layout
+            elif side in (WEST, EAST):
+                layout = top_layout
+            if side in (NORTH, WEST):
+                layout.insertWidget(0, widget)
+            elif side in (SOUTH, EAST):
+                layout.addWidget(widget)
+
+        plugins = []
+
+        callbacks = [
+            self.document.toPlainText,   # get_text()
+            lambda:self.filepath,        # get_filepath()
+            add_widget,                  # add_widget()
+            self.new_file,               # new_file()
+            self.open_file,              # open_file()
+            self.save_file,              # save_file()
+            self.close,                  # quit()
+        ]
+        for name, path, module in get_plugins(config_dir):
+            try:
+                plugin_constructor = module.UserPlugin
+            except AttributeError:
+                print('"{0}" is not a valid plugin and was not loaded.'\
+                      .format(name))
+            else:
+                plugins.append(plugin_constructor(callbacks, path))
+
+        plugin_commands = {}
+        for p in plugins:
+            plugin_commands.update(p.commands)
+
+        return plugins, plugin_commands
 
 
 
