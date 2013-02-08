@@ -23,7 +23,6 @@ from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
 from common import set_key_shortcut
 import fontdialog
-import loadorderdialog
 
 
 class Terminal(QtGui.QSplitter):
@@ -57,6 +56,7 @@ class Terminal(QtGui.QSplitter):
     class OutputBox(QtGui.QLineEdit):
         pass
 
+    open_loadorder_dialog = pyqtSignal()
 
     def __init__(self, main, plugincommands):
         super().__init__(parent=main)
@@ -362,8 +362,7 @@ class Terminal(QtGui.QSplitter):
         self.main.set_theme()
 
     def cmd_load_order(self, arg):
-        lod = loadorderdialog.LoadOrderDialog(self.main)
-        lod.exec_()
+        self.open_loadorder_dialog.emit()
 
 
     cmds = {

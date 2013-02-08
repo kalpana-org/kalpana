@@ -26,18 +26,15 @@ from common import set_key_shortcut
 
 
 class LoadOrderDialog(QtGui.QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, loadorder_path):
         super().__init__(parent)
-
-        self.main = parent
+        self.loadorder_path = loadorder_path
         self.setWindowTitle('Plugin load order')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setModal(True)
 
         layout = QtGui.QVBoxLayout()
-
-        self.loadorder_path = os.path.join(self.main.cfgdir, 'loadorder.conf')
 
         with open(self.loadorder_path, encoding='utf-8') as f:
             loadorder = json.loads(f.read())

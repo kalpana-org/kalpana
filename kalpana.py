@@ -22,8 +22,7 @@ import importlib
 import json
 from math import ceil
 import os
-import os.path
-import platform
+from os.path import join
 import re
 import sys
 import subprocess
@@ -33,6 +32,7 @@ from PyQt4.QtCore import Qt
 
 from common import set_key_shortcut, read_stylesheet
 from linewidget import LineTextWidget
+import loadorderdialog
 from terminal import Terminal
 
 
@@ -54,11 +54,11 @@ class MainWindow(QtGui.QFrame):
         # Layout
         main_layout = QtGui.QVBoxLayout(self)
         main_layout.setSpacing(0)
-        main_layout.setContentsMargins(0,0,0,0)
+        main_layout.setMargin(0)
 
         top_layout = QtGui.QHBoxLayout()
         top_layout.setSpacing(0)
-        top_layout.setContentsMargins(0,0,0,0)
+        top_layout.setMargin(0)
         main_layout.addLayout(top_layout)
 
         # Text area
@@ -81,15 +81,12 @@ class MainWindow(QtGui.QFrame):
         self.document.contentsChanged.connect(self.contents_changed)
         self.document.blockCountChanged.connect(self.new_line)
 
-        # Paths init
-        system = platform.system()
-        if system == 'Linux':
-            self.cfgdir = os.path.join(os.getenv('HOME'), '.config', 'kalpana')
-        else: # Windows
-            self.cfgdir = local_path('')
+        self.config_file_path,\
+        self.config_dir,\
+        self.theme_path,\
+        self.loadorder_path\
+            = self.get_paths()
 
-        self.theme_path = os.path.join(self.cfgdir, 'stylesheet.css')
-        self.cfgpath = os.path.join(self.cfgdir, 'kalpana.conf')
 
         # Plugins
         def add_widget(widget, side):
@@ -113,7 +110,7 @@ class MainWindow(QtGui.QFrame):
             self.save_file,              # save_file()
             self.close,                  # quit()
         )
-        for name, path, module in get_plugins(self.cfgdir):
+        for name, path, module in get_plugins(self.config_dir):
             try:
                 plugin_constructor = module.UserPlugin
             except AttributeError:
@@ -132,6 +129,9 @@ class MainWindow(QtGui.QFrame):
         self.terminal.setVisible(False)
         self.font_dialog_open = False
 
+        def open_loadorder_dialog():
+            loadorderdialog.LoadOrderDialog(self, self.loadorder_path).exec_()
+        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
 
         # Keyboard shortcuts
         hotkeys = {
@@ -165,6 +165,24 @@ class MainWindow(QtGui.QFrame):
             self.set_file_name('NEW')
 
         self.show()
+
+
+    def create_ui(self):
+        pass
+
+    def get_paths(self):
+        import platform
+        # Paths init
+        if platform.system() == 'Linux':
+            config_dir = join(os.getenv('HOME'), '.config', 'kalpana')
+        else: # Windows
+            config_dir = local_path('')
+        path = lambda fname: join(config_dir, fname)
+
+        theme_path = path('stylesheet.css')
+        config_file_path = path('kalpana.conf')
+        loadorder_path = path('loadorder.conf')
+        return config_file_path, config_dir, theme_path, loadorder_path
 
 
 ## ==== Overrides ========================================================== ##
@@ -220,7 +238,7 @@ class MainWindow(QtGui.QFrame):
             return out
 
         try:
-            with open(self.cfgpath, encoding='utf-8') as f:
+            with open(self.config_file_path, encoding='utf-8') as f:
                 rawcfg = json.loads(f.read())
         except (IOError, ValueError):
             print('no/bad config')
@@ -279,10 +297,10 @@ class MainWindow(QtGui.QFrame):
         }
 
         outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
-        if not os.path.exists(os.path.dirname(self.cfgpath)):
-            os.makedirs(os.path.dirname(self.cfgpath), mode=0o755, exist_ok=True)
+        if not os.path.exists(os.path.dirname(self.config_file_path)):
+            os.makedirs(os.path.dirname(self.config_file_path), mode=0o755, exist_ok=True)
             print('Creating config path...')
-        with open(self.cfgpath, 'w', encoding='utf-8') as f:
+        with open(self.config_file_path, 'w', encoding='utf-8') as f:
             f.write(outjson)
 
         for p in self.plugins:
@@ -567,11 +585,10 @@ class MainWindow(QtGui.QFrame):
 
 
 def local_path(path):
-    return os.path.join(sys.path[0], path)
+    return join(sys.path[0], path)
 
 
 def get_plugins(root_path):
-    join = os.path.join
     loadorder_path = join(root_path, 'loadorder.conf')
 
     # Get load order from file
