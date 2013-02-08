@@ -81,11 +81,12 @@ class MainWindow(QtGui.QFrame):
         self.document.contentsChanged.connect(self.contents_changed)
         self.document.blockCountChanged.connect(self.new_line)
 
+        # Paths
         self.config_file_path,\
         self.config_dir,\
         self.theme_path,\
         self.loadorder_path\
-            = self.get_paths()
+            = get_paths()
 
 
         # Plugins
@@ -170,19 +171,6 @@ class MainWindow(QtGui.QFrame):
     def create_ui(self):
         pass
 
-    def get_paths(self):
-        import platform
-        # Paths init
-        if platform.system() == 'Linux':
-            config_dir = join(os.getenv('HOME'), '.config', 'kalpana')
-        else: # Windows
-            config_dir = local_path('')
-        path = lambda fname: join(config_dir, fname)
-
-        theme_path = path('stylesheet.css')
-        config_file_path = path('kalpana.conf')
-        loadorder_path = path('loadorder.conf')
-        return config_file_path, config_dir, theme_path, loadorder_path
 
 
 ## ==== Overrides ========================================================== ##
@@ -582,6 +570,21 @@ class MainWindow(QtGui.QFrame):
             for p in self.plugins:
                 p.file_saved()
             return True
+
+
+def get_paths():
+    import platform
+    # Paths init
+    if platform.system() == 'Linux':
+        config_dir = join(os.getenv('HOME'), '.config', 'kalpana')
+    else: # Windows
+        config_dir = local_path('')
+    path = lambda fname: join(config_dir, fname)
+
+    theme_path = path('stylesheet.css')
+    config_file_path = path('kalpana.conf')
+    loadorder_path = path('loadorder.conf')
+    return config_file_path, config_dir, theme_path, loadorder_path
 
 
 def local_path(path):
