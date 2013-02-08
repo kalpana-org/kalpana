@@ -341,15 +341,10 @@ class Terminal(QtGui.QSplitter):
             self.set_scrollbar_visibility.emit(arg)
 
     def cmd_new_window(self, arg):
-        arg = arg.strip()
-        if not arg:
-            self.print_(self.main.settings['open_in_new_window'])
-        elif arg == 'y':
-            self.main.settings['open_in_new_window'] = True
-        elif arg == 'n':
-            self.main.settings['open_in_new_window'] = False
+        if arg == '?':
+            self.show_value_of_setting.emit('open_in_new_window')
         else:
-            self.error('Wrong argument [y/n]')
+            self.toggle_setting.emit('open_in_new_window')
 
     def cmd_help(self, arg):
         if not arg:
