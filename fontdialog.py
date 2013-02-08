@@ -19,6 +19,9 @@
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
+from common import set_key_shortcut
+
+
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):
         super().__init__(parent)
@@ -78,9 +81,10 @@ class FontDialog(QtGui.QDialog):
         def select_right_list():
             sizelist_widget.setFocus()
 
-        QtGui.QShortcut(QtGui.QKeySequence('Left'), self, select_left_list)
-        QtGui.QShortcut(QtGui.QKeySequence('Right'), self, select_right_list)
-        QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.close)
+
+        set_key_shortcut('Left', self, select_left_list)
+        set_key_shortcut('Right', self, select_right_list)
+        set_key_shortcut('Escape', self, self.close)
 
         self.setLayout(lists_layout)
 

@@ -24,6 +24,7 @@
 
 from PyQt4 import QtGui
 
+
 class LineTextWidget(QtGui.QPlainTextEdit):
 
     def append(self,string):

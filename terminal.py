@@ -18,11 +18,12 @@
 
 import os.path
 
-import fontdialog
-import loadorderdialog
-
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
+
+from common import set_key_shortcut
+import fontdialog
+import loadorderdialog
 
 
 class Terminal(QtGui.QSplitter):
@@ -107,10 +108,8 @@ class Terminal(QtGui.QSplitter):
         self.input_term.update_completion_prefix.connect(self.update_completion_prefix)
         self.input_term.returnPressed.connect(self.parse_command)
 
-        QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
-                        self.move_splitter_left)
-        QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,
-                        self.move_splitter_right)
+        set_key_shortcut('Alt+Left', self, self.move_splitter_left)
+        set_key_shortcut('Alt+Right', self, self.move_splitter_right)
 
 
     # ==== Autocomplete ========================== #

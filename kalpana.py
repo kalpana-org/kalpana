@@ -31,8 +31,9 @@ import subprocess
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from terminal import Terminal
+from common import set_key_shortcut
 from linewidget import LineTextWidget
+from terminal import Terminal
 
 
 class MainWindow(QtGui.QFrame):
@@ -145,7 +146,7 @@ class MainWindow(QtGui.QFrame):
             hotkeys.update(p.hotkeys)
 
         for key, function in hotkeys.items():
-            QtGui.QShortcut(QtGui.QKeySequence(key), self, function)
+            set_key_shortcut(key, self, function)
 
 
         # Config

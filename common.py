@@ -18,6 +18,7 @@
 
 import json
 
+
 def read_json(path):
     with open(path, encoding='utf-8') as f:
         return json.loads(f.read())
@@ -25,3 +26,6 @@ def read_json(path):
 def write_json(path, data):
     with open(path, 'w', encoding='utf-8') as f:
         f.write(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+
+def set_key_shortcut(hotkey, obj, slot):
+    QtGui.QShortcut(QtGui.QKeySequence(hotkey), obj, slot)

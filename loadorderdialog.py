@@ -22,6 +22,9 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
+from common import set_key_shortcut
+
+
 class LoadOrderDialog(QtGui.QDialog):
     def __init__(self, parent):
         super().__init__(parent)
@@ -76,9 +79,9 @@ class LoadOrderDialog(QtGui.QDialog):
             def move_item_down():
                 move_item(1)
 
-            QtGui.QShortcut(QtGui.QKeySequence('Left'), self, move_item_up)
-            QtGui.QShortcut(QtGui.QKeySequence('Right'), self, move_item_down)
-            QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.close)
+            set_key_shortcut('Left', self, move_item_up)
+            set_key_shortcut('Right', self, move_item_down)
+            set_key_shortcut('Escape', self, self.close)
 
         self.setLayout(layout)
 
