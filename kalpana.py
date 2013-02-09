@@ -153,9 +153,9 @@ class MainWindow(QtGui.QFrame):
 
     def create_key_shortcuts(self, plugins):
         hotkeys = {
-            'Ctrl+N': self.new_t,
+            'Ctrl+N': self.request_new_file,
             'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
-            'Ctrl+S': self.save_t,
+            'Ctrl+S': self.request_save_file,
             'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
             'F3': self.find_next,
             'Ctrl+Return': self.toggle_terminal
@@ -171,9 +171,9 @@ class MainWindow(QtGui.QFrame):
         self.document.blockCountChanged.connect(self.new_line)
 
         # Terminal file operations
-        self.terminal.request_new_file.connect(self.new_t)
-        self.terminal.request_save_file.connect(self.save_t)
-        self.terminal.request_open_file.connect(self.open_t)
+        self.terminal.request_new_file.connect(self.request_new_file)
+        self.terminal.request_save_file.connect(self.request_save_file)
+        self.terminal.request_open_file.connect(self.request_open_file)
         self.terminal.request_quit.connect(self.quit)
 
         # Terminal settings
@@ -416,12 +416,12 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== File operations: new/open/save ===================================== ##
 
-    def new_t(self, force=False):
+    def request_new_file(self, force=False):
         success = self.new_file(force)
         if not success:
             self.error('Unsaved changes! Force new with n! or save first.')
 
-    def open_t(self, filename, force=False):
+    def request_open_file(self, filename, force=False):
         if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
@@ -431,7 +431,7 @@ class MainWindow(QtGui.QFrame):
         else:
             self.error('Unsaved changes! Force open with o! or save first.')
 
-    def save_t(self, filename='', force=False):
+    def request_save_file(self, filename='', force=False):
         if not filename:
             if self.filepath:
                 result = self.save_file()
