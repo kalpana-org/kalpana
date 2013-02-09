@@ -163,7 +163,7 @@ class MainWindow(QtGui.QFrame):
         for p in plugins:
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
-            common.set_key_shortcut(key, self, function)
+            configlib.set_key_shortcut(key, self, function)
 
     def connect_signals(self):
         self.document.modificationChanged.connect(self.update_window_title)

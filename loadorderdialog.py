@@ -22,7 +22,7 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from common import set_key_shortcut
+from configlib import set_key_shortcut
 
 
 class LoadOrderDialog(QtGui.QDialog):

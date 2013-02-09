@@ -20,7 +20,14 @@ import os
 from os.path import join, exists, dirname, isfile
 import sys
 
+from PyQt4 import QtGui
+
 import common
+
+
+def set_key_shortcut(hotkey, obj, slot):
+    QtGui.QShortcut(QtGui.QKeySequence(hotkey), obj, slot)
+
 
 def read_config(config_file_path, default_config):
         """ Read the config and update the appropriate variables. """

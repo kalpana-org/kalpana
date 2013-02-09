@@ -21,8 +21,6 @@ import os.path
 import re
 import sys
 
-from PyQt4 import QtGui
-
 
 def read_json(path):
     with open(path, encoding='utf-8') as f:
@@ -37,13 +35,9 @@ def local_path(path):
     return os.path.join(sys.path[0], path)
 
 
-def set_key_shortcut(hotkey, obj, slot):
-    QtGui.QShortcut(QtGui.QKeySequence(hotkey), obj, slot)
-
-
 def read_stylesheet(path):
     if not os.path.isfile(path):
-        print('No theme found at. You should fix this.')
+        print('No theme found at {}. You should fix this.'.format(path))
         return ''
     with open(path, encoding='utf-8') as f:
         data = f.read()

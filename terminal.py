@@ -21,7 +21,7 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
-from common import set_key_shortcut
+from configlib import set_key_shortcut
 import fontdialog
 
 
