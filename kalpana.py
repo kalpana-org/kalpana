@@ -153,10 +153,10 @@ class MainWindow(QtGui.QFrame):
 
     def create_key_shortcuts(self, plugins):
         hotkeys = {
-            'Ctrl+N': self.new_k,
-            'Ctrl+O': self.open_k,
-            'Ctrl+S': self.save_k,
-            'Ctrl+Shift+S': self.save_as_k,
+            'Ctrl+N': self.new_t,
+            'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
+            'Ctrl+S': self.save_t,
+            'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
             'F3': self.find_next,
             'Ctrl+Return': self.toggle_terminal
         }
@@ -417,13 +417,11 @@ class MainWindow(QtGui.QFrame):
 ## ==== File operations: new/open/save ===================================== ##
 
     def new_t(self, force=False):
-        """ Called from terminal """
         success = self.new_file(force)
         if not success:
             self.error('Unsaved changes! Force new with n! or save first.')
 
     def open_t(self, filename, force=False):
-        """ Called from terminal """
         if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
@@ -433,15 +431,14 @@ class MainWindow(QtGui.QFrame):
         else:
             self.error('Unsaved changes! Force open with o! or save first.')
 
-    def save_t(self, filename, force=False):
-        """ Called from terminal """
+    def save_t(self, filename='', force=False):
         if not filename:
             if self.filepath:
                 result = self.save_file()
                 if not result:
                     self.error('File not saved! IOError!')
             else:
-                self.error('No filename')
+                self.error('No filename', defaultcmd='s ')
         else:
             if os.path.isfile(filename) and not force:
                 self.error('File already exists, use s! to overwrite')
@@ -452,31 +449,6 @@ class MainWindow(QtGui.QFrame):
                     self.error('File not saved! IOError!')
             else:
                 self.error('Invalid path')
-
-
-    def new_k(self):
-        """ Called from key shortcut """
-        success = self.new_file()
-        if not success:
-            self.error('Unsaved changes! Force new with n! or save first.')
-
-    def open_k(self):
-        """ Called from key shortcut """
-        self.prompt_term(defaultcmd='o ')
-
-    def save_k(self):
-        """ Called from key shortcut """
-        if not self.filepath:
-            self.error('File not saved yet! Save with s first.',
-                              defaultcmd='s ')
-        else:
-            result = self.save_file()
-            if not result:
-                self.error('File not saved! IOError!')
-
-    def save_as_k(self):
-        """ Called from key shortcut """
-        self.prompt_term(defaultcmd='s ')
 
 
     def new_file(self, force=False):
