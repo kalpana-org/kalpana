@@ -294,17 +294,18 @@ class Terminal(QtGui.QSplitter):
 
 
     def cmd_change_font(self, arg):
-        if self.main.font_dialog_open:
-            self.error('Font dialog already open')
-            return
-        if arg not in ('main', 'term'):
-            self.error('Wrong argument [main/term]')
-            return
-        if arg == 'term':
-            self.print_('Räksmörgås?!')
-        self.main.font_dialog_open = True
-        fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
-                                     arg + '_fontfamily', arg + '_fontsize')
+        self.error('Font dialog deactivated until further notice')
+        # if self.main.font_dialog_open:
+        #     self.error('Font dialog already open')
+        #     return
+        # if arg not in ('main', 'term'):
+        #     self.error('Wrong argument [main/term]')
+        #     return
+        # if arg == 'term':
+        #     self.print_('Räksmörgås?!')
+        # self.main.font_dialog_open = True
+        # fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
+        #                              arg + '_fontfamily', arg + '_fontsize')
 
     def cmd_autoindent(self, arg):
         if arg == '?':
