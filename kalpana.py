@@ -17,6 +17,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
+import os.path
 from os.path import join
 import re
 import sys
@@ -205,7 +206,7 @@ class MainWindow(QtGui.QFrame):
         if not key in self.settings:
             self.error('{} is not a setting'.format(key))
         else:
-            self.terminal.print_('Current value: {}'.format(self.settings[key]))
+            self.print_('Current value: {}'.format(self.settings[key]))
 
     def toggle_setting(self, key):
         # TODO: save_settings
@@ -214,7 +215,7 @@ class MainWindow(QtGui.QFrame):
             if key == 'linenumbers':
                 self.textarea.number_bar.showbar = self.settings['linenumbers']
                 self.textarea.number_bar.update()
-            self.terminal.print_('{} now {}'.format(key, self.settings[key]))
+            self.print_('{} now {}'.format(key, self.settings[key]))
         else:
             self.error('No setting called "{}"'.format(key))
 
@@ -275,6 +276,10 @@ class MainWindow(QtGui.QFrame):
         self.terminal.error(errortext)
         self.prompt_term(defaultcmd)
 
+    def print_(self, text):
+        self.terminal.print_(text)
+        self.terminal.setVisible(True)
+
     def prompt_term(self, defaultcmd=''):
         if defaultcmd:
             self.terminal.input_term.setText(defaultcmd)
@@ -308,13 +313,12 @@ class MainWindow(QtGui.QFrame):
     def set_scrollbar_visibility(self, when):
         # TODO: save_settings
         # if when in ('on', 'auto', 'off'):
-        #     self.settings['vscrollbar'] = when
-        if when == 'on':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        elif when == 'auto':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        elif when == 'off':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        policy = {'on': Qt.ScrollBarAlwaysOn,
+                  'auto': Qt.ScrollBarAsNeeded,
+                  'off':Qt.ScrollBarAlwaysOff}
+        if when in policy:
+            self.textarea.setVerticalScrollBarPolicy(policy[when])
+            # self.settings['vscrollbar'] = when
         else:
             self.error('{} is not a valid option'.format(when))
 
@@ -326,7 +330,7 @@ class MainWindow(QtGui.QFrame):
 
     def find_next(self):
         if not self.findtext:
-            self.terminal.error("No previous searches")
+            self.error("No previous searches")
             return
         temp_cursor = self.textarea.textCursor()
         found = self.textarea.find(self.findtext)
@@ -336,12 +340,12 @@ class MainWindow(QtGui.QFrame):
                 found = self.textarea.find(self.findtext)
                 if not found:
                     self.textarea.setTextCursor(temp_cursor)
-                    self.terminal.error('[find] Text not found')
+                    self.error('[find] Text not found')
 
 
     def replace_next(self):
         if not self.replace1text:
-            self.terminal.error("No previous replaces")
+            self.error("No previous replaces")
             return
 
         temp_cursor = self.textarea.textCursor()
@@ -354,14 +358,14 @@ class MainWindow(QtGui.QFrame):
                     self.textarea.setTextCursor(temp_cursor)
         if found:
             self.textarea.textCursor().insertText(self.replace2text)
-            self.terminal.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
+            self.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
         else:
-            self.terminal.error('[replace] Text not found')
+            self.error('[replace] Text not found')
 
 
     def replace_all(self):
         if not self.replace1text:
-            self.terminal.error("No previous replaces")
+            self.error("No previous replaces")
             return
 
         temp_cursor = self.textarea.textCursor()
@@ -378,10 +382,10 @@ class MainWindow(QtGui.QFrame):
                     self.textarea.moveCursor(QtGui.QTextCursor.Start)
                     continue
         if times:
-            self.terminal.print_('{0} instances replaced'.format(times))
+            self.print_('{0} instances replaced'.format(times))
         else:
             self.textarea.setTextCursor(temp_cursor)
-            self.terminal.error('[replace_all] Text not found')
+            self.error('[replace_all] Text not found')
 
 
 ## ==== Window title ===================================== ##
