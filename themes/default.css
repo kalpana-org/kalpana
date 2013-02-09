@@ -17,7 +17,7 @@ $term_output_bgcolor: #191919
 $term_output_textcolor: #ddd
 
 
-InputBox {
+TerminalInputBox {
     border: 0px;
     border-top: 2px solid $details_color;
     font-family: $term_fontfamily;
@@ -28,7 +28,7 @@ InputBox {
     selection-background-color: $term_input_textcolor;
 }
 
-OutputBox {
+TerminalOutputBox {
     border: 0px;
     border-top: 2px solid $details_color;
     font-family: $term_fontfamily;
@@ -123,6 +123,6 @@ QListWidget::indicator:checked {
     border: 4px solid $checkbox_bgcolor;
     background: $checkbox_checked_color;
 }
-QLabel {
+LoadOrderLabel {
     color: $fontdialog_normal_textcolor;
 }

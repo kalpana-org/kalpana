@@ -27,7 +27,7 @@ import fontdialog
 
 class Terminal(QtGui.QSplitter):
 
-    class InputBox(QtGui.QLineEdit):
+    class TerminalInputBox(QtGui.QLineEdit):
         tab_pressed = pyqtSignal()
         update_completion_prefix = pyqtSignal()
         history_up = pyqtSignal()
@@ -53,7 +53,7 @@ class Terminal(QtGui.QSplitter):
                 return super().keyPressEvent(event)
 
     # This needs to be here for the stylesheet
-    class OutputBox(QtGui.QLineEdit):
+    class TerminalOutputBox(QtGui.QLineEdit):
         pass
 
     request_new_file = pyqtSignal(bool)
@@ -80,8 +80,8 @@ class Terminal(QtGui.QSplitter):
         self.setHandleWidth(2)
 
         # I/O fields creation
-        self.input_term = self.InputBox(self)
-        self.output_term = self.OutputBox(self)
+        self.input_term = self.TerminalInputBox(self)
+        self.output_term = self.TerminalOutputBox(self)
         self.output_term.setDisabled(True)
         self.output_term.setAlignment(Qt.AlignRight)
 

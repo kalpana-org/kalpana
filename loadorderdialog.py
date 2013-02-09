@@ -28,6 +28,7 @@ from configlib import set_key_shortcut
 class LoadOrderDialog(QtGui.QDialog):
     def __init__(self, parent, loadorder_path):
         super().__init__(parent)
+        class LoadOrderLabel(QtGui.QLabel): pass
         self.loadorder_path = loadorder_path
         self.setWindowTitle('Plugin load order')
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -40,7 +41,7 @@ class LoadOrderDialog(QtGui.QDialog):
             loadorder = json.loads(f.read())
 
         if not loadorder:
-            layout.addWidget(QtGui.QLabel("No plugins available"))
+            layout.addWidget(LoadOrderLabel("No plugins available"))
             self.pluginlist_widget = None
         else:
             self.donothing = False
@@ -53,7 +54,7 @@ class LoadOrderDialog(QtGui.QDialog):
 
             layout.addWidget(self.pluginlist_widget)
 
-            infolabel = QtGui.QLabel(
+            infolabel = LoadOrderLabel(
                 "Use left and right arrow to move the selected plugin up and "
                 "down. Higher up means loaded earlier. Lower down means "
                 "loaded later and possibly overriding earlier plugins.\n"
