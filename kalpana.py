@@ -66,7 +66,8 @@ class MainWindow(QtGui.QFrame):
             = configlib.get_paths()
 
         # Plugins
-        self.plugins, plugin_commands = self.init_plugins(self.config_dir)
+        self.plugins, plugin_commands = self.init_plugins(self.config_dir,
+                                                    vert_layout, horz_layout)
         self.terminal.update_commands(plugin_commands)
 
         self.connect_signals()
@@ -110,14 +111,14 @@ class MainWindow(QtGui.QFrame):
 
         return vert_layout, horz_layout, textarea, terminal
 
-    def init_plugins(self, config_dir):
+    def init_plugins(self, config_dir, vert_layout, horz_layout):
         # Plugins
         def add_widget(widget, side):
             from pluginlib import NORTH, SOUTH, EAST, WEST
             if side in (NORTH, SOUTH):
-                layout = main_layout
+                layout = vert_layout
             elif side in (WEST, EAST):
-                layout = top_layout
+                layout = horz_layout
             if side in (NORTH, WEST):
                 layout.insertWidget(0, widget)
             elif side in (SOUTH, EAST):
