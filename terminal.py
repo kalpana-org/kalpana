@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2012
+# Copyright nycz 2011-2013
 
 # This file is part of Kalpana.
 
@@ -17,15 +17,17 @@
 
 
 import os.path
-import fontdialog
-import loadorderdialog
 
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
+from configlib import set_key_shortcut
+import fontdialog
+
+
 class Terminal(QtGui.QSplitter):
 
-    class InputBox(QtGui.QLineEdit):
+    class TerminalInputBox(QtGui.QLineEdit):
         tab_pressed = pyqtSignal()
         update_completion_prefix = pyqtSignal()
         history_up = pyqtSignal()
@@ -51,41 +53,35 @@ class Terminal(QtGui.QSplitter):
                 return super().keyPressEvent(event)
 
     # This needs to be here for the stylesheet
-    class OutputBox(QtGui.QLineEdit):
+    class TerminalOutputBox(QtGui.QLineEdit):
         pass
 
+    request_new_file = pyqtSignal(bool)
+    request_open_file = pyqtSignal(str, bool)
+    request_save_file = pyqtSignal(str, bool)
+    request_quit = pyqtSignal(bool)
 
-    def __init__(self, main, plugincommands):
+    show_value_of_setting = pyqtSignal(str)
+    toggle_setting = pyqtSignal(str)
+    give_up_focus = pyqtSignal()
+    set_scrollbar_visibility = pyqtSignal(str)
+    open_loadorder_dialog = pyqtSignal()
+    reload_theme = pyqtSignal()
+
+    def __init__(self, main, textarea):
         super().__init__(parent=main)
-        self.textarea = main.textarea
+        self.textarea = textarea
         self.main = main
         self.sugindex = -1
 
         self.history = []
 
-        # Plugins
-        def run_plugin_command(function, arg):
-            result = function(arg)
-            if result:
-                text, error = result
-                if error:
-                    self.error(text)
-                else:
-                    self.print_(text)
-
-        for key, value in plugincommands.items():
-            function, help = value
-            run_function = lambda _,arg: run_plugin_command(function, arg)
-            plugincommands[key] = (run_function, help)
-
-        self.cmds.update(plugincommands)
-
         # Splitter settings
         self.setHandleWidth(2)
 
         # I/O fields creation
-        self.input_term = self.InputBox(self)
-        self.output_term = self.OutputBox(self)
+        self.input_term = self.TerminalInputBox(self)
+        self.output_term = self.TerminalOutputBox(self)
         self.output_term.setDisabled(True)
         self.output_term.setAlignment(Qt.AlignRight)
 
@@ -105,10 +101,26 @@ class Terminal(QtGui.QSplitter):
         self.input_term.update_completion_prefix.connect(self.update_completion_prefix)
         self.input_term.returnPressed.connect(self.parse_command)
 
-        QtGui.QShortcut(QtGui.QKeySequence('Alt+Left'), self,
-                        self.move_splitter_left)
-        QtGui.QShortcut(QtGui.QKeySequence('Alt+Right'), self,
-                        self.move_splitter_right)
+        set_key_shortcut('Alt+Left', self, self.move_splitter_left)
+        set_key_shortcut('Alt+Right', self, self.move_splitter_right)
+
+    def update_commands(self, plugin_commands):
+        # Plugins
+        def run_plugin_command(function, arg):
+            result = function(arg)
+            if result:
+                text, error = result
+                if error:
+                    self.error(text)
+                else:
+                    self.print_(text)
+
+        for key, value in plugin_commands.items():
+            function, help = value
+            run_function = lambda _,arg: run_plugin_command(function, arg)
+            plugin_commands[key] = (run_function, help)
+
+        self.cmds.update(plugin_commands)
 
 
     # ==== Autocomplete ========================== #
@@ -195,7 +207,7 @@ class Terminal(QtGui.QSplitter):
     # ==== Misc ================================= #
 
     def switchFocus(self):
-        self.main.textarea.setFocus()
+        self.give_up_focus.emit()
 
 
     def parse_command(self):
@@ -227,55 +239,33 @@ class Terminal(QtGui.QSplitter):
 
     # ==== Commands ============================== #
     def cmd_open(self, arg, force=False):
-        f = arg.strip()
-        if os.path.isfile(f):
-            self.main.open_t(f, force)
-        else:
-            self.error('Non-existing file')
+        fname = arg.strip()
+        self.request_open_file.emit(fname, force)
 
     def cmd_force_open(self, arg):
         self.cmd_open(arg, force=True)
 
 
-    def cmd_new(self, arg):
-        success = self.main.new_file()
-        if not success:
-            self.error('Unsaved changes! Force new with n! or save first.')
+    def cmd_new(self, arg, force=False):
+        self.request_new_file.emit(force)
 
     def cmd_force_new(self, arg):
         self.main.new_file(force=True)
 
 
     def cmd_save(self, arg, force=False):
-        f = arg.strip()
-        if not f:
-            if self.main.filepath:
-                result = self.main.save_file()
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('No filename')
-        else:
-            if os.path.isfile(f) and not force:
-                self.error('File already exists, use s! to overwrite')
-            # Make sure the parent directory actually exists
-            elif os.path.isdir(os.path.dirname(f)):
-                result = self.main.save_file(f)
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('Invalid path')
+        fname = arg.strip()
+        self.request_save_file.emit(fname, force)
 
     def cmd_overwrite_save(self, arg):
         self.cmd_save(arg, force=True)
 
 
     def cmd_quit(self, arg):
-        self.main.close()
+        self.request_quit.emit(False)
 
     def cmd_force_quit(self, arg):
-        self.main.force_quit = True
-        self.main.close()
+        self.request_quit.emit(True)
 
 
     def cmd_find(self, arg):
@@ -304,50 +294,43 @@ class Terminal(QtGui.QSplitter):
 
 
     def cmd_change_font(self, arg):
-        if self.main.font_dialog_open:
-            self.error('Font dialog already open')
-            return
-        if arg not in ('main', 'term'):
-            self.error('Wrong argument [main/term]')
-            return
-        if arg == 'term':
-            self.print_('Räksmörgås?!')
-        self.main.font_dialog_open = True
-        fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
-                                     arg + '_fontfamily', arg + '_fontsize')
+        self.error('Font dialog deactivated until further notice')
+        # if self.main.font_dialog_open:
+        #     self.error('Font dialog already open')
+        #     return
+        # if arg not in ('main', 'term'):
+        #     self.error('Wrong argument [main/term]')
+        #     return
+        # if arg == 'term':
+        #     self.print_('Räksmörgås?!')
+        # self.main.font_dialog_open = True
+        # fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
+        #                              arg + '_fontfamily', arg + '_fontsize')
 
     def cmd_autoindent(self, arg):
-        self.main.autoindent = not self.main.autoindent
-        self.print_('Now ' + str(self.main.autoindent).lower())
+        if arg == '?':
+            self.show_value_of_setting.emit('autoindent')
+        else:
+            self.toggle_setting.emit('autoindent')
 
     def cmd_line_numbers(self, arg):
-        self.textarea.number_bar.showbar = not self.textarea.number_bar.showbar
-        self.textarea.number_bar.update()
-        self.print_('Now ' + str(self.textarea.number_bar.showbar).lower())
+        if arg == '?':
+            self.show_value_of_setting.emit('linenumbers')
+        else:
+            self.toggle_setting.emit('linenumbers')
 
     def cmd_scrollbar(self, arg):
         arg = arg.strip().lower()
-        if not arg:
-            self.print_(('Off','Maybe','On')[self.textarea.verticalScrollBarPolicy()])
-        elif arg == 'off':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        elif arg == 'maybe':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        elif arg == 'on':
-            self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        if not arg or arg == '?':
+            self.show_value_of_setting.emit('vscrollbar')
         else:
-            self.error('Wrong argument [off/maybe/on]')
+            self.set_scrollbar_visibility.emit(arg)
 
     def cmd_new_window(self, arg):
-        arg = arg.strip()
-        if not arg:
-            self.print_(self.main.open_in_new_window)
-        elif arg == 'y':
-            self.main.open_in_new_window = True
-        elif arg == 'n':
-            self.main.open_in_new_window = False
+        if arg == '?':
+            self.show_value_of_setting.emit('open_in_new_window')
         else:
-            self.error('Wrong argument [y/n]')
+            self.toggle_setting.emit('open_in_new_window')
 
     def cmd_help(self, arg):
         if not arg:
@@ -358,11 +341,10 @@ class Terminal(QtGui.QSplitter):
             self.error('No such command')
 
     def cmd_reload_theme(self, arg):
-        self.main.reload_theme()
+        self.reload_theme.emit()
 
     def cmd_load_order(self, arg):
-        lod = loadorderdialog.LoadOrderDialog(self.main)
-        lod.exec_()
+        self.open_loadorder_dialog.emit()
 
 
     cmds = {

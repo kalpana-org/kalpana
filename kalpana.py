@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright nycz, cefyr 2011-2012
+# Copyright nycz 2011-2013
 
 # This file is part of Kalpana.
 
@@ -17,85 +17,100 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
-# [Kalpana]
-# Gender: Feminine
-# Usage: Indian
-# Other Scripts: कल्पना (Hindi)
-# Means "imagining, fantasy" in Sanskrit.
-
-# v0.2 - added line numbers, taken from
-# v0.3 - did sum shit, added dragndrop, made stuff better
-# v0.4 - find(/replace)
-# v0.5 - moved to git, converted to py3k, refactored, GPL'd
-
-
-
-import datetime, json, os, os.path, platform, re, sys, subprocess
-import importlib
-
-from math import ceil
-
-from terminal import Terminal
-from linewidget import LineTextWidget
+import os.path
+from os.path import join
+import re
+import sys
+import subprocess
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import pyqtSignal, Qt
+
+import common
+import configlib
+from linewidget import LineTextWidget
+from loadorderdialog import LoadOrderDialog
+from terminal import Terminal
 
 
 class MainWindow(QtGui.QFrame):
+    read_plugin_config = pyqtSignal()
+    write_plugin_config = pyqtSignal()
 
     def __init__(self, file_=''):
         super().__init__()
-
         # Accept drag & drop events
         self.setAcceptDrops(True)
 
-        self.force_quit = False
-
         # Window title stuff
         self.wt_wordcount = 0
-        self.wt_modified = False
         self.wt_file = ''
 
-        # Layout
-        main_layout = QtGui.QVBoxLayout(self)
-        main_layout.setSpacing(0)
-        main_layout.setContentsMargins(0,0,0,0)
-
-        top_layout = QtGui.QHBoxLayout()
-        top_layout.setSpacing(0)
-        top_layout.setContentsMargins(0,0,0,0)
-        main_layout.addLayout(top_layout)
-
-        # Text area
-        self.textarea = LineTextWidget(self)
-        self.document = self.textarea.document()
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.textarea.setTabStopWidth(30)
-        top_layout.addWidget(self.textarea)
+        # Misc settings etc
         self.findtext = ''
         self.replace1text = ''
         self.replace2text = ''
-
-        # Misc settings etc
         self.filepath = ''
         self.blocks = 1
-        self.textarea.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.font_dialog_open = False
+        self.force_quit_flag = False
 
-        # Signals/slots
-        self.document.modificationChanged.connect(self.toggle_modified)
-        self.document.contentsChanged.connect(self.contents_changed)
-        self.document.blockCountChanged.connect(self.new_line)
+        # UI
+        vert_layout, horz_layout, self.textarea, self.terminal\
+            = self.create_ui()
+        self.document = self.textarea.document()
 
-        # Paths init
-        system = platform.system()
-        if system == 'Linux':
-            self.cfgdir = os.path.join(os.getenv('HOME'), '.config', 'kalpana')
-        else: # Windows
-            self.cfgdir = local_path('')
+        # Paths
+        self.config_file_path, self.config_dir,\
+        self.theme_path, self.loadorder_path\
+            = configlib.get_paths()
 
-        self.cfgpath = os.path.join(self.cfgdir, 'kalpana.conf')
+        # Plugins
+        self.plugins, plugin_commands = self.init_plugins(self.config_dir)
+        self.terminal.update_commands(plugin_commands)
 
+        self.connect_signals()
+        self.create_key_shortcuts(self.plugins)
+        self.settings = self.load_settings(self.config_file_path)
+
+        if file_:
+            if not self.open_file(file_):
+                self.close()
+            self.update_window_title(self.document.isModified())
+        else:
+            self.set_file_name('NEW')
+
+        self.show()
+
+
+    def create_ui(self):
+        def kill_spacing(l):
+            l.setSpacing(0)
+            l.setMargin(0)
+
+        # Layout
+        vert_layout = QtGui.QVBoxLayout(self)
+        kill_spacing(vert_layout)
+
+        horz_layout = QtGui.QHBoxLayout()
+        kill_spacing(horz_layout)
+        vert_layout.addLayout(horz_layout)
+
+        # Text area
+        textarea = LineTextWidget(self)
+        textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        textarea.setTabStopWidth(30)
+        textarea.setContextMenuPolicy(Qt.PreventContextMenu)
+        horz_layout.addWidget(textarea)
+
+        # Terminal
+        terminal = Terminal(self, textarea)
+        terminal.setVisible(False)
+        vert_layout.addWidget(terminal)
+
+        return vert_layout, horz_layout, textarea, terminal
+
+    def init_plugins(self, config_dir):
         # Plugins
         def add_widget(widget, side):
             from pluginlib import NORTH, SOUTH, EAST, WEST
@@ -108,8 +123,9 @@ class MainWindow(QtGui.QFrame):
             elif side in (SOUTH, EAST):
                 layout.addWidget(widget)
 
-        self.plugins = []
-        callbacks = (
+        plugins = []
+
+        callbacks = [
             self.document.toPlainText,   # get_text()
             lambda:self.filepath,        # get_filepath()
             add_widget,                  # add_widget()
@@ -117,69 +133,109 @@ class MainWindow(QtGui.QFrame):
             self.open_file,              # open_file()
             self.save_file,              # save_file()
             self.close,                  # quit()
-        )
-        for name, path, module in get_plugins(self.cfgdir):
+        ]
+        for name, path, module in configlib.get_plugins(config_dir):
             try:
                 plugin_constructor = module.UserPlugin
             except AttributeError:
                 print('"{0}" is not a valid plugin and was not loaded.'\
                       .format(name))
             else:
-                self.plugins.append(plugin_constructor(callbacks, path))
+                plugins.append(plugin_constructor(callbacks, path))
 
-        plugincommands = {}
-        for p in self.plugins:
-            plugincommands.update(p.commands)
+        plugin_commands = {}
+        for p in plugins:
+            self.read_plugin_config.connect(p.read_config)
+            self.write_plugin_config.connect(p.write_config)
+            self.document.contentsChanged.connect(p.contents_changed)
+            plugin_commands.update(p.commands)
 
-        # Terminal
-        self.terminal = Terminal(self, plugincommands)
-        main_layout.addWidget(self.terminal)
-        self.terminal.setVisible(False)
-        self.font_dialog_open = False
+        return plugins, plugin_commands
 
-
-        # Keyboard shortcuts
+    def create_key_shortcuts(self, plugins):
         hotkeys = {
-            'Ctrl+N': self.new_k,
-            'Ctrl+O': self.open_k,
-            'Ctrl+S': self.save_k,
-            'Ctrl+Shift+S': self.save_as_k,
+            'Ctrl+N': self.request_new_file,
+            'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
+            'Ctrl+S': self.request_save_file,
+            'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
             'F3': self.find_next,
             'Ctrl+Return': self.toggle_terminal
         }
-
-        for p in self.plugins:
+        for p in plugins:
             hotkeys.update(p.hotkeys)
-
         for key, function in hotkeys.items():
-            QtGui.QShortcut(QtGui.QKeySequence(key), self, function)
+            configlib.set_key_shortcut(key, self, function)
 
+    def connect_signals(self):
+        self.document.modificationChanged.connect(self.update_window_title)
+        self.document.contentsChanged.connect(self.contents_changed)
+        self.document.blockCountChanged.connect(self.new_line)
 
-        # Config
-        with open(local_path('defaultcfg.json'), encoding='utf8') as f:
-            defaultcfg = json.loads(f.read())
+        # Terminal file operations
+        self.terminal.request_new_file.connect(self.request_new_file)
+        self.terminal.request_save_file.connect(self.request_save_file)
+        self.terminal.request_open_file.connect(self.request_open_file)
+        self.terminal.request_quit.connect(self.quit)
 
-        self.read_config(defaultcfg)
+        # Terminal settings
+        self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
+        self.terminal.toggle_setting.connect(self.toggle_setting)
+        self.terminal.set_scrollbar_visibility.connect(self.set_scrollbar_visibility)
 
-        if file_:
-            if not self.open_file(file_):
-                self.close()
-            self.update_window_title()
+        # Terminal misc
+        def open_loadorder_dialog():
+            LoadOrderDialog(self, self.loadorder_path).exec_()
+        self.terminal.give_up_focus.connect(self.textarea.setFocus)
+        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
+        self.terminal.reload_theme.connect(self.set_theme)
+
+    def load_settings(self, config_file_path):
+        defaultcfg = common.read_json(common.local_path('defaultcfg.json'))
+        settings = configlib.read_config(config_file_path, defaultcfg)
+
+        if settings['start_in_term']:
+            self.terminal.setVisible(True)
+            self.switch_focus_to_term()
+        self.textarea.number_bar.showbar = settings['linenumbers']
+        self.set_scrollbar_visibility(settings['vscrollbar'])
+        self.read_plugin_config.emit()
+        self.set_theme()
+        return settings
+
+    def show_value_of_setting(self, key):
+        if not key in self.settings:
+            self.error('{} is not a setting'.format(key))
         else:
-            self.set_file_name('NEW')
+            self.print_('Current value: {}'.format(self.settings[key]))
 
-        self.show()
-
+    def toggle_setting(self, key):
+        # TODO: save_settings
+        if key in self.settings:
+            self.settings[key] = not self.settings[key]
+            if key == 'linenumbers':
+                self.textarea.number_bar.showbar = self.settings['linenumbers']
+                self.textarea.number_bar.update()
+            self.print_('{} now {}'.format(key, self.settings[key]))
+        else:
+            self.error('No setting called "{}"'.format(key))
 
 ## ==== Overrides ========================================================== ##
 
     def closeEvent(self, event):
-        if not self.document.isModified() or self.force_quit:
-            self.write_config()
+        if not self.document.isModified() or self.force_quit_flag:
+            self.save_settings()
             event.accept()
         else:
             self.error('Unsaved changes! Force quit with q! or save first.')
             event.ignore()
+
+    def quit(self, force):
+        if force:
+            self.force_quit_flag = True
+            self.close()
+        else:
+            self.force_quit_flag = False
+            self.close()
 
     def dragEnterEvent(self, event):
 ##        if event.mimeData().hasFormat('text/plain'):
@@ -201,136 +257,16 @@ class MainWindow(QtGui.QFrame):
 
 ## ==== Config ============================================================= ##
 
-    def read_config(self, default_config):
-        """ Read the config and update the appropriate variables. """
+    def save_settings(self):
+        configlib.write_config(self.config_file_path, self.settings,
+                               self.geometry())
+        self.write_plugin_config.emit()
 
-        optionalvalues = ('term_input_bgcolor',
-                          'term_output_bgcolor',
-                          'term_input_textcolor',
-                          'term_output_textcolor')
-
-        def check_config(cfg, defcfg):
-            """ Make sure the config is valid """
-            out = {}
-            for key, defvalue in defcfg.items():
-                if key in cfg:
-                    if type(defvalue) == dict:
-                        out[key] = check_config(cfg[key], defvalue)
-                    elif not cfg[key] and key not in optionalvalues:
-                        out[key] = defvalue
-                    else:
-                        out[key] = cfg[key]
-                else:
-                    out[key] = defvalue
-            return out
-
-        try:
-            with open(self.cfgpath, encoding='utf-8') as f:
-                rawcfg = json.loads(f.read())
-        except (IOError, ValueError):
-            print('no/bad config')
-            cfg = default_config
-        else:
-            cfg = check_config(rawcfg, default_config)
-
-        # Settings
-        self.lastdir = cfg['settings']['lastdirectory']
-        vscrollbar = cfg['settings']['vscrollbar']
-        if vscrollbar == 'always':
-            self.always_show_scrollbar()
-        elif vscrollbar == 'needed':
-            self.show_scrollbar_when_needed()
-        elif vscrollbar == 'never':
-            self.never_show_scrollbar()
-        self.textarea.number_bar.showbar = cfg['settings']['linenumbers']
-        self.autoindent = cfg['settings']['autoindent']
-        self.open_in_new_window = cfg['settings']['open_in_new_window']
-        self.show_fonts_in_dialoglist = cfg['settings']['show_fonts_in_dialoglist']
-        self.start_in_term = cfg['settings']['start_in_term']
-        if self.start_in_term:
-            self.terminal.setVisible(True)
-            self.switch_focus_to_term()
-
-        self.themedict = cfg['theme']
-
-        self.update_theme(cfg['theme'])
-
-        for p in self.plugins:
-            p.read_config()
-
-    def write_config(self):
-        """
-        Read the config, update the info with appropriate variables (optional)
-        and then overwrite the old file with the updated config.
-        """
-        vscrollbar = ('needed', 'never', 'always')
-        sizepos = self.geometry()
-        font = self.document.defaultFont()
-        cfg = {
-            'window': {
-                'x': sizepos.left(),
-                'y': sizepos.top(),
-                'width': sizepos.width(),
-                'height': sizepos.height(),
-                'maximized': self.isMaximized(),
-            },
-            'settings': {
-                'lastdirectory': self.lastdir,
-                'vscrollbar': vscrollbar[self.textarea.
-                                    verticalScrollBarPolicy()],
-                'linenumbers': self.textarea.number_bar.showbar,
-                'autoindent': self.autoindent,
-                'open_in_new_window': self.open_in_new_window,
-                'show_fonts_in_dialoglist': self.show_fonts_in_dialoglist,
-                'start_in_term': self.start_in_term,
-            },
-            'theme': self.themedict
-        }
-
-        outjson = json.dumps(cfg, ensure_ascii=False, indent=2, sort_keys=True)
-        if not os.path.exists(os.path.dirname(self.cfgpath)):
-            os.makedirs(os.path.dirname(self.cfgpath), mode=0o755, exist_ok=True)
-            print('Creating config path...')
-        with open(self.cfgpath, 'w', encoding='utf-8') as f:
-            f.write(outjson)
-
-        for p in self.plugins:
-            p.write_config()
-
-
-    def update_theme(self, themedict):
-        self.themedict = themedict.copy()
-
-        with open(local_path('qtstylesheet.css'), encoding='utf8') as f:
-            stylesheet_template = f.read()
-
-        overload = {
-            'term_input_bgcolor': 'main_bgcolor',
-            'term_output_bgcolor': 'main_bgcolor',
-            'term_input_textcolor': 'main_textcolor',
-            'term_output_textcolor': 'main_textcolor',
-        }
-        for x, y in overload.items():
-            if not themedict[x]:
-                themedict[x] = themedict[y]
-        for value in themedict.values():
-            # TODO: no graphical shit!!!
-            if not value:
-                self.terminal.error('Themesection in the config is broken!')
-                break
-
-        stylesheet = stylesheet_template.format(**themedict)
-        for p in self.plugins:
-            if p.has_stylesheet:
-                tc = p.theme_config()
-                stylesheet += p.stylesheet.format(tc) if tc else p.stylesheet
-
+    def set_theme(self):
+        stylesheet = common.read_stylesheet(self.theme_path)
+        plugin_themes = [p.get_theme() for p in self.plugins]
+        stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
-
-    def reload_theme(self):
-        with open(self.cfgpath, encoding='utf-8') as f:
-            cfg = json.loads(f.read())
-        self.update_theme(cfg['theme'])
 
 
 ## ==== Misc =============================================================== ##
@@ -339,6 +275,10 @@ class MainWindow(QtGui.QFrame):
         """ Show error in terminal """
         self.terminal.error(errortext)
         self.prompt_term(defaultcmd)
+
+    def print_(self, text):
+        self.terminal.print_(text)
+        self.terminal.setVisible(True)
 
     def prompt_term(self, defaultcmd=''):
         if defaultcmd:
@@ -362,7 +302,7 @@ class MainWindow(QtGui.QFrame):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if blocks > self.blocks and self.autoindent:
+        if blocks > self.blocks and self.settings['autoindent']:
             cursor = self.textarea.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document.findBlockByNumber(blocknum-1)
@@ -370,33 +310,27 @@ class MainWindow(QtGui.QFrame):
             cursor.insertText(indent)
 
 
+    def set_scrollbar_visibility(self, when):
+        # TODO: save_settings
+        # if when in ('on', 'auto', 'off'):
+        policy = {'on': Qt.ScrollBarAlwaysOn,
+                  'auto': Qt.ScrollBarAsNeeded,
+                  'off':Qt.ScrollBarAlwaysOff}
+        if when in policy:
+            self.textarea.setVerticalScrollBarPolicy(policy[when])
+            # self.settings['vscrollbar'] = when
+        else:
+            self.error('{} is not a valid option'.format(when))
+
+
     def new_and_empty(self):
         """ Return True if the file is empty and unsaved. """
         return not self.document.isModified() and not self.filepath
 
-    # ---- Vertical scrollbar -------------------------------------- #
-
-    def always_show_scrollbar(self):
-        """ Always show the vertical scrollbar. Convenience function. """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-
-    def show_scrollbar_when_needed(self):
-        """
-        Only show the vertical scrollbar when needed.
-        Convenience function.
-        """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-
-    def never_show_scrollbar(self):
-        """ Never show the vertical scrollbar. Convenience function. """
-        self.textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-    # -------------------------------------------------------------- #
-
 
     def find_next(self):
         if not self.findtext:
-            self.terminal.error("No previous searches")
+            self.error("No previous searches")
             return
         temp_cursor = self.textarea.textCursor()
         found = self.textarea.find(self.findtext)
@@ -406,12 +340,12 @@ class MainWindow(QtGui.QFrame):
                 found = self.textarea.find(self.findtext)
                 if not found:
                     self.textarea.setTextCursor(temp_cursor)
-                    self.terminal.error('[find] Text not found')
+                    self.error('[find] Text not found')
 
 
     def replace_next(self):
         if not self.replace1text:
-            self.terminal.error("No previous replaces")
+            self.error("No previous replaces")
             return
 
         temp_cursor = self.textarea.textCursor()
@@ -424,14 +358,14 @@ class MainWindow(QtGui.QFrame):
                     self.textarea.setTextCursor(temp_cursor)
         if found:
             self.textarea.textCursor().insertText(self.replace2text)
-            self.terminal.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
+            self.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
         else:
-            self.terminal.error('[replace] Text not found')
+            self.error('[replace] Text not found')
 
 
     def replace_all(self):
         if not self.replace1text:
-            self.terminal.error("No previous replaces")
+            self.error("No previous replaces")
             return
 
         temp_cursor = self.textarea.textCursor()
@@ -448,10 +382,10 @@ class MainWindow(QtGui.QFrame):
                     self.textarea.moveCursor(QtGui.QTextCursor.Start)
                     continue
         if times:
-            self.terminal.print_('{0} instances replaced'.format(times))
+            self.print_('{0} instances replaced'.format(times))
         else:
             self.textarea.setTextCursor(temp_cursor)
-            self.terminal.error('[replace_all] Text not found')
+            self.error('[replace_all] Text not found')
 
 
 ## ==== Window title ===================================== ##
@@ -463,24 +397,13 @@ class MainWindow(QtGui.QFrame):
         wcount = len(re.findall(r'\S+', self.document.toPlainText()))
         if not wcount == self.wt_wordcount:
             self.wt_wordcount = wcount
-            self.update_window_title()
-        for p in self.plugins:
-            p.contents_changed()
+            self.update_window_title(self.document.isModified())
 
 
-    def update_window_title(self):
-        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*self.wt_modified,
+    def update_window_title(self, modified):
+        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*modified,
                                                      self.wt_wordcount,
                                                      self.wt_file))
-
-
-    def toggle_modified(self, modified):
-        """
-        Toggle the asterisks in the title depending on if the file has been
-        modified since last save/open or not.
-        """
-        self.wt_modified = modified
-        self.update_window_title()
 
 
     def set_file_name(self, filename):
@@ -491,15 +414,19 @@ class MainWindow(QtGui.QFrame):
         else:
             self.filepath = filename
             self.wt_file = os.path.basename(filename)
-        self.update_window_title()
+        self.update_window_title(self.document.isModified())
 
 
 
 ## ==== File operations: new/open/save ===================================== ##
 
-    def open_t(self, filename, force=False):
-        """ Called from terminal """
-        if self.open_in_new_window and not self.new_and_empty():
+    def request_new_file(self, force=False):
+        success = self.new_file(force)
+        if not success:
+            self.error('Unsaved changes! Force new with n! or save first.')
+
+    def request_open_file(self, filename, force=False):
+        if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
             success = self.open_file(filename)
@@ -508,43 +435,36 @@ class MainWindow(QtGui.QFrame):
         else:
             self.error('Unsaved changes! Force open with o! or save first.')
 
-
-    def new_k(self):
-        """ Called from key shortcut """
-        success = self.new_file()
-        if not success:
-            self.error('Unsaved changes! Force new with n! or save first.')
-
-    def open_k(self):
-        """ Called from key shortcut """
-        self.prompt_term(defaultcmd='o ')
-
-    def save_k(self):
-        """ Called from key shortcut """
-        if not self.filepath:
-            self.error('File not saved yet! Save with s first.',
-                              defaultcmd='s ')
+    def request_save_file(self, filename='', force=False):
+        if not filename:
+            if self.filepath:
+                result = self.save_file()
+                if not result:
+                    self.error('File not saved! IOError!')
+            else:
+                self.error('No filename', defaultcmd='s ')
         else:
-            result = self.save_file()
-            if not result:
-                self.error('File not saved! IOError!')
-
-    def save_as_k(self):
-        """ Called from key shortcut """
-        self.prompt_term(defaultcmd='s ')
+            if os.path.isfile(filename) and not force:
+                self.error('File already exists, use s! to overwrite')
+            # Make sure the parent directory actually exists
+            elif os.path.isdir(os.path.dirname(filename)):
+                result = self.save_file(filename)
+                if not result:
+                    self.error('File not saved! IOError!')
+            else:
+                self.error('Invalid path')
 
 
     def new_file(self, force=False):
         """
         Main new file function
         """
-        if self.open_in_new_window and not self.new_and_empty():
+        if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0]])
             return True
         elif not self.document.isModified() or force:
             self.document.clear()
             self.document.setModified(False)
-            self.toggle_modified(False)
             self.set_file_name('NEW')
             self.blocks = 1
             return True
@@ -563,7 +483,7 @@ class MainWindow(QtGui.QFrame):
             except UnicodeDecodeError:
                 continue
             else:
-                self.lastdir = os.path.dirname(filename)
+                self.settings['lastdirectory'] = os.path.dirname(filename)
                 self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
                 self.set_file_name(filename)
@@ -595,61 +515,12 @@ class MainWindow(QtGui.QFrame):
             print(e)
             return False
         else:
-            self.lastdir = os.path.dirname(savefname)
+            self.settings['lastdirectory'] = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
             for p in self.plugins:
                 p.file_saved()
             return True
-
-
-def local_path(path):
-    return os.path.join(sys.path[0], path)
-
-
-def get_plugins(root_path):
-    join = os.path.join
-    loadorder_path = join(root_path, 'loadorder.conf')
-
-    # Get load order from file
-    try:
-        with open(loadorder_path, encoding='utf-8') as f:
-            loadorder = json.loads(f.read())
-            assert len(loadorder) > 0
-    except (IOError, AssertionError):
-        pluginlist, activelist = [],[]
-    else:
-        pluginlist, activelist = zip(*loadorder)
-        pluginlist = list(pluginlist)
-        activelist = list(activelist)
-
-    # Generate all existing plugins
-    rawplugins = {}
-    plugin_root_path = join(root_path, 'plugins')
-    if not os.path.exists(plugin_root_path):
-        os.makedirs(plugin_root_path, exist_ok=True)
-    for name in os.listdir(plugin_root_path):
-        plugin_path = join(plugin_root_path, name)
-        if not os.path.isfile(join(plugin_path, name + '.py')):
-            continue
-        if name not in pluginlist:
-            pluginlist.append(name)
-            activelist.append(True)
-        sys.path.append(plugin_path)
-        rawplugins[name] = (plugin_path, importlib.import_module(name))
-
-    # Update the load order
-    newpluginlist = [(p,a) for p,a in zip(pluginlist, activelist)
-                     if p in rawplugins]
-    with open(loadorder_path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(newpluginlist, ensure_ascii=False, indent=2))
-
-    # Generate all the relevant plugins in the right order
-    plugins = [(p, rawplugins[p][0], rawplugins[p][1])
-               for p,is_active in zip(pluginlist, activelist)
-               if p in rawplugins and is_active]
-
-    return plugins
 
 
 def get_valid_files():
@@ -667,6 +538,7 @@ def get_valid_files():
     return output
 
 def main():
+    import os
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     files = get_valid_files()
     app = QtGui.QApplication(sys.argv)

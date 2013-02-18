@@ -1,5 +1,26 @@
+# Copyright nycz 2011-2013
+
+# This file is part of Kalpana.
+
+# Kalpana is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Kalpana is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
+
+
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
+
+from configlib import set_key_shortcut
+
 
 class FontDialog(QtGui.QDialog):
     def __init__(self, parent, show_fonts_in_dialoglist, fontfamily, fontsize):
@@ -60,9 +81,10 @@ class FontDialog(QtGui.QDialog):
         def select_right_list():
             sizelist_widget.setFocus()
 
-        QtGui.QShortcut(QtGui.QKeySequence('Left'), self, select_left_list)
-        QtGui.QShortcut(QtGui.QKeySequence('Right'), self, select_right_list)
-        QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.close)
+
+        set_key_shortcut('Left', self, select_left_list)
+        set_key_shortcut('Right', self, select_right_list)
+        set_key_shortcut('Escape', self, self.close)
 
         self.setLayout(lists_layout)
 

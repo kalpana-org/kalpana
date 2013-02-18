@@ -1,14 +1,16 @@
-Kalpana
+﻿Kalpana
 =======
 
 A not so very user friendly text editor made probably not for you.
+
+*Kalpana* is also a feminine Hindu name meaning *imagination*, *fantasy*, *creativity*. Can be written as  कल्पना (Hindi).
 
 
 Technical shit
 --------------
 * Written in Python 3, will not work on Python 2 or earlier
-* Requires either PySide or PyQt
-* Probably wont work on Mac
+* Requires PyQt
+* Probably won't work on Mac
 
 
 Keyboard shortcuts not readily available anywhere else
