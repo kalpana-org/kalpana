@@ -332,11 +332,6 @@ class MainWindow(QtGui.QFrame):
             cfg = json.loads(f.read())
         self.update_theme(cfg['theme'])
 
-    def write_theme(self):
-        with open(os.path.join(self.cfgdir, 'theme.css'),
-                    encoding='utf-8', mode='w') as f:
-            f.write(self.styleSheet())
-
 
 ## ==== Misc =============================================================== ##
 
