@@ -19,7 +19,7 @@
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from configlib import set_key_shortcut
+from libsyntyche.common import set_hotkey
 
 
 class FontDialog(QtGui.QDialog):
@@ -82,9 +82,9 @@ class FontDialog(QtGui.QDialog):
             sizelist_widget.setFocus()
 
 
-        set_key_shortcut('Left', self, select_left_list)
-        set_key_shortcut('Right', self, select_right_list)
-        set_key_shortcut('Escape', self, self.close)
+        set_hotkey('Left', self, select_left_list)
+        set_hotkey('Right', self, select_right_list)
+        set_hotkey('Escape', self, self.close)
 
         self.setLayout(lists_layout)
 

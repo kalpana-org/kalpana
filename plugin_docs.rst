@@ -36,9 +36,11 @@ Imports
 As of [we don't use version numbers no more], all Qt-imports should be made using PyQt4. PySide is no longer supported and therefore having the imports implementation agnostic and done in common is not neccessary.
 
 
-common Reference
-----------------
-common includes some miscellaneous useful functions.
+libsyntyche.common Reference
+----------------------------
+common includes some miscellaneous useful functions. Import it with `import libsyntyche.common` or `from libsyntyche import common` or any other way that is supported by standard Python modules. (Just like PyQt.QtGui and so on)
+
+See https://github.com/nycz/libsyntyche for more info.
 
 Functions
 =========

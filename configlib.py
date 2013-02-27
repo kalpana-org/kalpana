@@ -22,11 +22,7 @@ import sys
 
 from PyQt4 import QtGui
 
-import common
-
-
-def set_key_shortcut(hotkey, obj, slot):
-    QtGui.QShortcut(QtGui.QKeySequence(hotkey), obj, slot)
+from libsyntyche import common
 
 
 def read_config(config_file_path, default_config):

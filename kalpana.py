@@ -26,7 +26,7 @@ import subprocess
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
-import common
+from libsyntyche import common
 import configlib
 from linewidget import LineTextWidget
 from loadorderdialog import LoadOrderDialog
@@ -166,7 +166,7 @@ class MainWindow(QtGui.QFrame):
         for p in plugins:
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
-            configlib.set_key_shortcut(key, self, function)
+            common.set_hotkey(key, self, function)
 
     def connect_signals(self):
         self.document.modificationChanged.connect(self.update_window_title)

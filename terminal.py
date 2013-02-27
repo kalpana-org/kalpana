@@ -21,7 +21,7 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
-from configlib import set_key_shortcut
+from libsyntyche.common import set_hotkey
 import fontdialog
 
 
@@ -100,8 +100,8 @@ class Terminal(QtGui.QSplitter):
         self.input_term.update_completion_prefix.connect(self.update_completion_prefix)
         self.input_term.returnPressed.connect(self.parse_command)
 
-        set_key_shortcut('Alt+Left', self, self.move_splitter_left)
-        set_key_shortcut('Alt+Right', self, self.move_splitter_right)
+        set_hotkey('Alt+Left', self, self.move_splitter_left)
+        set_hotkey('Alt+Right', self, self.move_splitter_right)
 
     def update_commands(self, plugin_commands):
         # Plugins

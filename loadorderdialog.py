@@ -22,7 +22,7 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from configlib import set_key_shortcut
+from libsyntyche.common import set_hotkey
 
 
 class LoadOrderDialog(QtGui.QDialog):
@@ -77,9 +77,9 @@ class LoadOrderDialog(QtGui.QDialog):
             def move_item_down():
                 move_item(1)
 
-            set_key_shortcut('Left', self, move_item_up)
-            set_key_shortcut('Right', self, move_item_down)
-            set_key_shortcut('Escape', self, self.close)
+            set_hotkey('Left', self, move_item_up)
+            set_hotkey('Right', self, move_item_down)
+            set_hotkey('Escape', self, self.close)
 
         self.show()
 

@@ -10,6 +10,7 @@ Technical shit
 --------------
 * Written in Python 3, will not work on Python 2 or earlier
 * Requires PyQt
+* Requires libsyntyche *(https://github.com/nycz/libsyntyche)*
 * Probably won't work on Mac
 
 
