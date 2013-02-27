@@ -86,16 +86,13 @@ class MainWindow(QtGui.QFrame):
 
 
     def create_ui(self):
-        def kill_spacing(l):
-            l.setSpacing(0)
-            l.setMargin(0)
 
         # Layout
         vert_layout = QtGui.QVBoxLayout(self)
-        kill_spacing(vert_layout)
+        common.kill_theming(vert_layout)
 
         horz_layout = QtGui.QHBoxLayout()
-        kill_spacing(horz_layout)
+        common.kill_theming(horz_layout)
         vert_layout.addLayout(horz_layout)
 
         # Text area
