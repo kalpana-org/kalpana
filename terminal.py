@@ -61,10 +61,9 @@ class Terminal(QtGui.QSplitter):
     request_save_file = pyqtSignal(str, bool)
     request_quit = pyqtSignal(bool)
 
-    show_value_of_setting = pyqtSignal(str)
-    toggle_setting = pyqtSignal(str)
+    manage_settings = pyqtSignal(str)
+
     give_up_focus = pyqtSignal()
-    set_scrollbar_visibility = pyqtSignal(str)
     open_loadorder_dialog = pyqtSignal()
     reload_theme = pyqtSignal()
 
@@ -307,31 +306,6 @@ class Terminal(QtGui.QSplitter):
         # fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
         #                              arg + '_fontfamily', arg + '_fontsize')
 
-    def cmd_autoindent(self, arg):
-        if arg == '?':
-            self.show_value_of_setting.emit('autoindent')
-        else:
-            self.toggle_setting.emit('autoindent')
-
-    def cmd_line_numbers(self, arg):
-        if arg == '?':
-            self.show_value_of_setting.emit('linenumbers')
-        else:
-            self.toggle_setting.emit('linenumbers')
-
-    def cmd_scrollbar(self, arg):
-        arg = arg.strip().lower()
-        if not arg or arg == '?':
-            self.show_value_of_setting.emit('vscrollbar')
-        else:
-            self.set_scrollbar_visibility.emit(arg)
-
-    def cmd_new_window(self, arg):
-        if arg == '?':
-            self.show_value_of_setting.emit('open_in_new_window')
-        else:
-            self.toggle_setting.emit('open_in_new_window')
-
     def cmd_help(self, arg):
         if not arg:
             self.print_(' '.join(sorted(self.cmds)))
@@ -345,6 +319,10 @@ class Terminal(QtGui.QSplitter):
 
     def cmd_load_order(self, arg):
         self.open_loadorder_dialog.emit()
+
+
+    def cmd_set(self, arg):
+        self.manage_settings.emit(arg)
 
 
     cmds = {
@@ -361,10 +339,7 @@ class Terminal(QtGui.QSplitter):
         'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
         '?': (cmd_help, 'List commands or help for [command]'),
         'cf': (cmd_change_font, 'Change font [main/term]'),
-        'ai': (cmd_autoindent, 'Toggle auto indent'),
-        'ln': (cmd_line_numbers, 'Toggle line numbers'),
-        'vs': (cmd_scrollbar, 'Scrollbar [off/maybe/on]'),
-        'nw': (cmd_new_window, 'Open in new window [y/n]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),
-        'lo': (cmd_load_order, 'Change the plugin load order')
+        'lo': (cmd_load_order, 'Change the plugin load order'),
+        '=': (cmd_set, 'Manage settings')
     }

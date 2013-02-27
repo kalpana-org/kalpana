@@ -31,50 +31,44 @@ def set_key_shortcut(hotkey, obj, slot):
 
 def read_config(config_file_path, default_config):
         """ Read the config and update the appropriate variables. """
+        default_config = common.read_json(common.local_path('defaultcfg.json'))
+
+        legal_values = {k:v['values'] for k,v \
+                        in default_config['settings'].items()}
+        acronyms = {v['acronym']:name for name,v \
+                        in default_config['settings'].items()}
 
         def check_config(cfg, defcfg):
             """ Make sure the config is valid """
             out = {}
-            for key, defvalue in defcfg.items():
-                if key in cfg:
-                    # We need to go deeper
-                    if type(defvalue) == dict:
-                        out[key] = check_config(cfg[key], defvalue)
-                    # No value found, use default
-                    elif not cfg[key]:
-                        out[key] = defvalue
-                    # Found it!
-                    else:
-                        out[key] = cfg[key]
-                else:
-                    # No key found, use default
-                    out[key] = defvalue
+            for key, section in defcfg.items():
+                out[key] = cfg.get(key, section['values'][0])
+                # If there are restrictions on the value, set to the default
+                if len(legal_values) > 1 and out[key] not in legal_values[key]:
+                    print('config option "{}" has illegal value: {}'
+                          ''.format(key, out[key]))
+                    out[key] = section['values'][0]
             return out
 
         try:
             rawcfg = common.read_json(config_file_path)
         except (IOError, ValueError):
             print('no/bad config')
-            cfg = default_config
+            cfg = check_config({}, default_config['settings'])
         else:
-            cfg = check_config(rawcfg, default_config)
+            cfg = check_config(rawcfg['settings'], default_config['settings'])
 
-        return cfg['settings']
+        return {'settings': cfg,
+                'legal_values': legal_values,
+                'acronyms': acronyms}
 
 
-def write_config(config_file_path, settings, sizepos):
+def write_config(config_file_path, settings):
         """
         Read the config, update the info with appropriate variables (optional)
         and then overwrite the old file with the updated config.
         """
         cfg = {
-            'window': {
-                'x': sizepos.left(),
-                'y': sizepos.top(),
-                'width': sizepos.width(),
-                'height': sizepos.height(),
-                'maximized': False,
-            },
             'settings': settings
         }
 

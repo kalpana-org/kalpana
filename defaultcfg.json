@@ -1,18 +1,28 @@
 {
   "settings": {
-    "autoindent": false,
-    "show_fonts_in_dialoglist": false,
-    "lastdirectory": "",
-    "linenumbers": false,
-    "open_in_new_window": false,
-    "vscrollbar": "on",
-    "start_in_term": true
-  },
-  "window": {
-    "height": 480,
-    "maximized": false,
-    "width": 800,
-    "x": 20,
-    "y": 20
+    "autoindent": {
+      "values": [false, true],
+      "acronym": "ai"
+    },
+    "show_fonts_in_dialoglist": {
+      "values": [false, true],
+      "acronym": "sfid"
+    },
+    "linenumbers": {
+      "values": [false, true],
+      "acronym": "ln"
+    },
+    "open_in_new_window": {
+      "values": [false, true],
+      "acronym": "nw"
+    },
+    "vscrollbar": {
+      "values": ["on", "off", "auto"],
+      "acronym": "vs"
+    },
+    "start_in_term": {
+      "values": [true, false],
+      "acronym": "sit"
+    }
   }
 }

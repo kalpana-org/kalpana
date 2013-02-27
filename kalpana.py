@@ -72,7 +72,8 @@ class MainWindow(QtGui.QFrame):
 
         self.connect_signals()
         self.create_key_shortcuts(self.plugins)
-        self.settings = self.load_settings(self.config_file_path)
+        self.settings = {}
+        self.load_settings(self.config_file_path)
 
         if file_:
             if not self.open_file(file_):
@@ -179,9 +180,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal.request_quit.connect(self.quit)
 
         # Terminal settings
-        self.terminal.show_value_of_setting.connect(self.show_value_of_setting)
-        self.terminal.toggle_setting.connect(self.toggle_setting)
-        self.terminal.set_scrollbar_visibility.connect(self.set_scrollbar_visibility)
+        self.terminal.manage_settings.connect(self.manage_settings)
 
         # Terminal misc
         def open_loadorder_dialog():
@@ -191,34 +190,103 @@ class MainWindow(QtGui.QFrame):
         self.terminal.reload_theme.connect(self.set_theme)
 
     def load_settings(self, config_file_path):
-        defaultcfg = common.read_json(common.local_path('defaultcfg.json'))
-        settings = configlib.read_config(config_file_path, defaultcfg)
+        """
+        Load settings from the main config file.
+        """
+        default_config_path = common.local_path('defaultcfg.json')
+        settings_dict = configlib.read_config(config_file_path, default_config_path)
 
-        if settings['start_in_term']:
+        loaded_settings = settings_dict['settings']
+        self.allowed_setting_values = settings_dict['legal_values']
+        self.setting_names = settings_dict['acronyms']
+
+        if loaded_settings['start_in_term']:
             self.terminal.setVisible(True)
             self.switch_focus_to_term()
-        self.textarea.number_bar.showbar = settings['linenumbers']
-        self.set_scrollbar_visibility(settings['vscrollbar'])
+
+        for key, value in loaded_settings.items():
+            self.set_setting(key, value, quiet=True)
+
         self.read_plugin_config.emit()
         self.set_theme()
-        return settings
 
-    def show_value_of_setting(self, key):
-        if not key in self.settings:
-            self.error('{} is not a setting'.format(key))
-        else:
-            self.print_('Current value: {}'.format(self.settings[key]))
 
-    def toggle_setting(self, key):
-        # TODO: save_settings
-        if key in self.settings:
-            self.settings[key] = not self.settings[key]
-            if key == 'linenumbers':
-                self.textarea.number_bar.showbar = self.settings['linenumbers']
-                self.textarea.number_bar.update()
-            self.print_('{} now {}'.format(key, self.settings[key]))
+    def manage_settings(self, argument):
+        """
+        Called from terminal.
+        Allowed value for argument:
+            <setting acronym> [<new value>]
+
+        If new value is not specified, print current and allowed values
+        for the specified setting.
+        Otherwise set the setting to the new value.
+
+        Print relevant error if value is not allowed, acronym does not exist,
+        or the structure of argument does not follow above specification.
+        """
+        if not argument.strip():
+            self.print_('Settings: {}'.format(', '.join(sorted(self.setting_names))))
+            return
+
+        arg_rx = re.compile(r"""
+            (?P<setting>\S+)
+            (
+                \ +
+                (?P<value>.+?)
+            )?
+            \s*
+            $
+        """, re.VERBOSE)
+        parsed_arg = arg_rx.match(argument)
+        acronym = parsed_arg.group('setting')
+        if acronym not in self.setting_names:
+            self.error('No such setting: {}'.format(acronym))
+            return
+        name = self.setting_names[acronym]
+
+        # Set new value if there is one
+        if parsed_arg.group('value'):
+            new_value = parsed_arg.group('value')
+            success = self.set_setting(name, new_value)
+        # Otherwise just print the current value
         else:
-            self.error('No setting called "{}"'.format(key))
+            value = self.settings[name]
+            self.print_('{} = {} ({})'.format(name, value,
+                ', '.join([str(x) for x in self.allowed_setting_values[name]])))
+
+    def set_setting(self, key, new_value, quiet=False):
+        """
+        Set the value of a setting the the specified new value.
+
+        key is the name of the setting.
+        new_value is the new value.
+        quiet means only errors will be printed.
+        """
+        # TODO: this needs to be better
+        if isinstance(new_value, str):
+            if new_value.lower() in ('n', 'false'):
+                new_value = False
+            elif new_value.lower() in ('y', 'true'):
+                new_value = True
+
+        if new_value not in self.allowed_setting_values[key]:
+            self.error('Wrong value [{}] for setting: {}'\
+                            .format(new_value, key))
+            return
+        self.settings[key] = new_value
+        if not quiet:
+            self.print_('{} now set to: {}'.format(key, new_value))
+
+        # Setting specific settings... yyyeah.
+        if key == 'linenumbers':
+            self.textarea.number_bar.showbar = new_value
+            self.textarea.number_bar.update()
+        elif key == 'vscrollbar':
+            policy = {'on': Qt.ScrollBarAlwaysOn,
+                  'auto': Qt.ScrollBarAsNeeded,
+                  'off':Qt.ScrollBarAlwaysOff}
+            self.textarea.setVerticalScrollBarPolicy(policy[new_value])
+
 
 ## ==== Overrides ========================================================== ##
 
@@ -259,8 +327,7 @@ class MainWindow(QtGui.QFrame):
 ## ==== Config ============================================================= ##
 
     def save_settings(self):
-        configlib.write_config(self.config_file_path, self.settings,
-                               self.geometry())
+        configlib.write_config(self.config_file_path, self.settings)
         self.write_plugin_config.emit()
 
     def set_theme(self):
@@ -309,19 +376,6 @@ class MainWindow(QtGui.QFrame):
             prevblock = self.document.findBlockByNumber(blocknum-1)
             indent = re.match(r'[\t ]*', prevblock.text()).group(0)
             cursor.insertText(indent)
-
-
-    def set_scrollbar_visibility(self, when):
-        # TODO: save_settings
-        # if when in ('on', 'auto', 'off'):
-        policy = {'on': Qt.ScrollBarAlwaysOn,
-                  'auto': Qt.ScrollBarAsNeeded,
-                  'off':Qt.ScrollBarAlwaysOff}
-        if when in policy:
-            self.textarea.setVerticalScrollBarPolicy(policy[when])
-            # self.settings['vscrollbar'] = when
-        else:
-            self.error('{} is not a valid option'.format(when))
 
 
     def new_and_empty(self):
@@ -484,7 +538,6 @@ class MainWindow(QtGui.QFrame):
             except UnicodeDecodeError:
                 continue
             else:
-                self.settings['lastdirectory'] = os.path.dirname(filename)
                 self.document.setPlainText(''.join(lines))
                 self.document.setModified(False)
                 self.set_file_name(filename)
@@ -516,7 +569,6 @@ class MainWindow(QtGui.QFrame):
             print(e)
             return False
         else:
-            self.settings['lastdirectory'] = os.path.dirname(savefname)
             self.set_file_name(savefname)
             self.document.setModified(False)
             for p in self.plugins:
