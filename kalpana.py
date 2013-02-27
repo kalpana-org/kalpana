@@ -188,6 +188,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal.give_up_focus.connect(self.textarea.setFocus)
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
         self.terminal.reload_theme.connect(self.set_theme)
+        self.terminal.goto_line.connect(self.goto_line)
 
     def load_settings(self, config_file_path):
         """
@@ -441,6 +442,16 @@ class MainWindow(QtGui.QFrame):
         else:
             self.textarea.setTextCursor(temp_cursor)
             self.error('[replace_all] Text not found')
+
+    def goto_line(self, line):
+        block = self.textarea.document().findBlockByLineNumber(int(line.strip())-1)
+        if not block.isValid():
+            self.error('No such line number')
+            return
+        new_cursor = QtGui.QTextCursor(block)
+        self.textarea.setTextCursor(new_cursor)
+        self.textarea.centerCursor()
+        self.toggle_terminal()
 
 
 ## ==== Window title ===================================== ##

@@ -66,6 +66,7 @@ class Terminal(QtGui.QSplitter):
     give_up_focus = pyqtSignal()
     open_loadorder_dialog = pyqtSignal()
     reload_theme = pyqtSignal()
+    goto_line = pyqtSignal(str)
 
     def __init__(self, main, textarea):
         super().__init__(parent=main)
@@ -324,6 +325,9 @@ class Terminal(QtGui.QSplitter):
     def cmd_set(self, arg):
         self.manage_settings.emit(arg)
 
+    def cmd_goto_line(self, arg):
+        self.goto_line.emit(arg)
+
 
     cmds = {
         'o': (cmd_open, 'Open [file]'),
@@ -341,5 +345,6 @@ class Terminal(QtGui.QSplitter):
         'cf': (cmd_change_font, 'Change font [main/term]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),
         'lo': (cmd_load_order, 'Change the plugin load order'),
+        ':': (cmd_goto_line, 'Go to line'),
         '=': (cmd_set, 'Manage settings')
     }
