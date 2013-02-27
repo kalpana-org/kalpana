@@ -23,7 +23,7 @@ import re
 import sys
 import subprocess
 
-from PyQt4 import QtGui
+from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
 from libsyntyche import common
@@ -187,7 +187,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal.reload_theme.connect(self.set_theme)
         self.terminal.goto_line.connect(self.goto_line)
 
-    def load_settings(self, config_file_path):
+    def load_settings(self, config_file_path, refresh_only=False):
         """
         Load settings from the main config file.
         """
@@ -198,7 +198,7 @@ class MainWindow(QtGui.QFrame):
         self.allowed_setting_values = settings_dict['legal_values']
         self.setting_names = settings_dict['acronyms']
 
-        if loaded_settings['start_in_term']:
+        if loaded_settings['start_in_term'] and not refresh_only:
             self.terminal.setVisible(True)
             self.switch_focus_to_term()
 
@@ -246,6 +246,8 @@ class MainWindow(QtGui.QFrame):
         if parsed_arg.group('value'):
             new_value = parsed_arg.group('value')
             success = self.set_setting(name, new_value)
+            if success:
+                self.save_settings()
         # Otherwise just print the current value
         else:
             value = self.settings[name]
@@ -270,7 +272,7 @@ class MainWindow(QtGui.QFrame):
         if new_value not in self.allowed_setting_values[key]:
             self.error('Wrong value [{}] for setting: {}'\
                             .format(new_value, key))
-            return
+            return False
         self.settings[key] = new_value
         if not quiet:
             self.print_('{} now set to: {}'.format(key, new_value))
@@ -284,13 +286,12 @@ class MainWindow(QtGui.QFrame):
                   'auto': Qt.ScrollBarAsNeeded,
                   'off':Qt.ScrollBarAlwaysOff}
             self.textarea.setVerticalScrollBarPolicy(policy[new_value])
-
+        return True
 
 ## ==== Overrides ========================================================== ##
 
     def closeEvent(self, event):
         if not self.document.isModified() or self.force_quit_flag:
-            self.save_settings()
             event.accept()
         else:
             self.error('Unsaved changes! Force quit with q! or save first.')
@@ -333,6 +334,9 @@ class MainWindow(QtGui.QFrame):
         plugin_themes = [p.get_theme() for p in self.plugins]
         stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
+
+    def refresh_config(self):
+        self.load_settings(self.config_file_path)
 
 
 ## ==== Misc =============================================================== ##
@@ -610,6 +614,16 @@ def main():
         a = MainWindow(file_=files[0])
         for f in files[1:]:
             subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
+
+    class AppEventFilter(QtCore.QObject):
+        def eventFilter(self, object, event):
+            if event.type() == QtCore.QEvent.ApplicationActivate:
+                a.refresh_config()
+            return False
+
+    event_filter = AppEventFilter()
+    app.installEventFilter(event_filter)
+
     sys.exit(app.exec_())
 
 
