@@ -182,10 +182,8 @@ class Terminal(QtGui.QSplitter):
         Reset the list of suggestions if another button than tab
         has been pressed.
         """
-        cmdprefix, ac_text = self.get_autocompletable_text()
-        if ac_text:
-            self.ac_suggestions = []
-            self.ac_index = 0
+        self.ac_suggestions = []
+        self.ac_index = 0
 
 
     # ==== Splitter ============================== #
