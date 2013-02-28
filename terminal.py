@@ -249,7 +249,8 @@ class Terminal(QtGui.QSplitter):
         self.input_term.setText('')
         self.output_term.setText('')
 
-        run_cmd = lambda c,space: self.cmds[c][0](self, text[len(c)+space:])
+        run_cmd = lambda c,space: self.cmds[c][0](self,
+                                                  text[len(c)+space:].strip())
 
         if self.command_separator in text:
             cmd = text.split(self.command_separator, 1)[0]
