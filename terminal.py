@@ -72,11 +72,14 @@ class Terminal(QtGui.QSplitter):
 
     def __init__(self, main, textarea):
         super().__init__(parent=main)
+        # SO VERY DEPRECATED
         self.textarea = textarea
         self.main = main
 
         # Splitter settings
         self.setHandleWidth(2)
+        set_hotkey('Alt+Left', self, self.move_splitter_left)
+        set_hotkey('Alt+Right', self, self.move_splitter_right)
 
         # I/O fields creation
         self.input_term = self.TerminalInputBox(self)
@@ -88,10 +91,6 @@ class Terminal(QtGui.QSplitter):
         self.addWidget(self.output_term)
 
         self.input_term.returnPressed.connect(self.parse_command)
-        set_hotkey('Alt+Left', self, self.move_splitter_left)
-        set_hotkey('Alt+Right', self, self.move_splitter_right)
-
-
         # Autocomplete
         self.ac_suggestions = []
         self.ac_index = 0

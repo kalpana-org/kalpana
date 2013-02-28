@@ -269,8 +269,9 @@ class MainWindow(QtGui.QFrame):
             elif new_value.lower() in ('y', 'true'):
                 new_value = True
 
-        if new_value not in self.allowed_setting_values[key]:
-            self.error('Wrong value [{}] for setting: {}'\
+        if len(self.allowed_setting_values[key]) > 1 \
+                and new_value not in self.allowed_setting_values[key]:
+            self.error('Wrong value {} for setting: {}'\
                             .format(new_value, key))
             return False
         self.settings[key] = new_value
@@ -493,6 +494,9 @@ class MainWindow(QtGui.QFrame):
             self.error('Unsaved changes! Force new with n! or save first.')
 
     def request_open_file(self, filename, force=False):
+        if not os.path.isfile(filename):
+            self.error('File not found!')
+            return
         if self.settings['open_in_new_window'] and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document.isModified() or force:
