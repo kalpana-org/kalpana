@@ -30,6 +30,7 @@ class Terminal(QtGui.QSplitter):
     class TerminalInputBox(QtGui.QLineEdit):
         tab_pressed = pyqtSignal()
         reset_ac_suggestions = pyqtSignal()
+        reset_history_travel = pyqtSignal()
         history_up = pyqtSignal()
         history_down = pyqtSignal()
         # This has to be here, keyPressEvent does not capture tab press
@@ -45,6 +46,7 @@ class Terminal(QtGui.QSplitter):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
                 QtGui.QLineEdit.keyPressEvent(self, event)
                 self.reset_ac_suggestions.emit()
+                self.reset_history_travel.emit()
             elif event.key() == Qt.Key_Up:
                 self.history_up.emit()
             elif event.key() == Qt.Key_Down:
@@ -72,9 +74,6 @@ class Terminal(QtGui.QSplitter):
         super().__init__(parent=main)
         self.textarea = textarea
         self.main = main
-        self.sugindex = -1
-
-        self.history = []
 
         # Splitter settings
         self.setHandleWidth(2)
@@ -88,17 +87,24 @@ class Terminal(QtGui.QSplitter):
         self.addWidget(self.input_term)
         self.addWidget(self.output_term)
 
+        self.input_term.returnPressed.connect(self.parse_command)
+        set_hotkey('Alt+Left', self, self.move_splitter_left)
+        set_hotkey('Alt+Right', self, self.move_splitter_right)
+
+
         # Autocomplete
         self.ac_suggestions = []
         self.ac_index = 0
-
-        # Signals/slots
         self.input_term.tab_pressed.connect(self.autocomplete)
         self.input_term.reset_ac_suggestions.connect(self.reset_ac_suggestions)
-        self.input_term.returnPressed.connect(self.parse_command)
 
-        set_hotkey('Alt+Left', self, self.move_splitter_left)
-        set_hotkey('Alt+Right', self, self.move_splitter_right)
+        # History
+        self.history = ['']
+        self.history_index = 0
+        self.input_term.reset_history_travel.connect(self.reset_history_travel)
+        self.input_term.history_up.connect(self.history_up)
+        self.input_term.history_down.connect(self.history_down)
+
 
     def update_commands(self, plugin_commands):
         # Plugins
@@ -208,18 +214,21 @@ class Terminal(QtGui.QSplitter):
     # ==== History =============================== #
 
     def history_up(self):
-        pass
-        # if self.history_position > 0:
-        #     self.history_position -= 1:
-        #     self.input_term.setText(self.history[self.history_position])
+        if self.history_index < len(self.history)-1:
+            self.history_index += 1
+        self.input_term.setText(self.history[self.history_index])
 
     def history_down(self):
-        # if self.history_position < len(self.history)-1:
-        #     self.history_position += 1:
-        #     self.input_term.setText(self.history[self.history_position])
-        # elif self.history_position == len(self.history)-1 and self.input_term.text():
-        #     self.history_position += 1:
-        pass
+        if self.history_index > 0:
+            self.history_index -= 1
+        self.input_term.setText(self.history[self.history_index])
+
+    def add_history(self, text):
+        self.history.insert(0, '')
+
+    def reset_history_travel(self):
+        self.history_index = 0
+        self.history[self.history_index] = self.input_term.text()
 
 
     # ==== Misc ================================= #
@@ -232,8 +241,7 @@ class Terminal(QtGui.QSplitter):
         text = self.input_term.text()
         if not text.strip():
             return
-        self.history.append(text)
-        self.history_position = len(self.history)
+        self.add_history(text)
         self.input_term.setText('')
         self.output_term.setText('')
         cmd = text.split(' ', 1)[0]
