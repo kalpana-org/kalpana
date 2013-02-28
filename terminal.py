@@ -29,7 +29,7 @@ class Terminal(QtGui.QSplitter):
 
     class TerminalInputBox(QtGui.QLineEdit):
         tab_pressed = pyqtSignal()
-        update_completion_prefix = pyqtSignal()
+        reset_ac_suggestions = pyqtSignal()
         history_up = pyqtSignal()
         history_down = pyqtSignal()
         # This has to be here, keyPressEvent does not capture tab press
@@ -44,7 +44,7 @@ class Terminal(QtGui.QSplitter):
         def keyPressEvent(self, event):
             if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
                 QtGui.QLineEdit.keyPressEvent(self, event)
-                self.update_completion_prefix.emit()
+                self.reset_ac_suggestions.emit()
             elif event.key() == Qt.Key_Up:
                 self.history_up.emit()
             elif event.key() == Qt.Key_Down:
@@ -89,16 +89,12 @@ class Terminal(QtGui.QSplitter):
         self.addWidget(self.output_term)
 
         # Autocomplete
-        self.completer = QtGui.QCompleter(self)
-        fsmodel = QtGui.QFileSystemModel(self.completer)
-        fsmodel.setRootPath(QDir.homePath())
-        self.completer.setModel(fsmodel)
-        self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
-        self.completer.setCaseSensitivity(Qt.CaseSensitive)
+        self.ac_suggestions = []
+        self.ac_index = 0
 
         # Signals/slots
         self.input_term.tab_pressed.connect(self.autocomplete)
-        self.input_term.update_completion_prefix.connect(self.update_completion_prefix)
+        self.input_term.reset_ac_suggestions.connect(self.reset_ac_suggestions)
         self.input_term.returnPressed.connect(self.parse_command)
 
         set_hotkey('Alt+Left', self, self.move_splitter_left)
@@ -135,37 +131,61 @@ class Terminal(QtGui.QSplitter):
 
 
     def autocomplete(self):
+        """
+        Main autocomplete functions.
+        Is called whenever tab is pressed.
+        """
         cmdprefix, ac_text = self.get_autocompletable_text()
         if ac_text is None:
             return
 
-        separator = QDir.separator()
+        set_text = lambda p:self.input_term.setText(cmdprefix + p)
 
         # Autocomplete with the working directory if the line is empty
         if ac_text.strip() == '':
             wd = os.path.abspath(self.main.filepath)
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
-            self.completer.setCompletionPrefix(wd + separator)
-            self.input_term.setText(cmdprefix + wd + separator)
+            set_text(wd + os.path.sep)
             return
 
-        isdir = os.path.isdir(self.completer.currentCompletion())
-        if ac_text == self.completer.currentCompletion() + separator*isdir:
-            if not self.completer.setCurrentRow(self.completer.currentRow() + 1):
-                self.completer.setCurrentRow(0)
+        # Generate new suggestions if none exist
+        if not self.ac_suggestions:
+            self.ac_suggestions = self.get_ac_suggestions(ac_text)
 
-        prefix = self.completer.completionPrefix()
-        suggestion = self.completer.currentCompletion()
-        newisdir = os.path.isdir(self.completer.currentCompletion())
-        self.input_term.setText(cmdprefix + prefix + suggestion[len(prefix):] + separator*newisdir)
+        # If there's only one possibility, set it and move on
+        if len(self.ac_suggestions) == 1:
+            set_text(self.ac_suggestions[0])
+            self.reset_ac_suggestions()
+        # Otherwise start scrolling through 'em
+        elif self.ac_suggestions:
+            set_text(self.ac_suggestions[self.ac_index])
+            self.ac_index += 1
+            if self.ac_index == len(self.ac_suggestions):
+                self.ac_index = 0
 
+    def get_ac_suggestions(self, path):
+        """
+        Return a list of all possible paths that starts with the
+        provided path.
+        All directories are suffixed with a / or \ depending on os.
+        """
+        dirpath, namepart = os.path.split(path)
+        if not os.path.isdir(dirpath):
+            return []
+        suggestions = [os.path.join(dirpath, p) for p in sorted(os.listdir(dirpath))
+                       if p.startswith(namepart)]
+        return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
 
-    def update_completion_prefix(self):
+    def reset_ac_suggestions(self):
+        """
+        Reset the list of suggestions if another button than tab
+        has been pressed.
+        """
         cmdprefix, ac_text = self.get_autocompletable_text()
-        if not ac_text:
-            return
-        self.completer.setCompletionPrefix(ac_text)
+        if ac_text:
+            self.ac_suggestions = []
+            self.ac_index = 0
 
 
     # ==== Splitter ============================== #
