@@ -287,6 +287,8 @@ class MainWindow(QtGui.QFrame):
                   'auto': Qt.ScrollBarAsNeeded,
                   'off':Qt.ScrollBarAlwaysOff}
             self.textarea.setVerticalScrollBarPolicy(policy[new_value])
+        elif key == 'cmd_separator':
+            self.terminal.set_command_separator(new_value)
         return True
 
 ## ==== Overrides ========================================================== ##

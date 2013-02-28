@@ -23,6 +23,10 @@
     "start_in_term": {
       "values": [true, false],
       "acronym": "sit"
+    },
+    "cmd_separator": {
+      "values": ["§"],
+      "acronym": "cs"
     }
   }
 }

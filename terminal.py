@@ -76,6 +76,8 @@ class Terminal(QtGui.QSplitter):
         self.textarea = textarea
         self.main = main
 
+        self.command_separator = ' '
+
         # Splitter settings
         self.setHandleWidth(2)
         set_hotkey('Alt+Left', self, self.move_splitter_left)
@@ -122,6 +124,9 @@ class Terminal(QtGui.QSplitter):
             plugin_commands[key] = (run_function, help)
 
         self.cmds.update(plugin_commands)
+
+    def set_command_separator(self, separator):
+        self.command_separator = separator
 
 
     # ==== Autocomplete ========================== #
@@ -243,15 +248,25 @@ class Terminal(QtGui.QSplitter):
         self.add_history(text)
         self.input_term.setText('')
         self.output_term.setText('')
-        cmd = text.split(' ', 1)[0]
-        # If the command exists, run the callback function (a bit cryptic maybe)
-        if cmd in self.cmds:
-            self.cmds[cmd][0](self, text[len(cmd)+1:])
-        # Convenience for help and search: ?cf = ? cf, /lol = / lol
-        elif text[0] in ('?', '/'):
-            self.cmds[text[0]][0](self, text[1:])
+
+        run_cmd = lambda c,space: self.cmds[c][0](self, text[len(c)+space:])
+
+        if self.command_separator in text:
+            cmd = text.split(self.command_separator, 1)[0]
+            if cmd in self.cmds:
+                run_cmd(cmd, 1)
+            else:
+                self.error('No such command (? for help)')
         else:
-            self.error('No such function (? for help)')
+            possible_cmds = [cmd for cmd in self.cmds if text.startswith(cmd)]
+            if not possible_cmds:
+                self.error('No such command (? for help)')
+            elif len(possible_cmds) == 1:
+                # If only one command matches, run it
+                run_cmd(possible_cmds[0], 0)
+            else:
+                self.error('Ambiguous command, could mean: ' +\
+                           ', '.join(possible_cmds))
 
 
     def print_(self, text):
