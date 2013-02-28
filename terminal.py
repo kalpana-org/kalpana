@@ -278,34 +278,19 @@ class Terminal(QtGui.QSplitter):
 
 
     # ==== Commands ============================== #
-    def cmd_open(self, arg, force=False):
-        fname = arg.strip()
-        self.request_open_file.emit(fname, force)
+    def cmd_open(self, arg):
+        fname = arg.lstrip('!').lstrip()
+        self.request_open_file.emit(fname, arg.startswith('!'))
 
-    def cmd_force_open(self, arg):
-        self.cmd_open(arg, force=True)
+    def cmd_new(self, arg):
+        self.request_new_file.emit(arg.startswith('!'))
 
-
-    def cmd_new(self, arg, force=False):
-        self.request_new_file.emit(force)
-
-    def cmd_force_new(self, arg):
-        self.main.new_file(force=True)
-
-
-    def cmd_save(self, arg, force=False):
-        fname = arg.strip()
-        self.request_save_file.emit(fname, force)
-
-    def cmd_overwrite_save(self, arg):
-        self.cmd_save(arg, force=True)
-
+    def cmd_save(self, arg):
+        fname = arg.lstrip('!').lstrip()
+        self.request_save_file.emit(fname, arg.startswith('!'))
 
     def cmd_quit(self, arg):
-        self.request_quit.emit(False)
-
-    def cmd_force_quit(self, arg):
-        self.request_quit.emit(True)
+        self.request_quit.emit(arg.startswith('!'))
 
 
     def cmd_find(self, arg):
@@ -371,13 +356,9 @@ class Terminal(QtGui.QSplitter):
 
     cmds = {
         'o': (cmd_open, 'Open [file]'),
-        'o!': (cmd_force_open, 'Open [file] and discard the old'),
         'n': (cmd_new, 'Open new file'),
-        'n!': (cmd_force_new, 'Open new file and discard the old'),
         's': (cmd_save, 'Save (as) [file]'),
-        's!': (cmd_overwrite_save, 'Save (as) [file] and overwrite'),
         'q': (cmd_quit, 'Quit Kalpana'),
-        'q!': (cmd_force_quit, 'Quit Kalpana without saving'),
         '/': (cmd_find, 'find (next) [string]'),
         'r': (cmd_replace, 'Replace (syntax help needed)'),
         'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
