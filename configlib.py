@@ -40,7 +40,7 @@ def read_config(config_file_path, default_config):
             for key, section in defcfg.items():
                 out[key] = cfg.get(key, section['values'][0])
                 # If there are restrictions on the value, set to the default
-                if len(legal_values) > 1 and out[key] not in legal_values[key]:
+                if len(legal_values[key]) > 1 and out[key] not in legal_values[key]:
                     print('config option "{}" has illegal value: {}'
                           ''.format(key, out[key]))
                     out[key] = section['values'][0]

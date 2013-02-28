@@ -205,6 +205,9 @@ class MainWindow(QtGui.QFrame):
         for key, value in loaded_settings.items():
             self.set_setting(key, value, quiet=True)
 
+        # Make sure any potential corrected errors are saved
+        self.save_settings()
+
         self.read_plugin_config.emit()
         self.set_theme()
 
