@@ -65,6 +65,7 @@ class Terminal(QtGui.QSplitter):
 
     manage_settings = pyqtSignal(str)
 
+    search_and_replace = pyqtSignal(str)
     give_up_focus = pyqtSignal()
     open_loadorder_dialog = pyqtSignal()
     reload_theme = pyqtSignal()
@@ -294,29 +295,8 @@ class Terminal(QtGui.QSplitter):
         self.request_quit.emit(arg.startswith('!'))
 
 
-    def cmd_find(self, arg):
-        if arg:
-            self.main.findtext = arg
-        self.main.find_next()
-
-    def set_replace_texts(self, arg):
-        """ Try to set the find/replace texts to the args, return False if it fails """
-        try:
-            self.main.replace1text, self.main.replace2text = arg.split(' ', 1)
-        except ValueError:
-            self.error('Not enough arguments')
-            return False
-        return True
-
-    def cmd_replace(self, arg):
-        if arg and not self.set_replace_texts(arg):
-            return
-        self.main.replace_next()
-
-    def cmd_replace_all(self, arg):
-        if arg and not self.set_replace_texts(arg):
-            return
-        self.main.replace_all()
+    def cmd_search_and_replace(self, arg):
+        self.search_and_replace.emit(arg)
 
 
     def cmd_change_font(self, arg):
@@ -360,9 +340,7 @@ class Terminal(QtGui.QSplitter):
         'n': (cmd_new, 'Open new file'),
         's': (cmd_save, 'Save (as) [file]'),
         'q': (cmd_quit, 'Quit Kalpana'),
-        '/': (cmd_find, 'find (next) [string]'),
-        'r': (cmd_replace, 'Replace (syntax help needed)'),
-        'ra': (cmd_replace_all, 'Replace all (syntax help needed)'),
+        '/': (cmd_search_and_replace, 'Search/replace'),
         '?': (cmd_help, 'List commands or help for [command]'),
         'cf': (cmd_change_font, 'Change font [main/term]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),

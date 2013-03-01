@@ -124,7 +124,7 @@ class LineTextWidget(QtGui.QPlainTextEdit):
         super().resizeEvent(e)
 
     def setDefaultFont(self,font):
-      self.document().setDefaultFont(font)
+        self.document().setDefaultFont(font)
 
     def eventFilter(self, object, event):
         # Update the line numbers for all events on the text edit

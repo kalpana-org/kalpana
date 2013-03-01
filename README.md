@@ -28,6 +28,21 @@ Font change dialog howto
 * `Up/Down`: Why do I even write this
 
 
+Search and replace
+------------------
+Kalpana uses a vim-like syntax, meaning that you will have to escape forward-slash `/` with backslash like `\/` if you want to search for it.
+
+* `/foobar` - search for foobar
+* `/` - search for next occurence of the last search term (in this case foobar)
+* `/foobar/fishies/` - replace foobar with fishies
+* `//` - repeat the last replacement on the next occurence
+* `/foobar//` - delete foobar
+* `/foobar/fishies/a` - replace all occurences of foobar with fishies
+* `/foobar//a` - delete all occurences of foobar
+* `//explosions/` - omitting the search term in the replace expression means changing the replace term while keeping the search term unchanged. Otherwise works like the four examples above.
+* That means that `///` deletes the next occurence of the last search term. Weird but yeah.
+
+
 The usual shortcuts
 -------------------
 * `Ctrl + N`: New

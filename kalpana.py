@@ -28,7 +28,7 @@ from PyQt4.QtCore import pyqtSignal, Qt
 
 from libsyntyche import common
 import configlib
-from linewidget import LineTextWidget
+from textarea import TextArea
 from loadorderdialog import LoadOrderDialog
 from terminal import Terminal
 
@@ -47,9 +47,8 @@ class MainWindow(QtGui.QFrame):
         self.wt_file = ''
 
         # Misc settings etc
-        self.findtext = ''
-        self.replace1text = ''
-        self.replace2text = ''
+        self.search_buffer = None
+        self.replace_buffer = None
         self.filepath = ''
         self.blocks = 1
         self.font_dialog_open = False
@@ -86,7 +85,6 @@ class MainWindow(QtGui.QFrame):
 
 
     def create_ui(self):
-
         # Layout
         vert_layout = QtGui.QVBoxLayout(self)
         common.kill_theming(vert_layout)
@@ -96,10 +94,7 @@ class MainWindow(QtGui.QFrame):
         vert_layout.addLayout(horz_layout)
 
         # Text area
-        textarea = LineTextWidget(self)
-        textarea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        textarea.setTabStopWidth(30)
-        textarea.setContextMenuPolicy(Qt.PreventContextMenu)
+        textarea = TextArea(self)
         horz_layout.addWidget(textarea)
 
         # Terminal
@@ -157,7 +152,7 @@ class MainWindow(QtGui.QFrame):
             'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
             'Ctrl+S': self.request_save_file,
             'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
-            'F3': self.find_next,
+            'F3': self.textarea.search_next,
             'Ctrl+Return': self.toggle_terminal
         }
         for p in plugins:
@@ -169,6 +164,10 @@ class MainWindow(QtGui.QFrame):
         self.document.modificationChanged.connect(self.update_window_title)
         self.document.contentsChanged.connect(self.contents_changed)
         self.document.blockCountChanged.connect(self.new_line)
+
+        # Text area
+        self.textarea.print_.connect(self.print_)
+        self.textarea.error.connect(self.error)
 
         # Terminal file operations
         self.terminal.request_new_file.connect(self.request_new_file)
@@ -186,6 +185,7 @@ class MainWindow(QtGui.QFrame):
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
         self.terminal.reload_theme.connect(self.set_theme)
         self.terminal.goto_line.connect(self.goto_line)
+        self.terminal.search_and_replace.connect(self.textarea.search_and_replace)
 
     def load_settings(self, config_file_path, refresh_only=False):
         """
@@ -390,65 +390,6 @@ class MainWindow(QtGui.QFrame):
         """ Return True if the file is empty and unsaved. """
         return not self.document.isModified() and not self.filepath
 
-
-    def find_next(self):
-        if not self.findtext:
-            self.error("No previous searches")
-            return
-        temp_cursor = self.textarea.textCursor()
-        found = self.textarea.find(self.findtext)
-        if not found:
-            if not self.textarea.textCursor().atStart():
-                self.textarea.moveCursor(QtGui.QTextCursor.Start)
-                found = self.textarea.find(self.findtext)
-                if not found:
-                    self.textarea.setTextCursor(temp_cursor)
-                    self.error('[find] Text not found')
-
-
-    def replace_next(self):
-        if not self.replace1text:
-            self.error("No previous replaces")
-            return
-
-        temp_cursor = self.textarea.textCursor()
-        found = self.textarea.find(self.replace1text)
-        if not found:
-            if not self.textarea.textCursor().atStart():
-                self.textarea.moveCursor(QtGui.QTextCursor.Start)
-                found = self.textarea.find(self.replace1text)
-                if not found:
-                    self.textarea.setTextCursor(temp_cursor)
-        if found:
-            self.textarea.textCursor().insertText(self.replace2text)
-            self.print_('found sumfin! {0}'.format(self.textarea.textCursor().hasSelection()))
-        else:
-            self.error('[replace] Text not found')
-
-
-    def replace_all(self):
-        if not self.replace1text:
-            self.error("No previous replaces")
-            return
-
-        temp_cursor = self.textarea.textCursor()
-        times = 0
-        while True:
-            found = self.textarea.find(self.replace1text)
-            if found:
-                self.textarea.textCursor().insertText(self.replace2text)
-                times += 1
-            else:
-                if self.textarea.textCursor().atStart():
-                    break
-                else:
-                    self.textarea.moveCursor(QtGui.QTextCursor.Start)
-                    continue
-        if times:
-            self.print_('{0} instances replaced'.format(times))
-        else:
-            self.textarea.setTextCursor(temp_cursor)
-            self.error('[replace_all] Text not found')
 
     def goto_line(self, line):
         block = self.textarea.document().findBlockByLineNumber(int(line.strip())-1)
