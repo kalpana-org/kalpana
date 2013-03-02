@@ -33,31 +33,18 @@ from loadorderdialog import LoadOrderDialog
 from terminal import Terminal
 
 
-class MainWindow(QtGui.QFrame):
-    read_plugin_config = pyqtSignal()
-    write_plugin_config = pyqtSignal()
+class Kalpana(QtGui.QApplication):
+    def __init__(self, argv, file_to_open=None):
+        super().__init__(argv)
+        self.settings = {}
 
-    def __init__(self, file_=''):
-        super().__init__()
-        # Accept drag & drop events
-        self.setAcceptDrops(True)
-
-        # Window title stuff
-        self.wt_wordcount = 0
-        self.wt_file = ''
-
-        # Misc settings etc
-        self.search_buffer = None
-        self.replace_buffer = None
-        self.filepath = ''
-        self.blocks = 1
-        self.font_dialog_open = False
-        self.force_quit_flag = False
+        self.mainwindow = MainWindow()
+        self.textarea = TextArea(self.mainwindow, lambda key: self.settings[key])
+        self.terminal = Terminal(self.mainwindow, textarea)
 
         # UI
-        vert_layout, horz_layout, self.textarea, self.terminal\
-            = self.create_ui()
-        self.document = self.textarea.document()
+        vert_layout, horz_layout = self.mainwindow.create_ui(self.textarea, 
+                                                             self.terminal)
 
         # Paths
         self.config_file_path, self.config_dir,\
@@ -71,38 +58,27 @@ class MainWindow(QtGui.QFrame):
 
         self.connect_signals()
         self.create_key_shortcuts(self.plugins)
-        self.settings = {}
         self.load_settings(self.config_file_path)
 
-        if file_:
-            if not self.open_file(file_):
+        if file_to_open:
+            if not self.textarea.open_file(file_to_open):
                 self.close()
             self.update_window_title(self.document.isModified())
         else:
-            self.set_file_name('NEW')
+            self.textarea.set_file_name('NEW')
 
-        self.show()
+        self.mainwindow.show()
+
+        # class AppEventFilter(QtCore.QObject):
+        #     def eventFilter(self, object, event):
+        #         if event.type() == QtCore.QEvent.ApplicationActivate:
+        #             a.refresh_config()
+        #         return False
+
+        # event_filter = AppEventFilter()
+        # self..installEventFilter(event_filter)
 
 
-    def create_ui(self):
-        # Layout
-        vert_layout = QtGui.QVBoxLayout(self)
-        common.kill_theming(vert_layout)
-
-        horz_layout = QtGui.QHBoxLayout()
-        common.kill_theming(horz_layout)
-        vert_layout.addLayout(horz_layout)
-
-        # Text area
-        textarea = TextArea(self)
-        horz_layout.addWidget(textarea)
-
-        # Terminal
-        terminal = Terminal(self, textarea)
-        terminal.setVisible(False)
-        vert_layout.addWidget(terminal)
-
-        return vert_layout, horz_layout, textarea, terminal
 
     def init_plugins(self, config_dir, vert_layout, horz_layout):
         # Plugins
@@ -146,25 +122,8 @@ class MainWindow(QtGui.QFrame):
 
         return plugins, plugin_commands
 
-    def create_key_shortcuts(self, plugins):
-        hotkeys = {
-            'Ctrl+N': self.request_new_file,
-            'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
-            'Ctrl+S': self.request_save_file,
-            'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
-            'F3': self.textarea.search_next,
-            'Ctrl+Return': self.toggle_terminal
-        }
-        for p in plugins:
-            hotkeys.update(p.hotkeys)
-        for key, function in hotkeys.items():
-            common.set_hotkey(key, self, function)
 
     def connect_signals(self):
-        self.document.modificationChanged.connect(self.update_window_title)
-        self.document.contentsChanged.connect(self.contents_changed)
-        self.document.blockCountChanged.connect(self.new_line)
-
         # Text area
         self.textarea.print_.connect(self.print_)
         self.textarea.error.connect(self.error)
@@ -186,6 +145,24 @@ class MainWindow(QtGui.QFrame):
         self.terminal.reload_theme.connect(self.set_theme)
         self.terminal.goto_line.connect(self.textarea.goto_line)
         self.terminal.search_and_replace.connect(self.textarea.search_and_replace)
+
+
+    def create_key_shortcuts(self, plugins):
+        hotkeys = {
+            'Ctrl+N': self.request_new_file,
+            'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
+            'Ctrl+S': self.request_save_file,
+            'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
+            'F3': self.textarea.search_next,
+            'Ctrl+Return': self.toggle_terminal
+        }
+        for p in plugins:
+            hotkeys.update(p.hotkeys)
+        for key, function in hotkeys.items():
+            common.set_hotkey(key, self, function)
+
+
+# ===================== SETTINGS =========================================== #
 
     def load_settings(self, config_file_path, refresh_only=False):
         """
@@ -257,6 +234,7 @@ class MainWindow(QtGui.QFrame):
             self.print_('{} = {} ({})'.format(name, value,
                 ', '.join([str(x) for x in self.allowed_setting_values[name]])))
 
+
     def set_setting(self, key, new_value, quiet=False):
         """
         Set the value of a setting the the specified new value.
@@ -294,39 +272,33 @@ class MainWindow(QtGui.QFrame):
             self.terminal.set_command_separator(new_value)
         return True
 
+
+
+
+class MainWindow(QtGui.QFrame):
+    read_plugin_config = pyqtSignal()
+    write_plugin_config = pyqtSignal()
+
+    def __init__(self, file_=''):
+        super().__init__()
+
+        # Window title stuff
+        self.wt_wordcount = 0
+        self.wt_file = ''
+
+        # Misc settings etc
+        self.blocks = 1
+        self.font_dialog_open = False
+
+        self.document = self.textarea.document()
+
+
+
+
+
 ## ==== Overrides ========================================================== ##
 
-    def closeEvent(self, event):
-        if not self.document.isModified() or self.force_quit_flag:
-            event.accept()
-        else:
-            self.error('Unsaved changes! Force quit with q! or save first.')
-            event.ignore()
-
-    def quit(self, force):
-        if force:
-            self.force_quit_flag = True
-            self.close()
-        else:
-            self.force_quit_flag = False
-            self.close()
-
-    def dragEnterEvent(self, event):
-##        if event.mimeData().hasFormat('text/plain'):
-        event.acceptProposedAction();
-
-    def dropEvent(self, event):
-        urls = event.mimeData().urls()
-        parsedurls = []
-        for u in urls:
-            u = u.path()
-            if not os.path.isfile(u) and u.startswith('/'):
-                u = u[1:]
-            parsedurls.append(u)
-
-        for u in parsedurls:
-            subprocess.Popen([sys.executable, sys.argv[0], u])
-        event.acceptProposedAction();
+    
 
 
 ## ==== Config ============================================================= ##
@@ -376,20 +348,6 @@ class MainWindow(QtGui.QFrame):
         self.terminal.input_term.setFocus()
 
 
-    def new_line(self, blocks):
-        """ Generate auto-indentation if the option is enabled. """
-        if blocks > self.blocks and self.settings['autoindent']:
-            cursor = self.textarea.textCursor()
-            blocknum = cursor.blockNumber()
-            prevblock = self.document.findBlockByNumber(blocknum-1)
-            indent = re.match(r'[\t ]*', prevblock.text()).group(0)
-            cursor.insertText(indent)
-
-
-    def new_and_empty(self):
-        """ Return True if the file is empty and unsaved. """
-        return not self.document.isModified() and not self.filepath
-
 
 ## ==== Window title ===================================== ##
 
@@ -421,110 +379,6 @@ class MainWindow(QtGui.QFrame):
 
 
 
-## ==== File operations: new/open/save ===================================== ##
-
-    def request_new_file(self, force=False):
-        success = self.new_file(force)
-        if not success:
-            self.error('Unsaved changes! Force new with n! or save first.')
-
-    def request_open_file(self, filename, force=False):
-        if not os.path.isfile(filename):
-            self.error('File not found!')
-            return
-        if self.settings['open_in_new_window'] and not self.new_and_empty():
-            subprocess.Popen([sys.executable, sys.argv[0], filename])
-        elif not self.document.isModified() or force:
-            success = self.open_file(filename)
-            if not success:
-                self.error('File could not be decoded!')
-        else:
-            self.error('Unsaved changes! Force open with o! or save first.')
-
-    def request_save_file(self, filename='', force=False):
-        if not filename:
-            if self.filepath:
-                result = self.save_file()
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('No filename', defaultcmd='s ')
-        else:
-            if os.path.isfile(filename) and not force:
-                self.error('File already exists, use s! to overwrite')
-            # Make sure the parent directory actually exists
-            elif os.path.isdir(os.path.dirname(filename)):
-                result = self.save_file(filename)
-                if not result:
-                    self.error('File not saved! IOError!')
-            else:
-                self.error('Invalid path')
-
-
-    def new_file(self, force=False):
-        """
-        Main new file function
-        """
-        if self.settings['open_in_new_window'] and not self.new_and_empty():
-            subprocess.Popen([sys.executable, sys.argv[0]])
-            return True
-        elif not self.document.isModified() or force:
-            self.document.clear()
-            self.document.setModified(False)
-            self.set_file_name('NEW')
-            self.blocks = 1
-            return True
-        else:
-            return False
-
-    def open_file(self, filename):
-        """
-        Main open file function
-        """
-        encodings = ('utf-8', 'latin1')
-        for e in encodings:
-            try:
-                with open(filename, encoding=e) as f:
-                    lines = f.readlines()
-            except UnicodeDecodeError:
-                continue
-            else:
-                self.document.setPlainText(''.join(lines))
-                self.document.setModified(False)
-                self.set_file_name(filename)
-                self.blocks = self.document.blockCount()
-                self.textarea.moveCursor(QtGui.QTextCursor.Start)
-                return True
-        return False
-
-
-    def save_file(self, filename=''):
-        """
-        Main save file function
-
-        Save the file with the specified filename.
-        If no filename is provided, save the file with the existing filename,
-        (aka don't save as, just save normally)
-        """
-        if filename:
-            savefname = filename
-        else:
-            savefname = self.filepath
-
-        assert savefname.strip() != ''
-
-        try:
-            with open(savefname, 'w', encoding='utf-8') as f:
-                f.write(self.document.toPlainText())
-        except IOError as e:
-            print(e)
-            return False
-        else:
-            self.set_file_name(savefname)
-            self.document.setModified(False)
-            for p in self.plugins:
-                p.file_saved()
-            return True
 
 
 def get_valid_files():
@@ -545,23 +399,13 @@ def main():
     import os
     os.environ['PYTHONIOENCODING'] = 'utf-8'
     files = get_valid_files()
-    app = QtGui.QApplication(sys.argv)
 
     if not files:
-        a = MainWindow()
+        app = Kalpana(sys.argv)
     else:
-        a = MainWindow(file_=files[0])
+        app = Kalpana(sys.argv, files[0])
         for f in files[1:]:
             subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
-
-    class AppEventFilter(QtCore.QObject):
-        def eventFilter(self, object, event):
-            if event.type() == QtCore.QEvent.ApplicationActivate:
-                a.refresh_config()
-            return False
-
-    event_filter = AppEventFilter()
-    app.installEventFilter(event_filter)
 
     sys.exit(app.exec_())
 
