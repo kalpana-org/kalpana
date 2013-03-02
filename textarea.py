@@ -154,3 +154,14 @@ class TextArea(LineTextWidget):
         else:
             self.setTextCursor(temp_cursor)
             self.error.emit('Text not found')
+
+
+    def goto_line(self, line_str):
+        if not line_str.strip().isdigit():
+            self.error.emit('Invalid line number')
+            return
+        line_num = min(int(line_str.strip()), self.document().blockCount())
+        block = self.document().findBlockByNumber(line_num + 1)
+        new_cursor = QtGui.QTextCursor(block)
+        self.setTextCursor(new_cursor)
+        self.centerCursor()
