@@ -94,7 +94,7 @@ class MainWindow(QtGui.QFrame):
 
 
     def update_filename(self, filename):
-        self.filename = 'New file' if filename == 'NEW' else filename
+        self.filename = filename
         self.update_title()
 
     def update_wordcount(self, wordcount):

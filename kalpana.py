@@ -90,7 +90,7 @@ class Kalpana(QtGui.QApplication):
             if not self.textarea.open_file(file_to_open):
                 self.close()
         else:
-            self.textarea.set_file_name('NEW')
+            self.textarea.set_file_name(new=True)
 
         self.mainwindow.show()
 

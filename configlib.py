@@ -24,6 +24,11 @@ from PyQt4 import QtGui
 
 from libsyntyche import common
 
+# class SettingsManager(QtCore.QObject):
+#     def __init__(self):
+#         pass
+
+
 
 def read_config(config_file_path, default_config):
         """ Read the config and update the appropriate variables. """

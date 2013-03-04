@@ -214,10 +214,11 @@ class TextArea(LineTextWidget):
         return not self.document().isModified() and not self.file_path
 
 
-    def set_file_name(self, filename):
+    def set_file_name(self, filename='', new=False):
         """ Set both the output file and the title to filename. """
-        self.file_path = '' if filename == 'NEW' else filename
-        self.filename_changed.emit(filename)
+        assert bool(filename) != new # Either a filename or new, not both/none
+        self.file_path = '' if new else filename
+        self.filename_changed.emit('New file' if new else filename)
 
 
     ## ==== File operations: new/open/save ================================ ##
@@ -273,7 +274,7 @@ class TextArea(LineTextWidget):
         elif not self.document().isModified() or force:
             self.document().clear()
             self.document().setModified(False)
-            self.set_file_name('NEW')
+            self.set_file_name(new=True)
             return True
         else:
             return False
