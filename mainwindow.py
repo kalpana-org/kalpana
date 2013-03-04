@@ -38,13 +38,12 @@ class MainWindow(QtGui.QFrame):
         self.filename = ''
         self.is_modified = False
 
-
+    # Ugly as fuck, but eh...
     def set_is_modified_callback(self, callback):
         self.get_document_is_modified = callback
 
 
     def create_ui(self, textarea, terminal):
-        # Layout
         vert_layout = QtGui.QVBoxLayout(self)
         common.kill_theming(vert_layout)
 
@@ -56,6 +55,7 @@ class MainWindow(QtGui.QFrame):
         vert_layout.addWidget(terminal)
 
         return vert_layout, horz_layout
+
 
     # Override
     def closeEvent(self, event):

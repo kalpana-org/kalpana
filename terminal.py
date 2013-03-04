@@ -106,6 +106,7 @@ class Terminal(QtGui.QSplitter):
         self.input_term.history_up.connect(self.history_up)
         self.input_term.history_down.connect(self.history_down)
 
+        self.hide()
 
     def update_commands(self, plugin_commands):
         # Plugins
@@ -135,6 +136,10 @@ class Terminal(QtGui.QSplitter):
         else:
             self.give_up_focus.emit()
 
+    def show(self):
+        super().show()
+        self.input_term.setFocus()
+
     def print_(self, text):
         self.output_term.setText(str(text))
         self.show()
@@ -146,7 +151,6 @@ class Terminal(QtGui.QSplitter):
 
     def prompt_command(self, cmd):
         self.input_term.setText(cmd + ' ')
-        self.input_term.setFocus()
         self.show()
 
     # ==== Autocomplete ========================== #
