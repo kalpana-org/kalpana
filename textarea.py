@@ -21,19 +21,21 @@ import subprocess
 import sys
 
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import pyqtSignal
 
 from libsyntyche.common import write_file
 from linewidget import LineTextWidget
 
 
 class TextArea(LineTextWidget):
-    print_ = QtCore.pyqtSignal(str)
-    error = QtCore.pyqtSignal(str)
-    prompt_command = QtCore.pyqtSignal(str)
-    wordcount_changed = QtCore.pyqtSignal(int)
-    modification_changed = QtCore.pyqtSignal(bool)
-    filename_changed = QtCore.pyqtSignal(str)
-    file_saved = QtCore.pyqtSignal()
+    print_ = pyqtSignal(str)
+    error = pyqtSignal(str)
+    hide_terminal = pyqtSignal()
+    prompt_command = pyqtSignal(str)
+    wordcount_changed = pyqtSignal(int)
+    modification_changed = pyqtSignal(bool)
+    filename_changed = pyqtSignal(str)
+    file_saved = pyqtSignal()
 
     def __init__(self, parent, get_settings):
         super().__init__(parent)
@@ -69,6 +71,8 @@ class TextArea(LineTextWidget):
         new_cursor = QtGui.QTextCursor(block)
         self.setTextCursor(new_cursor)
         self.centerCursor()
+        self.hide_terminal.emit()
+        self.setFocus()
 
 
     def new_line(self, blocks):

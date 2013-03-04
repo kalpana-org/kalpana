@@ -168,7 +168,8 @@ class Kalpana(QtGui.QApplication):
         terminal.request_quit.connect(\
                 mainwindow.quit)
 
-        # Terminal
+        # Misc
+        textarea.hide_terminal.connect(terminal.hide)
         terminal.give_up_focus.connect(textarea.setFocus)
         terminal.goto_line.connect(textarea.goto_line)
         terminal.search_and_replace.connect(\
