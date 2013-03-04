@@ -190,7 +190,7 @@ class Kalpana(QtGui.QApplication):
             'Ctrl+S': self.textarea.request_save_file,
             'Ctrl+Shift+S': lambda:self.terminal.prompt_command('s'),
             'F3': self.textarea.search_next,
-            'Ctrl+Return': self.toggle_terminal
+            'Ctrl+Return': self.terminal.toggle
         }
         for p in plugins:
             hotkeys.update(p.hotkeys)
@@ -319,15 +319,6 @@ class Kalpana(QtGui.QApplication):
         plugin_themes = [p.get_theme() for p in self.plugins]
         stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
-
-
-    def toggle_terminal(self):
-        """ Toggle terminal visibility and focus jointly """
-        self.terminal.setVisible(abs(self.terminal.isVisible()-1))
-        if self.terminal.isVisible():
-            self.terminal.input_term.setFocus()
-        else:
-            self.textarea.setFocus()
 
 
 

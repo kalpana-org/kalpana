@@ -128,6 +128,12 @@ class Terminal(QtGui.QSplitter):
     def set_command_separator(self, separator):
         self.command_separator = separator
 
+    def toggle(self):
+        self.setVisible(not self.isVisible())
+        if self.isVisible():
+            self.input_term.setFocus()
+        else:
+            self.give_up_focus.emit()
 
     def print_(self, text):
         self.output_term.setText(str(text))
