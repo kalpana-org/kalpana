@@ -92,6 +92,7 @@ class MainWindow(QtGui.QFrame):
             subprocess.Popen([sys.executable, sys.argv[0], u])
         event.acceptProposedAction()
 
+
     def update_filename(self, filename):
         self.filename = 'New file' if filename == 'NEW' else filename
         self.update_title()

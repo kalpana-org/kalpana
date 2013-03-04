@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-
 import os.path
 from os.path import join
 import re
@@ -26,12 +25,12 @@ import subprocess
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
-from libsyntyche import common
 import configlib
-from textarea import TextArea
+from libsyntyche import common
 from loadorderdialog import LoadOrderDialog
-from terminal import Terminal
 from mainwindow import MainWindow
+from terminal import Terminal
+from textarea import TextArea
 
 
 class Kalpana(QtGui.QApplication):
@@ -76,7 +75,7 @@ class Kalpana(QtGui.QApplication):
                                                     vert_layout, horz_layout)
         self.terminal.update_commands(plugin_commands)
 
-        self.connect_signals()
+        self.connect_signals(self.mainwindow, self.textarea, self.terminal)
         self.create_key_shortcuts(self.plugins)
         self.load_settings(self.config_file_path)
 
@@ -102,7 +101,6 @@ class Kalpana(QtGui.QApplication):
 
 
     def init_plugins(self, config_dir, vert_layout, horz_layout):
-        # Plugins
         def add_widget(widget, side):
             from pluginlib import NORTH, SOUTH, EAST, WEST
             if side in (NORTH, SOUTH):
@@ -145,45 +143,44 @@ class Kalpana(QtGui.QApplication):
         return plugins, plugin_commands
 
 
-    def connect_signals(self):
+    def connect_signals(self, mainwindow, textarea, terminal):
         # Window title
-        self.textarea.wordcount_changed.connect(\
-                self.mainwindow.update_wordcount)
-        self.textarea.modification_changed.connect(\
-                self.mainwindow.update_file_modified)
-        self.textarea.filename_changed.connect(\
-                self.mainwindow.update_filename)
+        textarea.wordcount_changed.connect(\
+                mainwindow.update_wordcount)
+        textarea.modification_changed.connect(\
+                mainwindow.update_file_modified)
+        textarea.filename_changed.connect(\
+                mainwindow.update_filename)
 
         # Print/error/prompt
-        self.print_.connect(self.terminal.print_)
-        self.error.connect(self.terminal.error)
-        self.textarea.print_.connect(self.terminal.print_)
-        self.textarea.error.connect(self.terminal.error)
-        self.textarea.prompt_command.connect(self.terminal.prompt_command)
-        self.mainwindow.error.connect(self.terminal.error)
+        textarea.print_.connect(terminal.print_)
+        textarea.error.connect(terminal.error)
+        textarea.prompt_command.connect(terminal.prompt_command)
+        mainwindow.error.connect(terminal.error)
 
         # File operations
-        self.terminal.request_new_file.connect(\
-                self.textarea.request_new_file)
-        self.terminal.request_save_file.connect(\
-                self.textarea.request_save_file)
-        self.terminal.request_open_file.connect(\
-                self.textarea.request_open_file)
-        self.terminal.request_quit.connect(\
-                self.mainwindow.quit)
+        terminal.request_new_file.connect(\
+                textarea.request_new_file)
+        terminal.request_save_file.connect(\
+                textarea.request_save_file)
+        terminal.request_open_file.connect(\
+                textarea.request_open_file)
+        terminal.request_quit.connect(\
+                mainwindow.quit)
 
-        # Terminal settings
-        self.terminal.manage_settings.connect(self.manage_settings)
+        # Terminal
+        terminal.give_up_focus.connect(textarea.setFocus)
+        terminal.goto_line.connect(textarea.goto_line)
+        terminal.search_and_replace.connect(\
+                textarea.search_and_replace)
 
-        # Terminal misc
+        self.print_.connect(terminal.print_)
+        self.error.connect(terminal.error)
         def open_loadorder_dialog():
             LoadOrderDialog(self, self.loadorder_path).exec_()
-        self.terminal.give_up_focus.connect(self.textarea.setFocus)
-        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
-        self.terminal.reload_theme.connect(self.set_theme)
-        self.terminal.goto_line.connect(self.textarea.goto_line)
-        self.terminal.search_and_replace.connect(\
-                self.textarea.search_and_replace)
+        terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
+        terminal.reload_theme.connect(self.set_theme)
+        terminal.manage_settings.connect(self.manage_settings)
 
 
     def create_key_shortcuts(self, plugins):

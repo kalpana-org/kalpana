@@ -43,9 +43,9 @@ class TextArea(LineTextWidget):
         self.setTabStopWidth(30)
         self.setContextMenuPolicy(QtCore.Qt.PreventContextMenu)
 
-        modified_signal = \
-            lambda is_modified: self.modification_changed.emit(is_modified)
-        self.document().modificationChanged.connect(modified_signal)
+        def modified_slot(is_modified):
+            self.modification_changed.emit(is_modified)
+        self.document().modificationChanged.connect(modified_slot)
         self.document().contentsChanged.connect(self.contents_changed)
         self.document().blockCountChanged.connect(self.new_line)
 
@@ -219,13 +219,9 @@ class TextArea(LineTextWidget):
         """ Set both the output file and the title to filename. """
         self.file_path = '' if filename == 'NEW' else filename
         self.filename_changed.emit(filename)
-        #     self.wt_file = os.path.basename(filename)
-        # self.update_window_title(self.document.isModified())
 
 
     ## ==== File operations: new/open/save ================================ ##
-
-    # TODO: self.new_and_empty()
 
     def request_new_file(self, force=False):
         success = self.new_file(force)
@@ -279,7 +275,6 @@ class TextArea(LineTextWidget):
             self.document().clear()
             self.document().setModified(False)
             self.set_file_name('NEW')
-            # self.blocks = 1
             return True
         else:
             return False
@@ -299,9 +294,7 @@ class TextArea(LineTextWidget):
             else:
                 self.document().setPlainText(''.join(lines))
                 self.document().setModified(False)
-                # TODO: this
                 self.set_file_name(filename)
-                # self.blocks = self.document().blockCount()
                 self.moveCursor(QtGui.QTextCursor.Start)
                 return True
         return False

@@ -129,6 +129,20 @@ class Terminal(QtGui.QSplitter):
         self.command_separator = separator
 
 
+    def print_(self, text):
+        self.output_term.setText(str(text))
+        self.show()
+
+
+    def error(self, text):
+        self.output_term.setText('Error: ' + text)
+        self.show()
+
+    def prompt_command(self, cmd):
+        self.input_term.setText(cmd + ' ')
+        self.input_term.setFocus()
+        self.show()
+
     # ==== Autocomplete ========================== #
 
     def get_autocompletable_text(self):
@@ -238,10 +252,6 @@ class Terminal(QtGui.QSplitter):
 
     # ==== Misc ================================= #
 
-    # def switchFocus(self):
-    #     self.give_up_focus.emit()
-
-
     def parse_command(self):
         text = self.input_term.text()
         if not text.strip():
@@ -269,20 +279,6 @@ class Terminal(QtGui.QSplitter):
             else:
                 self.error('Ambiguous command, could mean: ' +\
                            ', '.join(possible_cmds))
-
-
-    def print_(self, text):
-        self.output_term.setText(str(text))
-        self.show()
-
-    def error(self, text):
-        self.output_term.setText('Error: ' + text)
-        self.show()
-
-    def prompt_command(self, cmd):
-        self.input_term.setText(cmd + ' ')
-        self.input_term.setFocus()
-        self.show()
 
 
     # ==== Commands ============================== #
