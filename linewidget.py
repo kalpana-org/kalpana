@@ -119,6 +119,10 @@ class LineTextWidget(QtGui.QPlainTextEdit):
 
         self.viewport().installEventFilter(self)
 
+    def set_number_bar_visibility(self, visible):
+        self.number_bar.showbar = visible
+        self.number_bar.update()
+
     def resizeEvent(self,e):
         self.number_bar.setFixedHeight(self.height())
         super().resizeEvent(e)

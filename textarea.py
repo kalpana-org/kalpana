@@ -55,11 +55,6 @@ class TextArea(LineTextWidget):
         self.file_path = ''
 
 
-    def set_number_bar_visibility(self, visible):
-        self.showbar = visible
-        self.update()
-
-
     def contents_changed(self):
         wordcount = len(re.findall(r'\S+', self.document().toPlainText()))
         self.wordcount_changed.emit(wordcount)
