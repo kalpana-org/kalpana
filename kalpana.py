@@ -43,6 +43,7 @@ class Kalpana(QtGui.QApplication):
     def __init__(self, argv, file_to_open=None):
         super().__init__(argv)
 
+        # Event filter
         class AppEventFilter(QtCore.QObject):
             activation_event = pyqtSignal()
             def eventFilter(self, object, event):
@@ -56,147 +57,52 @@ class Kalpana(QtGui.QApplication):
         self.event_filter.activation_event.connect(refresh_config)
         self.installEventFilter(self.event_filter)
 
+        # Gotta create the settings here (see create_objects)
         self.settings = {}
-
-        self.mainwindow, self.textarea, self.terminal \
-            = self.create_objects(self.settings)
-
-        # UI
-        vert_layout, horz_layout = self.mainwindow.create_ui(self.textarea,
-                                                             self.terminal)
 
         # Paths
         self.config_file_path, self.config_dir, \
         self.theme_path, self.loadorder_path \
             = configlib.get_paths()
 
+        # Create the objects
+        self.mainwindow, self.textarea, self.terminal \
+            = create_objects(self.settings)
+
+        # UI
+        vert_layout, horz_layout \
+            = self.mainwindow.create_ui(self.textarea, self.terminal)
+
         # Plugins
-        self.plugins, plugin_commands = self.init_plugins(self.config_dir,
-                                                    vert_layout, horz_layout)
+        self.plugins, plugin_commands \
+            = init_plugins(self.config_dir, vert_layout, horz_layout,
+                           self.textarea, self.mainwindow,
+                           self.read_plugin_config, self.write_plugin_config)
         self.terminal.update_commands(plugin_commands)
 
-        self.connect_signals(self.mainwindow, self.textarea, self.terminal)
-        self.create_key_shortcuts(self.plugins)
+        connect_others_signals(self.mainwindow, self.textarea, self.terminal)
+        self.connect_own_signals()
+        set_key_shortcuts(self.mainwindow, self.textarea, self.terminal,
+                                  self.plugins)
         self.load_settings(self.config_file_path)
 
         if file_to_open:
             if not self.textarea.open_file(file_to_open):
                 self.close()
-            self.update_window_title(self.textarea.document().isModified())
         else:
             self.textarea.set_file_name('NEW')
 
         self.mainwindow.show()
 
 
-    def create_objects(self, settings):
-        mainwindow = MainWindow()
-        textarea = TextArea(mainwindow,
-                            lambda key: settings[key])
-        terminal = Terminal(mainwindow,
-                            lambda: textarea.file_path)
-        mainwindow.set_is_modified_callback(\
-                textarea.document().isModified)
-        return mainwindow, textarea, terminal
-
-
-    def init_plugins(self, config_dir, vert_layout, horz_layout):
-        def add_widget(widget, side):
-            from pluginlib import NORTH, SOUTH, EAST, WEST
-            if side in (NORTH, SOUTH):
-                layout = vert_layout
-            elif side in (WEST, EAST):
-                layout = horz_layout
-            if side in (NORTH, WEST):
-                layout.insertWidget(0, widget)
-            elif side in (SOUTH, EAST):
-                layout.addWidget(widget)
-
-        plugins = []
-
-        callbacks = [
-            self.textarea.document().toPlainText,   # get_text()
-            lambda:self.textarea.file_path,         # get_filepath()
-            add_widget,                             # add_widget()
-            self.textarea.new_file,                 # new_file()
-            self.textarea.open_file,                # open_file()
-            self.textarea.save_file,                # save_file()
-            self.mainwindow.close,                  # quit()
-        ]
-        for name, path, module in configlib.get_plugins(config_dir):
-            try:
-                plugin_constructor = module.UserPlugin
-            except AttributeError:
-                print('"{0}" is not a valid plugin and was not loaded.'\
-                      .format(name))
-            else:
-                plugins.append(plugin_constructor(callbacks, path))
-
-        plugin_commands = {}
-        for p in plugins:
-            self.read_plugin_config.connect(p.read_config)
-            self.write_plugin_config.connect(p.write_config)
-            self.textarea.file_saved.connect(p.file_saved)
-            self.textarea.document().contentsChanged.connect(p.contents_changed)
-            plugin_commands.update(p.commands)
-
-        return plugins, plugin_commands
-
-
-    def connect_signals(self, mainwindow, textarea, terminal):
-        # Window title
-        textarea.wordcount_changed.connect(\
-                mainwindow.update_wordcount)
-        textarea.modification_changed.connect(\
-                mainwindow.update_file_modified)
-        textarea.filename_changed.connect(\
-                mainwindow.update_filename)
-
-        # Print/error/prompt
-        textarea.print_.connect(terminal.print_)
-        textarea.error.connect(terminal.error)
-        textarea.prompt_command.connect(terminal.prompt_command)
-        mainwindow.error.connect(terminal.error)
-
-        # File operations
-        terminal.request_new_file.connect(\
-                textarea.request_new_file)
-        terminal.request_save_file.connect(\
-                textarea.request_save_file)
-        terminal.request_open_file.connect(\
-                textarea.request_open_file)
-        terminal.request_quit.connect(\
-                mainwindow.quit)
-
-        # Misc
-        textarea.hide_terminal.connect(terminal.hide)
-        terminal.give_up_focus.connect(textarea.setFocus)
-        terminal.goto_line.connect(textarea.goto_line)
-        terminal.search_and_replace.connect(\
-                textarea.search_and_replace)
-
-        self.print_.connect(terminal.print_)
-        self.error.connect(terminal.error)
+    def connect_own_signals(self):
+        self.print_.connect(self.terminal.print_)
+        self.error.connect(self.terminal.error)
         def open_loadorder_dialog():
             LoadOrderDialog(self, self.loadorder_path).exec_()
-        terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
-        terminal.reload_theme.connect(self.set_theme)
-        terminal.manage_settings.connect(self.manage_settings)
-
-
-    def create_key_shortcuts(self, plugins):
-        hotkeys = {
-            'Ctrl+N': self.textarea.request_new_file,
-            'Ctrl+O': lambda:self.terminal.prompt_command('o'),
-            'Ctrl+S': self.textarea.request_save_file,
-            'Ctrl+Shift+S': lambda:self.terminal.prompt_command('s'),
-            'F3': self.textarea.search_next,
-            'Ctrl+Return': self.terminal.toggle
-        }
-        for p in plugins:
-            hotkeys.update(p.hotkeys)
-        for key, function in hotkeys.items():
-            common.set_hotkey(key, self.mainwindow, function)
+        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
+        self.terminal.reload_theme.connect(self.set_theme)
+        self.terminal.manage_settings.connect(self.manage_settings)
 
 
 # ===================== SETTINGS =========================================== #
@@ -309,7 +215,7 @@ class Kalpana(QtGui.QApplication):
             self.terminal.set_command_separator(new_value)
         return True
 
-## ==== Config ============================================================= ##
+## ==== Config ============================================================ ##
 
     def save_settings(self):
         configlib.write_config(self.config_file_path, self.settings)
@@ -320,6 +226,110 @@ class Kalpana(QtGui.QApplication):
         plugin_themes = [p.get_theme() for p in self.plugins]
         stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
+
+
+## === Non-method functions ================================================ ##
+
+def create_objects(settings):
+    mainwindow = MainWindow()
+    textarea = TextArea(mainwindow,
+                        lambda key: settings[key])
+    terminal = Terminal(mainwindow,
+                        lambda: textarea.file_path)
+    mainwindow.set_is_modified_callback(\
+            textarea.document().isModified)
+    return mainwindow, textarea, terminal
+
+
+def set_key_shortcuts(mainwindow, textarea, terminal, plugins):
+    hotkeys = {
+        'Ctrl+N': textarea.request_new_file,
+        'Ctrl+O': lambda:terminal.prompt_command('o'),
+        'Ctrl+S': textarea.request_save_file,
+        'Ctrl+Shift+S': lambda:terminal.prompt_command('s'),
+        'F3': textarea.search_next,
+        'Ctrl+Return': terminal.toggle
+    }
+    for p in plugins:
+        hotkeys.update(p.hotkeys)
+    for key, function in hotkeys.items():
+        common.set_hotkey(key, mainwindow, function)
+
+
+def connect_spider_signals(mainwindow, textarea, terminal):
+    """
+    "spider" as in "spider in the net"
+    """
+    connect = (
+        # (SIGNAL, SLOT)
+        (textarea.wordcount_changed, mainwindow.update_wordcount),
+        (textarea.modification_changed, mainwindow.update_file_modified),
+        (textarea.filename_changed, mainwindow.update_filename),
+
+        # Print/error/prompt
+        (textarea.print_, terminal.print_),
+        (textarea.error, terminal.error),
+        (textarea.prompt_command, terminal.prompt_command),
+        (mainwindow.error, terminal.error),
+
+        # File operations
+        (terminal.request_new_file, textarea.request_new_file),
+        (terminal.request_save_file, textarea.request_save_file),
+        (terminal.request_open_file, textarea.request_open_file),
+        (terminal.request_quit, mainwindow.quit),
+
+        # Misc
+        (textarea.hide_terminal, terminal.hide),
+        (terminal.give_up_focus, textarea.setFocus),
+        (terminal.goto_line, textarea.goto_line),
+        (terminal.search_and_replace, textarea.search_and_replace),
+    )
+    for signal, slot in connect:
+        signal.connect(slot)
+
+
+def init_plugins(config_dir, vert_layout, horz_layout,
+                 textarea, mainwindow,
+                 read_plugin_config, write_plugin_config):
+    def add_widget(widget, side):
+        from pluginlib import NORTH, SOUTH, EAST, WEST
+        if side in (NORTH, SOUTH):
+            layout = vert_layout
+        elif side in (WEST, EAST):
+            layout = horz_layout
+        if side in (NORTH, WEST):
+            layout.insertWidget(0, widget)
+        elif side in (SOUTH, EAST):
+            layout.addWidget(widget)
+
+    callbacks = [
+        textarea.document().toPlainText,   # get_text()
+        lambda:textarea.file_path,         # get_filepath()
+        add_widget,                             # add_widget()
+        textarea.new_file,                 # new_file()
+        textarea.open_file,                # open_file()
+        textarea.save_file,                # save_file()
+        mainwindow.close,                  # quit()
+    ]
+
+    plugins = []
+    plugin_commands = {}
+    for name, path, module in configlib.get_plugins(config_dir):
+        try:
+            plugin_constructor = module.UserPlugin
+        except AttributeError:
+            print('"{0}" is not a valid plugin and was not loaded.'\
+                  .format(name))
+        else:
+            p = plugin_constructor(callbacks, path)
+            plugins.append(p)
+            read_plugin_config.connect(p.read_config)
+            write_plugin_config.connect(p.write_config)
+            textarea.file_saved.connect(p.file_saved)
+            textarea.document().contentsChanged.connect(p.contents_changed)
+            plugin_commands.update(p.commands)
+
+    return plugins, plugin_commands
 
 
 
