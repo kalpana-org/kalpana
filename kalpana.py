@@ -31,24 +31,44 @@ import configlib
 from textarea import TextArea
 from loadorderdialog import LoadOrderDialog
 from terminal import Terminal
+from mainwindow import MainWindow
 
 
 class Kalpana(QtGui.QApplication):
+    read_plugin_config = pyqtSignal()
+    write_plugin_config = pyqtSignal()
+
+    print_ = pyqtSignal(str)
+    error = pyqtSignal(str)
+
     def __init__(self, argv, file_to_open=None):
         super().__init__(argv)
+
+        class AppEventFilter(QtCore.QObject):
+            activation_event = pyqtSignal()
+            def eventFilter(self, object, event):
+                if event.type() == QtCore.QEvent.ApplicationActivate:
+                    self.activation_event.emit()
+                return False
+
+        self.event_filter = AppEventFilter()
+        def refresh_config():
+            self.load_settings(self.config_file_path)
+        self.event_filter.activation_event.connect(refresh_config)
+        self.installEventFilter(self.event_filter)
+
         self.settings = {}
 
-        self.mainwindow = MainWindow()
-        self.textarea = TextArea(self.mainwindow, lambda key: self.settings[key])
-        self.terminal = Terminal(self.mainwindow, textarea)
+        self.mainwindow, self.textarea, self.terminal \
+            = self.create_objects(self.settings)
 
         # UI
-        vert_layout, horz_layout = self.mainwindow.create_ui(self.textarea, 
+        vert_layout, horz_layout = self.mainwindow.create_ui(self.textarea,
                                                              self.terminal)
 
         # Paths
-        self.config_file_path, self.config_dir,\
-        self.theme_path, self.loadorder_path\
+        self.config_file_path, self.config_dir, \
+        self.theme_path, self.loadorder_path \
             = configlib.get_paths()
 
         # Plugins
@@ -63,21 +83,22 @@ class Kalpana(QtGui.QApplication):
         if file_to_open:
             if not self.textarea.open_file(file_to_open):
                 self.close()
-            self.update_window_title(self.document.isModified())
+            self.update_window_title(self.textarea.document().isModified())
         else:
             self.textarea.set_file_name('NEW')
 
         self.mainwindow.show()
 
-        # class AppEventFilter(QtCore.QObject):
-        #     def eventFilter(self, object, event):
-        #         if event.type() == QtCore.QEvent.ApplicationActivate:
-        #             a.refresh_config()
-        #         return False
 
-        # event_filter = AppEventFilter()
-        # self..installEventFilter(event_filter)
-
+    def create_objects(self, settings):
+        mainwindow = MainWindow()
+        textarea = TextArea(mainwindow,
+                            lambda key: settings[key])
+        terminal = Terminal(mainwindow,
+                            lambda: textarea.file_path)
+        mainwindow.set_is_modified_callback(\
+                textarea.document().isModified)
+        return mainwindow, textarea, terminal
 
 
     def init_plugins(self, config_dir, vert_layout, horz_layout):
@@ -96,13 +117,13 @@ class Kalpana(QtGui.QApplication):
         plugins = []
 
         callbacks = [
-            self.document.toPlainText,   # get_text()
-            lambda:self.filepath,        # get_filepath()
-            add_widget,                  # add_widget()
-            self.new_file,               # new_file()
-            self.open_file,              # open_file()
-            self.save_file,              # save_file()
-            self.close,                  # quit()
+            self.textarea.document().toPlainText,   # get_text()
+            lambda:self.textarea.file_path,         # get_filepath()
+            add_widget,                             # add_widget()
+            self.textarea.new_file,                 # new_file()
+            self.textarea.open_file,                # open_file()
+            self.textarea.save_file,                # save_file()
+            self.mainwindow.close,                  # quit()
         ]
         for name, path, module in configlib.get_plugins(config_dir):
             try:
@@ -117,22 +138,39 @@ class Kalpana(QtGui.QApplication):
         for p in plugins:
             self.read_plugin_config.connect(p.read_config)
             self.write_plugin_config.connect(p.write_config)
-            self.document.contentsChanged.connect(p.contents_changed)
+            self.textarea.file_saved.connect(p.file_saved)
+            self.textarea.document().contentsChanged.connect(p.contents_changed)
             plugin_commands.update(p.commands)
 
         return plugins, plugin_commands
 
 
     def connect_signals(self):
-        # Text area
-        self.textarea.print_.connect(self.print_)
-        self.textarea.error.connect(self.error)
+        # Window title
+        self.textarea.wordcount_changed.connect(\
+                self.mainwindow.update_wordcount)
+        self.textarea.modification_changed.connect(\
+                self.mainwindow.update_file_modified)
+        self.textarea.filename_changed.connect(\
+                self.mainwindow.update_filename)
 
-        # Terminal file operations
-        self.terminal.request_new_file.connect(self.request_new_file)
-        self.terminal.request_save_file.connect(self.request_save_file)
-        self.terminal.request_open_file.connect(self.request_open_file)
-        self.terminal.request_quit.connect(self.quit)
+        # Print/error/prompt
+        self.print_.connect(self.terminal.print_)
+        self.error.connect(self.terminal.error)
+        self.textarea.print_.connect(self.terminal.print_)
+        self.textarea.error.connect(self.terminal.error)
+        self.textarea.prompt_command.connect(self.terminal.prompt_command)
+        self.mainwindow.error.connect(self.terminal.error)
+
+        # File operations
+        self.terminal.request_new_file.connect(\
+                self.textarea.request_new_file)
+        self.terminal.request_save_file.connect(\
+                self.textarea.request_save_file)
+        self.terminal.request_open_file.connect(\
+                self.textarea.request_open_file)
+        self.terminal.request_quit.connect(\
+                self.mainwindow.quit)
 
         # Terminal settings
         self.terminal.manage_settings.connect(self.manage_settings)
@@ -144,22 +182,23 @@ class Kalpana(QtGui.QApplication):
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
         self.terminal.reload_theme.connect(self.set_theme)
         self.terminal.goto_line.connect(self.textarea.goto_line)
-        self.terminal.search_and_replace.connect(self.textarea.search_and_replace)
+        self.terminal.search_and_replace.connect(\
+                self.textarea.search_and_replace)
 
 
     def create_key_shortcuts(self, plugins):
         hotkeys = {
-            'Ctrl+N': self.request_new_file,
-            'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
-            'Ctrl+S': self.request_save_file,
-            'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
+            'Ctrl+N': self.textarea.request_new_file,
+            'Ctrl+O': lambda:self.terminal.prompt_command('o'),
+            'Ctrl+S': self.textarea.request_save_file,
+            'Ctrl+Shift+S': lambda:self.terminal.prompt_command('s'),
             'F3': self.textarea.search_next,
             'Ctrl+Return': self.toggle_terminal
         }
         for p in plugins:
             hotkeys.update(p.hotkeys)
         for key, function in hotkeys.items():
-            common.set_hotkey(key, self, function)
+            common.set_hotkey(key, self.mainwindow, function)
 
 
 # ===================== SETTINGS =========================================== #
@@ -177,7 +216,7 @@ class Kalpana(QtGui.QApplication):
 
         if loaded_settings['start_in_term'] and not refresh_only:
             self.terminal.setVisible(True)
-            self.switch_focus_to_term()
+            self.terminal.input_term.setFocus()
 
         for key, value in loaded_settings.items():
             self.set_setting(key, value, quiet=True)
@@ -203,7 +242,8 @@ class Kalpana(QtGui.QApplication):
         or the structure of argument does not follow above specification.
         """
         if not argument.strip():
-            self.print_('Settings: {}'.format(', '.join(sorted(self.setting_names))))
+            self.print_.emit('Settings: {}'\
+                             .format(', '.join(sorted(self.setting_names))))
             return
 
         arg_rx = re.compile(r"""
@@ -218,7 +258,7 @@ class Kalpana(QtGui.QApplication):
         parsed_arg = arg_rx.match(argument)
         acronym = parsed_arg.group('setting')
         if acronym not in self.setting_names:
-            self.error('No such setting: {}'.format(acronym))
+            self.error.emit('No such setting: {}'.format(acronym))
             return
         name = self.setting_names[acronym]
 
@@ -231,7 +271,7 @@ class Kalpana(QtGui.QApplication):
         # Otherwise just print the current value
         else:
             value = self.settings[name]
-            self.print_('{} = {} ({})'.format(name, value,
+            self.print_.emit('{} = {} ({})'.format(name, value,
                 ', '.join([str(x) for x in self.allowed_setting_values[name]])))
 
 
@@ -252,17 +292,16 @@ class Kalpana(QtGui.QApplication):
 
         if len(self.allowed_setting_values[key]) > 1 \
                 and new_value not in self.allowed_setting_values[key]:
-            self.error('Wrong value {} for setting: {}'\
+            self.error.emit('Wrong value {} for setting: {}'\
                             .format(new_value, key))
             return False
         self.settings[key] = new_value
         if not quiet:
-            self.print_('{} now set to: {}'.format(key, new_value))
+            self.print_.emit('{} now set to: {}'.format(key, new_value))
 
         # Setting specific settings... yyyeah.
         if key == 'linenumbers':
-            self.textarea.number_bar.showbar = new_value
-            self.textarea.number_bar.update()
+            self.textarea.set_number_bar_visibility(new_value)
         elif key == 'vscrollbar':
             policy = {'on': Qt.ScrollBarAlwaysOn,
                   'auto': Qt.ScrollBarAsNeeded,
@@ -271,35 +310,6 @@ class Kalpana(QtGui.QApplication):
         elif key == 'cmd_separator':
             self.terminal.set_command_separator(new_value)
         return True
-
-
-
-
-class MainWindow(QtGui.QFrame):
-    read_plugin_config = pyqtSignal()
-    write_plugin_config = pyqtSignal()
-
-    def __init__(self, file_=''):
-        super().__init__()
-
-        # Window title stuff
-        self.wt_wordcount = 0
-        self.wt_file = ''
-
-        # Misc settings etc
-        self.blocks = 1
-        self.font_dialog_open = False
-
-        self.document = self.textarea.document()
-
-
-
-
-
-## ==== Overrides ========================================================== ##
-
-    
-
 
 ## ==== Config ============================================================= ##
 
@@ -313,71 +323,14 @@ class MainWindow(QtGui.QFrame):
         stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
         self.setStyleSheet(stylesheet)
 
-    def refresh_config(self):
-        self.load_settings(self.config_file_path)
-
-
-## ==== Misc =============================================================== ##
-
-    def error(self, errortext, defaultcmd=''):
-        """ Show error in terminal """
-        self.terminal.error(errortext)
-        self.prompt_term(defaultcmd)
-
-    def print_(self, text):
-        self.terminal.print_(text)
-        self.terminal.setVisible(True)
-
-    def prompt_term(self, defaultcmd=''):
-        if defaultcmd:
-            self.terminal.input_term.setText(defaultcmd)
-        self.terminal.setVisible(True)
-        self.switch_focus_to_term()
-
 
     def toggle_terminal(self):
         """ Toggle terminal visibility and focus jointly """
         self.terminal.setVisible(abs(self.terminal.isVisible()-1))
         if self.terminal.isVisible():
-            self.switch_focus_to_term()
+            self.terminal.input_term.setFocus()
         else:
             self.textarea.setFocus()
-
-
-    def switch_focus_to_term(self):
-        self.terminal.input_term.setFocus()
-
-
-
-## ==== Window title ===================================== ##
-
-    def contents_changed(self):
-        """
-        Update wordcount and stuff
-        """
-        wcount = len(re.findall(r'\S+', self.document.toPlainText()))
-        if not wcount == self.wt_wordcount:
-            self.wt_wordcount = wcount
-            self.update_window_title(self.document.isModified())
-
-
-    def update_window_title(self, modified):
-        self.setWindowTitle('{0}{1} - {2}{0}'.format('*'*modified,
-                                                     self.wt_wordcount,
-                                                     self.wt_file))
-
-
-    def set_file_name(self, filename):
-        """ Set both the output file and the title to filename. """
-        if filename == 'NEW':
-            self.filepath = ''
-            self.wt_file = 'New file'
-        else:
-            self.filepath = filename
-            self.wt_file = os.path.basename(filename)
-        self.update_window_title(self.document.isModified())
-
-
 
 
 

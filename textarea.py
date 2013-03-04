@@ -29,7 +29,11 @@ from linewidget import LineTextWidget
 class TextArea(LineTextWidget):
     print_ = QtCore.pyqtSignal(str)
     error = QtCore.pyqtSignal(str)
-    contents_changed = QtCore.pyqtSignal(str)
+    prompt_command = QtCore.pyqtSignal(str)
+    wordcount_changed = QtCore.pyqtSignal(int)
+    modification_changed = QtCore.pyqtSignal(bool)
+    filename_changed = QtCore.pyqtSignal(str)
+    file_saved = QtCore.pyqtSignal()
 
     def __init__(self, parent, get_settings):
         super().__init__(parent)
@@ -39,12 +43,10 @@ class TextArea(LineTextWidget):
         self.setTabStopWidth(30)
         self.setContextMenuPolicy(QtCore.Qt.PreventContextMenu)
 
-        #TODO: this v
-        self.document().modificationChanged.connect(self.update_window_title)
-        emit_contents_changed = \
-                lambda: len(re.findall(r'\S+', self.document.toPlainText()))
-        self.document().contentsChanged.connect(emit_contents_changed)
-
+        modified_signal = \
+            lambda is_modified: self.modification_changed.emit(is_modified)
+        self.document().modificationChanged.connect(modified_signal)
+        self.document().contentsChanged.connect(self.contents_changed)
         self.document().blockCountChanged.connect(self.new_line)
 
         self.search_buffer = None
@@ -53,12 +55,22 @@ class TextArea(LineTextWidget):
         self.file_path = ''
 
 
+    def set_number_bar_visibility(self, visible):
+        self.showbar = visible
+        self.update()
+
+
+    def contents_changed(self):
+        wordcount = len(re.findall(r'\S+', self.document().toPlainText()))
+        self.wordcount_changed.emit(wordcount)
+
+
     def goto_line(self, line_str):
         if not line_str.strip().isdigit():
             self.error.emit('Invalid line number')
             return
         line_num = min(int(line_str.strip()), self.document().blockCount())
-        block = self.document().findBlockByNumber(line_num + 1)
+        block = self.document().findBlockByNumber(line_num - 1)
         new_cursor = QtGui.QTextCursor(block)
         self.setTextCursor(new_cursor)
         self.centerCursor()
@@ -66,7 +78,7 @@ class TextArea(LineTextWidget):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if blocks > self.blocks and self.get_settings('autoindent'):
+        if self.get_settings('autoindent'):
             cursor = self.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document().findBlockByNumber(blocknum-1)
@@ -200,13 +212,13 @@ class TextArea(LineTextWidget):
 
     def new_and_empty(self):
         """ Return True if the file is empty and unsaved. """
-        return not self.document.isModified() and not self.file_path
+        return not self.document().isModified() and not self.file_path
 
 
     def set_file_name(self, filename):
         """ Set both the output file and the title to filename. """
         self.file_path = '' if filename == 'NEW' else filename
-        self.update_window_title.emit(self.document().isModified(), filename)
+        self.filename_changed.emit(filename)
         #     self.wt_file = os.path.basename(filename)
         # self.update_window_title(self.document.isModified())
 
@@ -267,7 +279,7 @@ class TextArea(LineTextWidget):
             self.document().clear()
             self.document().setModified(False)
             self.set_file_name('NEW')
-            self.blocks = 1
+            # self.blocks = 1
             return True
         else:
             return False
@@ -289,7 +301,7 @@ class TextArea(LineTextWidget):
                 self.document().setModified(False)
                 # TODO: this
                 self.set_file_name(filename)
-                self.blocks = self.document().blockCount()
+                # self.blocks = self.document().blockCount()
                 self.moveCursor(QtGui.QTextCursor.Start)
                 return True
         return False
@@ -318,6 +330,5 @@ class TextArea(LineTextWidget):
         else:
             self.set_file_name(savefname)
             self.document().setModified(False)
-            for p in self.plugins:
-                p.file_saved()
+            self.file_saved.emit()
             return True

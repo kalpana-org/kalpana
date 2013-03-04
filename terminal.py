@@ -71,11 +71,10 @@ class Terminal(QtGui.QSplitter):
     reload_theme = pyqtSignal()
     goto_line = pyqtSignal(str)
 
-    def __init__(self, main, textarea):
-        super().__init__(parent=main)
-        # SO VERY DEPRECATED
-        self.textarea = textarea
-        self.main = main
+    def __init__(self, parent, get_filepath):
+        super().__init__(parent)
+
+        self.get_filepath = get_filepath
 
         self.command_separator = ' '
 
@@ -154,7 +153,7 @@ class Terminal(QtGui.QSplitter):
 
         # Autocomplete with the working directory if the line is empty
         if ac_text.strip() == '':
-            wd = os.path.abspath(self.main.filepath)
+            wd = os.path.abspath(self.get_filepath())
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
             set_text(wd + os.path.sep)
@@ -229,6 +228,7 @@ class Terminal(QtGui.QSplitter):
         self.input_term.setText(self.history[self.history_index])
 
     def add_history(self, text):
+        self.history[0] = text
         self.history.insert(0, '')
 
     def reset_history_travel(self):
@@ -238,8 +238,8 @@ class Terminal(QtGui.QSplitter):
 
     # ==== Misc ================================= #
 
-    def switchFocus(self):
-        self.give_up_focus.emit()
+    # def switchFocus(self):
+    #     self.give_up_focus.emit()
 
 
     def parse_command(self):
@@ -273,10 +273,16 @@ class Terminal(QtGui.QSplitter):
 
     def print_(self, text):
         self.output_term.setText(str(text))
-
+        self.show()
 
     def error(self, text):
         self.output_term.setText('Error: ' + text)
+        self.show()
+
+    def prompt_command(self, cmd):
+        self.input_term.setText(cmd + ' ')
+        self.input_term.setFocus()
+        self.show()
 
 
     # ==== Commands ============================== #
