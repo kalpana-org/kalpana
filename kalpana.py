@@ -342,7 +342,7 @@ class MainWindow(QtGui.QFrame):
         self.setStyleSheet(stylesheet)
 
     def refresh_config(self):
-        self.load_settings(self.config_file_path)
+        self.load_settings(self.config_file_path, refresh_only=True)
 
 
 ## ==== Misc =============================================================== ##
