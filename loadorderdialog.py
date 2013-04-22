@@ -22,7 +22,7 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 
-from libsyntyche.common import set_hotkey
+from libsyntyche.common import set_hotkey, read_json, write_json
 
 
 class LoadOrderDialog(QtGui.QDialog):
@@ -37,14 +37,12 @@ class LoadOrderDialog(QtGui.QDialog):
 
         layout = QtGui.QVBoxLayout(self)
 
-        with open(self.loadorder_path, encoding='utf-8') as f:
-            loadorder = json.loads(f.read())
+        loadorder = read_json(self.loadorder_path)
 
         if not loadorder:
             layout.addWidget(LoadOrderLabel("No plugins available"))
             self.pluginlist_widget = None
         else:
-            self.donothing = False
             self.pluginlist_widget = QtGui.QListWidget(self)
             for pname, checked in loadorder:
                 item = QtGui.QListWidgetItem(pname)
@@ -72,13 +70,8 @@ class LoadOrderDialog(QtGui.QDialog):
                 plw.insertItem(pos+diff, plw.takeItem(pos))
                 plw.setCurrentRow(pos+diff)
 
-            def move_item_up():
-                move_item(-1)
-            def move_item_down():
-                move_item(1)
-
-            set_hotkey('Left', self, move_item_up)
-            set_hotkey('Right', self, move_item_down)
+            set_hotkey('Left', self, lambda: move_item(-1))
+            set_hotkey('Right', self, lambda: move_item(1))
             set_hotkey('Escape', self, self.close)
 
         self.show()
@@ -89,6 +82,5 @@ class LoadOrderDialog(QtGui.QDialog):
             for i in range(self.pluginlist_widget.count()):
                 item = self.pluginlist_widget.item(i)
                 out.append((item.text(), item.checkState()==Qt.Checked))
-            with open(self.loadorder_path, 'w', encoding='utf-8') as f:
-                f.write(json.dumps(out, ensure_ascii=False, indent=2))
+            write_json(self.loadorder_path, out)
         event.accept()

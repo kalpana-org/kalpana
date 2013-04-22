@@ -71,11 +71,10 @@ class Terminal(QtGui.QSplitter):
     reload_theme = pyqtSignal()
     goto_line = pyqtSignal(str)
 
-    def __init__(self, main, textarea):
-        super().__init__(parent=main)
-        # SO VERY DEPRECATED
-        self.textarea = textarea
-        self.main = main
+    def __init__(self, parent, get_filepath):
+        super().__init__(parent)
+
+        self.get_filepath = get_filepath
 
         self.command_separator = ' '
 
@@ -107,6 +106,7 @@ class Terminal(QtGui.QSplitter):
         self.input_term.history_up.connect(self.history_up)
         self.input_term.history_down.connect(self.history_down)
 
+        self.hide()
 
     def update_commands(self, plugin_commands):
         # Plugins
@@ -129,6 +129,29 @@ class Terminal(QtGui.QSplitter):
     def set_command_separator(self, separator):
         self.command_separator = separator
 
+    def toggle(self):
+        self.setVisible(not self.isVisible())
+        if self.isVisible():
+            self.input_term.setFocus()
+        else:
+            self.give_up_focus.emit()
+
+    def show(self):
+        super().show()
+        self.input_term.setFocus()
+
+    def print_(self, text):
+        self.output_term.setText(str(text))
+        self.show()
+
+
+    def error(self, text):
+        self.output_term.setText('Error: ' + text)
+        self.show()
+
+    def prompt_command(self, cmd):
+        self.input_term.setText(cmd + ' ')
+        self.show()
 
     # ==== Autocomplete ========================== #
 
@@ -154,7 +177,7 @@ class Terminal(QtGui.QSplitter):
 
         # Autocomplete with the working directory if the line is empty
         if ac_text.strip() == '':
-            wd = os.path.abspath(self.main.filepath)
+            wd = os.path.abspath(self.get_filepath())
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
             set_text(wd + os.path.sep)
@@ -229,6 +252,7 @@ class Terminal(QtGui.QSplitter):
         self.input_term.setText(self.history[self.history_index])
 
     def add_history(self, text):
+        self.history[0] = text
         self.history.insert(0, '')
 
     def reset_history_travel(self):
@@ -237,10 +261,6 @@ class Terminal(QtGui.QSplitter):
 
 
     # ==== Misc ================================= #
-
-    def switchFocus(self):
-        self.give_up_focus.emit()
-
 
     def parse_command(self):
         text = self.input_term.text()
@@ -269,14 +289,6 @@ class Terminal(QtGui.QSplitter):
             else:
                 self.error('Ambiguous command, could mean: ' +\
                            ', '.join(possible_cmds))
-
-
-    def print_(self, text):
-        self.output_term.setText(str(text))
-
-
-    def error(self, text):
-        self.output_term.setText('Error: ' + text)
 
 
     # ==== Commands ============================== #
