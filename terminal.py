@@ -22,7 +22,6 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
 from libsyntyche.common import set_hotkey
-import fontdialog
 
 
 class Terminal(QtGui.QSplitter):
@@ -309,21 +308,6 @@ class Terminal(QtGui.QSplitter):
     def cmd_search_and_replace(self, arg):
         self.search_and_replace.emit(arg)
 
-
-    def cmd_change_font(self, arg):
-        self.error('Font dialog deactivated until further notice')
-        # if self.main.font_dialog_open:
-        #     self.error('Font dialog already open')
-        #     return
-        # if arg not in ('main', 'term'):
-        #     self.error('Wrong argument [main/term]')
-        #     return
-        # if arg == 'term':
-        #     self.print_('Räksmörgås?!')
-        # self.main.font_dialog_open = True
-        # fwin = fontdialog.FontDialog(self.main, self.main.show_fonts_in_dialoglist,
-        #                              arg + '_fontfamily', arg + '_fontsize')
-
     def cmd_help(self, arg):
         if not arg:
             self.print_(' '.join(sorted(self.cmds)))
@@ -349,7 +333,6 @@ class Terminal(QtGui.QSplitter):
         'q': (cmd_quit, 'Quit Kalpana'),
         '/': (cmd_search_and_replace, 'Search/replace'),
         '?': (cmd_help, 'List commands or help for [command]'),
-        'cf': (cmd_change_font, 'Change font [main/term]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),
         ':': (cmd_goto_line, 'Go to line'),
         '=': (cmd_set, 'Manage settings')
