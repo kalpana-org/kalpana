@@ -48,7 +48,7 @@ class GUIPlugin:
 
     def get_theme(self):
         from os.path import isfile, join
-        from common import read_stylesheet
+        from libsyntyche.common import read_stylesheet
         if not isfile(join(self.path, 'stylesheet.css')):
             return ''
         return read_stylesheet(join(self.path, 'stylesheet.css'))

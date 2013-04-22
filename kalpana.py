@@ -152,6 +152,7 @@ class MainWindow(QtGui.QFrame):
             'Ctrl+O': lambda:self.prompt_term(defaultcmd='o '),
             'Ctrl+S': self.request_save_file,
             'Ctrl+Shift+S': lambda:self.prompt_term(defaultcmd='s '),
+            'Ctrl+F': lambda:self.prompt_term(defaultcmd='/'),
             'F3': self.textarea.search_next,
             'Ctrl+Return': self.toggle_terminal
         }
@@ -342,7 +343,7 @@ class MainWindow(QtGui.QFrame):
         self.setStyleSheet(stylesheet)
 
     def refresh_config(self):
-        self.load_settings(self.config_file_path)
+        self.load_settings(self.config_file_path, refresh_only=True)
 
 
 ## ==== Misc =============================================================== ##
