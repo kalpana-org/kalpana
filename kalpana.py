@@ -98,7 +98,7 @@ class Kalpana(QtGui.QApplication):
     def connect_own_signals(self, loadorder_path):
         self.settings_manager.set_stylesheet.connect(self.setStyleSheet)
         def open_loadorder_dialog():
-            LoadOrderDialog(self, loadorder_path).exec_()
+            LoadOrderDialog(self.textarea, loadorder_path).exec_()
         self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
 
 
