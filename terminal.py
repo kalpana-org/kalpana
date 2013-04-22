@@ -33,13 +33,19 @@ class Terminal(QtGui.QSplitter):
         reset_history_travel = pyqtSignal()
         history_up = pyqtSignal()
         history_down = pyqtSignal()
+
         # This has to be here, keyPressEvent does not capture tab press
         def event(self, event):
             if event.type() == QEvent.KeyPress and\
-                        event.key() == Qt.Key_Tab and\
                         event.modifiers() == Qt.NoModifier:
-                self.tab_pressed.emit()
-                return True
+                if event.key() == Qt.Key_Tab:
+                    self.tab_pressed.emit()
+                    return True
+                elif event.key() == Qt.Key_Escape:
+                    parent = self.parentWidget()
+                    parent.give_up_focus.emit()
+                    parent.hide()
+                    return True
             return super().event(event)
 
         def keyPressEvent(self, event):
@@ -128,13 +134,6 @@ class Terminal(QtGui.QSplitter):
 
     def set_command_separator(self, separator):
         self.command_separator = separator
-
-    def toggle(self):
-        self.setVisible(not self.isVisible())
-        if self.isVisible():
-            self.input_term.setFocus()
-        else:
-            self.give_up_focus.emit()
 
     def show(self):
         super().show()

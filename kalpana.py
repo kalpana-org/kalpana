@@ -119,7 +119,7 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         'Ctrl+S': textarea.request_save_file,
         'Ctrl+Shift+S': lambda:terminal.prompt_command('s'),
         'F3': textarea.search_next,
-        'Ctrl+Return': terminal.toggle
+        'Ctrl+Return': terminal.show
     }
     hotkeys.update(plugin_hotkeys)
     for key, function in hotkeys.items():
