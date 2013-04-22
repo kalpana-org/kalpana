@@ -24,11 +24,9 @@ The main module must define a class called ``UserPlugin``, as a subclass of ``pl
 Load order
 ----------
 
-All plugins are loaded in a specific order dictated by ``loadorder.conf``. This file is generated automatically and is not meant to be edited. To edit the load order, use the command ``lo``.
+All plugins are loaded in a specific order dictated by ``loadorder.conf``. Every line is treated as the name of one plugin. The first line is loaded first, the second line second, etc. Lines beginning with '#' are ignored.
 
 The point of the load order is to manage conflicts between plugins. Plugins loaded after another plugin can override the previous plugin's edits, such as hotkeys, terminal commands and GUI widget placement.
-
-Using ``lo`` you can also deactivate mods without having to remove them from the ``plugins`` directory.
 
 
 Imports

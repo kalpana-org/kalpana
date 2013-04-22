@@ -24,6 +24,7 @@ from PyQt4 import QtCore
 
 from libsyntyche import common
 
+from settingsmanager import get_paths
 
 class PluginManager(QtCore.QObject):
     def __init__(self, *args):
@@ -37,8 +38,8 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(config_dir, vert_layout, horz_layout,
-                 textarea, mainwindow, settings_manager):
+def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
+                 settings_manager):
     def add_widget(widget, side):
         from pluginlib import NORTH, SOUTH, EAST, WEST
         if side in (NORTH, SOUTH):
@@ -59,10 +60,11 @@ def init_plugins(config_dir, vert_layout, horz_layout,
         textarea.save_file,                # save_file()
         mainwindow.close,                  # quit()
     ]
+    paths = get_paths()
 
     plugins = []
     plugin_commands = {}
-    for name, path, module in get_plugins(config_dir):
+    for name, path, module in get_plugins(paths['plugins'], paths['loadorder']):
         try:
             plugin_constructor = module.UserPlugin
         except AttributeError:
@@ -80,44 +82,18 @@ def init_plugins(config_dir, vert_layout, horz_layout,
     return plugins, plugin_commands
 
 
-def get_plugins(root_path):
-    loadorder_path = join(root_path, 'loadorder.conf')
+def get_plugins(plugin_root_path, loadorder_path):
+    loadorder = [l for l in common.read_file(loadorder_path).splitlines()
+                 if not l.startswith('#')]
 
-    # Get load order from file
-    try:
-        loadorder = common.read_json(loadorder_path)
-        assert len(loadorder) > 0
-    except (IOError, AssertionError):
-        pluginlist, activelist = [],[]
-    else:
-        pluginlist, activelist = zip(*loadorder)
-        pluginlist = list(pluginlist)
-        activelist = list(activelist)
-
-    # Generate all existing plugins
-    rawplugins = {}
-    plugin_root_path = join(root_path, 'plugins')
-    if not exists(plugin_root_path):
-        os.makedirs(plugin_root_path, exist_ok=True)
-    for name in os.listdir(plugin_root_path):
-        plugin_path = join(plugin_root_path, name)
-        if not isfile(join(plugin_path, name + '.py')):
-            continue
-        if name not in pluginlist:
-            pluginlist.append(name)
-            activelist.append(True)
-        sys.path.append(plugin_path)
-        rawplugins[name] = (plugin_path, importlib.import_module(name))
-
-    # Update the load order
-    newpluginlist = [(p,a) for p,a in zip(pluginlist, activelist)
-                     if p in rawplugins]
-
-    common.write_json(loadorder_path, newpluginlist, sort_keys=False)
-
-    # Generate all the relevant plugins in the right order
-    plugins = [(p, rawplugins[p][0], rawplugins[p][1])
-               for p,is_active in zip(pluginlist, activelist)
-               if p in rawplugins and is_active]
-
-    return plugins
+    out = []
+    for plugin_name in loadorder:
+        try:
+            loaded_plugin = importlib.import_module(plugin_name)
+        except ImportError:
+            print("Plugin {} could not be imported. Most likely because it's "
+                  "not a valid plugin.".format(plugin_name))
+        else:
+            out.append(plugin_name, join(plugin_root_path,plugin_name),
+                                         loaded_plugin)
+    return out

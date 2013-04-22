@@ -335,10 +335,6 @@ class Terminal(QtGui.QSplitter):
     def cmd_reload_theme(self, arg):
         self.reload_theme.emit()
 
-    def cmd_load_order(self, arg):
-        self.open_loadorder_dialog.emit()
-
-
     def cmd_set(self, arg):
         self.manage_settings.emit(arg)
 
@@ -355,7 +351,6 @@ class Terminal(QtGui.QSplitter):
         '?': (cmd_help, 'List commands or help for [command]'),
         'cf': (cmd_change_font, 'Change font [main/term]'),
         'rt': (cmd_reload_theme, 'Reload theme from config'),
-        'lo': (cmd_load_order, 'Change the plugin load order'),
         ':': (cmd_goto_line, 'Go to line'),
         '=': (cmd_set, 'Manage settings')
     }

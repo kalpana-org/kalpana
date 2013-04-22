@@ -238,5 +238,6 @@ def get_paths():
         'config_dir':   config_dir,
         'config_file':  path('kalpana.conf'),
         'theme':        path('stylesheet.css'),
-        'loadorder':    path('loadorder.conf')
+        'loadorder':    path('loadorder.conf'),
+        'plugins':      path('plugins')
     }

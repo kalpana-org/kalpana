@@ -24,10 +24,9 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
 from libsyntyche import common
-from loadorderdialog import LoadOrderDialog
 from mainwindow import MainWindow
 from pluginmanager import PluginManager
-from settingsmanager import get_paths, SettingsManager
+from settingsmanager import SettingsManager
 from terminal import Terminal
 from textarea import TextArea
 
@@ -52,8 +51,7 @@ class Kalpana(QtGui.QApplication):
 
         # Plugins
         self.plugin_manager \
-            = PluginManager(self.settings_manager.get_config_directory(),
-                            vert_layout,horz_layout,
+            = PluginManager(vert_layout,horz_layout,
                             self.textarea, self.mainwindow,
                             self.settings_manager)
         self.terminal.update_commands(self.plugin_manager.plugin_commands)
@@ -61,7 +59,7 @@ class Kalpana(QtGui.QApplication):
         # Signals
         connect_others_signals(self.mainwindow, self.textarea, self.terminal,
                                self.settings_manager)
-        self.connect_own_signals(self.settings_manager.get_loadorder_path())
+        self.connect_own_signals()
 
         # Hotkeys
         set_key_shortcuts(self.mainwindow, self.textarea, self.terminal,
@@ -95,11 +93,8 @@ class Kalpana(QtGui.QApplication):
         self.installEventFilter(self.event_filter)
 
 
-    def connect_own_signals(self, loadorder_path):
+    def connect_own_signals(self):
         self.settings_manager.set_stylesheet.connect(self.setStyleSheet)
-        def open_loadorder_dialog():
-            LoadOrderDialog(self.textarea, loadorder_path).exec_()
-        self.terminal.open_loadorder_dialog.connect(open_loadorder_dialog)
 
 
 ## === Non-method functions ================================================ ##
