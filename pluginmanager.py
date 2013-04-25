@@ -88,12 +88,17 @@ def get_plugins(plugin_root_path, loadorder_path):
 
     out = []
     for plugin_name in loadorder:
+        plugin_path = join(plugin_root_path,plugin_name)
+        if not os.path.exists(plugin_path):
+            print("Plugin directory {} doesn't exist.".format(plugin_name))
+            continue
+        sys.path.append(plugin_path)
         try:
             loaded_plugin = importlib.import_module(plugin_name)
         except ImportError:
             print("Plugin {} could not be imported. Most likely because it's "
                   "not a valid plugin.".format(plugin_name))
         else:
-            out.append(plugin_name, join(plugin_root_path,plugin_name),
-                                         loaded_plugin)
+            print("Plugin {} loaded.".format(plugin_name))
+            out.append((plugin_name, plugin_path, loaded_plugin))
     return out
