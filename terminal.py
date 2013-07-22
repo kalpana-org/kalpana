@@ -40,11 +40,6 @@ class Terminal(QtGui.QSplitter):
                 if event.key() == Qt.Key_Tab:
                     self.tab_pressed.emit()
                     return True
-                elif event.key() == Qt.Key_Escape:
-                    parent = self.parentWidget()
-                    parent.give_up_focus.emit()
-                    parent.hide()
-                    return True
             return super().event(event)
 
         def keyPressEvent(self, event):
@@ -137,6 +132,13 @@ class Terminal(QtGui.QSplitter):
     def show(self):
         super().show()
         self.input_term.setFocus()
+
+    def toggle(self):
+        if self.input_term.hasFocus():
+            self.give_up_focus.emit()
+            self.hide()
+        else:
+            self.show()
 
     def print_(self, text):
         self.output_term.setText(str(text))

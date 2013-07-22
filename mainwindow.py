@@ -38,9 +38,16 @@ class MainWindow(QtGui.QFrame):
         self.filename = ''
         self.is_modified = False
 
+        # This is set in kalpana.py in create_objects()
+        self.terminal_key = None
+
     # Ugly as fuck, but eh...
     def set_is_modified_callback(self, callback):
         self.get_document_is_modified = callback
+
+
+    def set_terminal_key(self, value):
+        self.terminal_key.setKey(QtGui.QKeySequence(value))
 
 
     def create_ui(self, textarea, terminal):

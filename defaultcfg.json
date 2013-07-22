@@ -27,6 +27,10 @@
     "cmd_separator": {
       "values": ["§"],
       "acronym": "cs"
+    },
+    "terminal_key": {
+      "values": ["Escape"],
+      "acronym": "tk"
     }
   }
 }

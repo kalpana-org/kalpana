@@ -32,6 +32,7 @@ class SettingsManager(QObject):
     set_number_bar_visibility = pyqtSignal(bool)
     set_vscrollbar_visibility = pyqtSignal(Qt.ScrollBarPolicy)
     set_terminal_command_separator = pyqtSignal(str)
+    set_terminal_key = pyqtSignal(str)
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
@@ -159,6 +160,8 @@ class SettingsManager(QObject):
             self.set_vscrollbar_visibility.emit(policy[new_value])
         elif key == 'cmd_separator':
             self.set_terminal_command_separator.emit(new_value)
+        elif key == 'terminal_key':
+            self.set_terminal_key.emit(new_value)
         return True
 
     def save_settings(self):

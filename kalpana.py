@@ -105,6 +105,8 @@ def create_objects():
     textarea = TextArea(mainwindow, settings_manager.get_setting)
     terminal = Terminal(mainwindow, lambda: textarea.file_path)
     mainwindow.set_is_modified_callback(textarea.document().isModified)
+    mainwindow.terminal_key = \
+        QtGui.QShortcut(QtGui.QKeySequence(''), mainwindow, terminal.toggle)
     return mainwindow, textarea, terminal, settings_manager
 
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
@@ -114,12 +116,11 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         'Ctrl+S': textarea.request_save_file,
         'Ctrl+Shift+S': lambda:terminal.prompt_command('s'),
         'F3': textarea.search_next,
-        'Ctrl+Return': terminal.show
+        # terminal hotkey is automagically set when the config is loaded
     }
     hotkeys.update(plugin_hotkeys)
     for key, function in hotkeys.items():
         common.set_hotkey(key, mainwindow, function)
-
 
 def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
     """
@@ -160,6 +161,8 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
             textarea.setVerticalScrollBarPolicy),
         (settings_manager.set_terminal_command_separator,
             terminal.set_command_separator),
+        (settings_manager.set_terminal_key,
+            mainwindow.set_terminal_key),
         (settings_manager.switch_focus_to_terminal,
             terminal.show)
     )
