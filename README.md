@@ -14,20 +14,6 @@ Technical shit
 * Probably won't work on Mac
 
 
-Keyboard shortcuts not readily available anywhere else
-------------------------------------------------------
-* `Ctrl + Enter`: Toggles terminal
-* `Alt + [Right/Left]`: Move the divider in the terminal
-
-
-Font change dialog howto
-------------------------
-* `Enter`: Finish and return with the chosen font
-* `Escape`: Exit without changing anything
-* `Left/Right` or `Tab`: Jump between the font and size lists
-* `Up/Down`: Why do I even write this
-
-
 Search and replace
 ------------------
 Kalpana uses a vim-like syntax, meaning that you will have to escape forward-slash `/` with backslash like `\/` if you want to search for it.
@@ -43,39 +29,37 @@ Kalpana uses a vim-like syntax, meaning that you will have to escape forward-sla
 * That means that `///` deletes the next occurence of the last search term. Weird but yeah.
 
 
-The usual shortcuts
+Shortcuts
 -------------------
 * `Ctrl + N`: New
 * `Ctrl + O`: Open
 * `Ctrl + S`: Save
 * `Ctrl + Shift + S`: Save as
 * `F3`: Find next (has to first search for something in the terminal)
+* `Alt + [Right/Left]`: Move the divider in the terminal
+* `Escape`: Toggle terminal *(default)*
+
+*__NOTE:__ The terminal toggle key is configurable. Valid settings are explained here:
+http://pyqt.sourceforge.net/Docs/PyQt4/qkeysequence.html*
+
+
+Config
+------
+The config directory is in `~/.config/kalpana` on Linux and the local directory (where `kalpana.py` is) on Windows. This directory contains (among other things, in the case of Windows) `kalpana.conf`, `loadorder.conf`, `stylesheet.css` and the `plugin` directory.
+
+The main config file (`kalpana.conf`) is automagically created from the default config (not simply copied) if it doesn't exist. It is not meant to be edited by hand but have fun if you're wild and crazy. Any setting keys that don't match settings in the default config are removed and any illegal options are reverted to default. Basically, don't fuck with da config, yo.
+
+The config is reloaded everytime Kalpana is activated, which means that if you change something in one instance of Kalpana, as soon as you change to another one it gets that change as well.
 
 
 Theme config
 ------------
-Styling is done in the `theme` part of the config (`~/.config/kalpana/kalpana.conf` on Linux and `kalpana.json` in kalpana.py3's directory on Windows) with css-like values.
+The theme is specified in `stylesheet.css` in the config directory. If the file doesn't exist, Kalpana will copy and use `themes/default.css` instead.
 
-Four values are non-essential and can be left blank:
-
-* `term_input_bgcolor` and `term_output_bgcolor` will be overloaded with `main_bgcolor`'s value if empty.
-* `term_input_textcolor` and `term_output_textcolor` will be overloaded with `main_textcolor`'s value if empty.
-
-All others should be specified but Kalpana will probably run without them anyway.
-
-Also, http://qt-project.org/doc/qt-4.8/stylesheet-reference.html is documentation on how Qt's stylesheets work.
+The syntax used is libsyntyche's modified version of Qt's stylesheets:
+https://github.com/nycz/libsyntyche
 
 
 Plugins
 -------
-_Note: all names here are up for debate and/or pending change_
-
-All plugins should consist of (at least) one python module in their own directory in the `config/plugins/` directory. The module and its parent directory must have the same name (case-sensitive).
-
-Example: `~/.config/kalpana/plugins/myplugin/myplugin.py`
-
-The module must contain a class called UserPlugin that subclasses `pluginlib.GUIPlugin`.
-
-All plugins are loaded in a specific order dictated by `loadorder.conf`. This file is generated automatically and is not meant to be edited. To edit the load order, use the command `lo`. Plugins loaded after another plugin can override the previous plugin's edits, such as hotkeys, terminal commands and GUI widget placement.
-
-More info is available in `plugin_docs.rst`.
+See `docs/plugin_docs.rst`.

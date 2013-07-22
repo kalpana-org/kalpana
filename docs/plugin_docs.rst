@@ -5,18 +5,11 @@
 Location and structure
 ----------------------
 
-All plugins are located in the `plugins` subdirectory of Kalpana's config directory. This would be:
-
-| *On Linux:* ``~/.config/kalpana/plugins/``
-| *On Windows:* ``[Kalpana's working directory]/plugins/``
+All plugins are located in the `plugins` subdirectory of Kalpana's config directory.
 
 Every plugin consists (at least) of a directory containing a python plugin of the same name. They must match exactly, including case.
 
 *Example:* ``~/.config/kalpana/plugins/myplugin/myplugin.py``
-
-If a file with the name ``qtstylesheet.css`` is present, it will be merged with the main stylesheet and applied to the program. When loaded, the stylesheet may be format()ed using a values from the plugin's config. **Remember to escape all { and } if you use a theme config!** Otherwise Kalpana will most likely explode.
-
-Apart from that, there can be as many other files in the plugin's directory as wanted.
 
 The main module must define a class called ``UserPlugin``, as a subclass of ``pluginlib.GUIPlugin``.
 
@@ -31,7 +24,7 @@ The point of the load order is to manage conflicts between plugins. Plugins load
 
 Imports
 -------
-As of [we don't use version numbers no more], all Qt-imports should be made using PyQt4. PySide is no longer supported and therefore having the imports implementation agnostic and done in common is not neccessary.
+As of [we don't use version numbers no more], all Qt-imports must be made using PyQt4. PySide is no longer supported and therefore having the imports implementation agnostic and done in common is not neccessary.
 
 
 libsyntyche.common Reference
