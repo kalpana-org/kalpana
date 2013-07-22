@@ -27,7 +27,7 @@ class GUIPlugin:
             self.new_file, self.open_file, self.save_file,\
             self.quit = callbacks
 
-        self.path = path
+        self.get_path = lambda:path
 
         self.start()
 

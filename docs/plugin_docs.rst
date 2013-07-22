@@ -68,9 +68,6 @@ GUIPlugin.hotkeys
     * A dict with keyboard shortcuts as key (see ``QKeySequence()``) and a function as value. The function will be called by Kalpana when the key (combination) is pressed. The key combinations will **overwrite** vanilla shortcuts and shortcuts in earlier loaded plugins, if they are identical.
     * *Example:* ``{'Ctrl+Shift+X': self.do_something_useful()}``
 
-GUIPlugin.path
-    * A string with the path to the plugin's directory. This is where config files should be stored.
-
 
 "Events"
 ========
@@ -105,6 +102,9 @@ Regular methods
 GUIPlugin.add_widget(widget, side)
     * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
     * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
+
+GUIPlugin.get_path()
+    * Return a string with the path to the plugin's directory. This is where config files should be stored.
 
 GUIPlugin.get_filepath()
     * Return the path of the file currently open in Kalpana.
