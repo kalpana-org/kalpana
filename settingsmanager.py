@@ -18,6 +18,7 @@
 import os
 from os.path import join, exists, dirname, isfile
 import re
+import shutil
 import sys
 
 from PyQt4 import QtGui
@@ -169,6 +170,10 @@ class SettingsManager(QObject):
         self.write_plugin_config.emit()
 
     def set_theme(self):
+        # Copy in the default theme if a customized doesn't exist
+        if not os.path.exists(self.paths['theme']):
+            defaultcss = common.local_path(join('themes','default.css'))
+            shutil.copyfile(defaultcss, self.paths['theme'])
         stylesheet = common.read_stylesheet(self.paths['theme'])
         # plugin_themes = [p.get_theme() for p in self.plugins]
         # stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
