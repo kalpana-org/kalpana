@@ -87,9 +87,9 @@ class Kalpana(QtGui.QApplication):
                 return False
 
         self.event_filter = AppEventFilter()
-        # def refresh_config():
-        #     self.settings_manager.load_settings(self.config_file_path)
-        # self.event_filter.activation_event.connect(refresh_config)
+        def refresh_config():
+            self.settings_manager.load_settings(refresh_only=True)
+        self.event_filter.activation_event.connect(refresh_config)
         self.installEventFilter(self.event_filter)
 
 
