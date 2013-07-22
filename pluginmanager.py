@@ -83,6 +83,9 @@ def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
 
 
 def get_plugins(plugin_root_path, loadorder_path):
+    # Create the loadorder file if it doesn't exist
+    if not os.path.exists(loadorder_path):
+        open(loadorder_path, 'a').close()
     loadorder = [l for l in common.read_file(loadorder_path).splitlines()
                  if not l.startswith('#')]
 
