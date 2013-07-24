@@ -38,28 +38,15 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
-                 settings_manager):
-    def add_widget(widget, side):
-        from pluginlib import NORTH, SOUTH, EAST, WEST
-        if side in (NORTH, SOUTH):
-            layout = vert_layout
-        elif side in (WEST, EAST):
-            layout = horz_layout
-        if side in (NORTH, WEST):
-            layout.insertWidget(0, widget)
-        elif side in (SOUTH, EAST):
-            layout.addWidget(widget)
+def init_plugins(mainwindow, textarea, terminal, settings_manager):
 
-    callbacks = [
-        textarea.document().toPlainText,   # get_text()
-        lambda:textarea.file_path,         # get_filepath()
-        add_widget,                        # add_widget()
-        textarea.new_file,                 # new_file()
-        textarea.open_file,                # open_file()
-        textarea.save_file,                # save_file()
-        mainwindow.close,                  # quit()
-    ]
+    objects = {
+        'mainwindow': mainwindow,
+        'textarea': textarea,
+        'terminal': terminal,
+        'settings manager': settings_manager
+    }
+
     paths = get_paths()
 
     plugins = []
@@ -71,12 +58,10 @@ def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
             print('"{0}" is not a valid plugin and was not loaded.'\
                   .format(name))
         else:
-            p = plugin_constructor(callbacks, path)
+            p = plugin_constructor(objects, lambda:path)
             plugins.append(p)
             settings_manager.read_plugin_config.connect(p.read_config)
             settings_manager.write_plugin_config.connect(p.write_config)
-            textarea.file_saved.connect(p.file_saved)
-            textarea.document().contentsChanged.connect(p.contents_changed)
             plugin_commands.update(p.commands)
 
     return plugins, plugin_commands
