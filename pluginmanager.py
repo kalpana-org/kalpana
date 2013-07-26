@@ -24,12 +24,11 @@ from PyQt4 import QtCore
 
 from libsyntyche import common
 
-from settingsmanager import get_paths
-
 class PluginManager(QtCore.QObject):
-    def __init__(self, *args):
+    def __init__(self, settings_manager, *args):
         super().__init__()
-        self.plugins, self.plugin_commands = init_plugins(*args)
+        self.plugins, self.plugin_commands =\
+                init_plugins(settings_manager, *args)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
@@ -38,7 +37,7 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(mainwindow, textarea, terminal, settings_manager):
+def init_plugins(settings_manager, mainwindow, textarea, terminal):
 
     objects = {
         'mainwindow': mainwindow,
@@ -46,8 +45,7 @@ def init_plugins(mainwindow, textarea, terminal, settings_manager):
         'terminal': terminal,
         'settings manager': settings_manager
     }
-
-    paths = get_paths()
+    paths = settings_manager.paths
 
     plugins = []
     plugin_commands = {}

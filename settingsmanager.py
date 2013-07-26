@@ -38,9 +38,9 @@ class SettingsManager(QObject):
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, configdir):
         super().__init__()
-        self.paths = get_paths()
+        self.paths = get_paths(configdir)
 
         self.settings = {}
         self.allowed_setting_values = {}
@@ -233,10 +233,12 @@ def write_config(config_file_path, settings):
     common.write_json(config_file_path, cfg)
 
 
-def get_paths():
+def get_paths(custom_config_dir):
     import platform
     # Paths init
-    if platform.system() == 'Linux':
+    if custom_config_dir and os.path.isdir(custom_config_dir):
+        config_dir = custom_config_dir
+    elif platform.system() == 'Linux':
         config_dir = join(os.getenv('HOME'), '.config', 'kalpana')
     else: # Windows
         config_dir = common.local_path('')
