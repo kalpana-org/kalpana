@@ -38,12 +38,12 @@ class Kalpana(QtGui.QApplication):
     print_ = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, argv, file_to_open=None):
-        super().__init__(argv)
+    def __init__(self, configdir, file_to_open=None):
+        super().__init__([])
 
         # Create the objects
         self.mainwindow, self.textarea, self.terminal, self.settings_manager \
-            = create_objects()
+            = create_objects(configdir)
 
         # UI
         vert_layout, horz_layout \
@@ -51,9 +51,9 @@ class Kalpana(QtGui.QApplication):
 
         # Plugins
         self.plugin_manager \
-            = PluginManager(vert_layout,horz_layout,
-                            self.textarea, self.mainwindow,
-                            self.settings_manager)
+            = PluginManager(self.settings_manager,
+                            vert_layout,horz_layout,
+                            self.textarea, self.mainwindow)
         self.terminal.update_commands(self.plugin_manager.plugin_commands)
 
         # Signals
@@ -99,8 +99,8 @@ class Kalpana(QtGui.QApplication):
 
 ## === Non-method functions ================================================ ##
 
-def create_objects():
-    settings_manager = SettingsManager()
+def create_objects(configdir):
+    settings_manager = SettingsManager(configdir)
     mainwindow = MainWindow()
     textarea = TextArea(mainwindow, settings_manager.get_setting)
     terminal = Terminal(mainwindow, lambda: textarea.file_path)
@@ -170,30 +170,31 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         signal.connect(slot)
 
 
-def get_valid_files():
-    output = []
-    for f in sys.argv[1:]:
-        # try:
-        #     f = unicode(f, 'utf-8')
-        # except UnicodeDecodeError:
-        #     f = unicode(f, 'latin1')
-        if os.path.isfile(os.path.abspath(f)):
-            output.append(f)
-        else:
-            print('File not found:')
-            print(f)
-    return output
-
 def main():
+    import argparse
     import os
     os.environ['PYTHONIOENCODING'] = 'utf-8'
-    files = get_valid_files()
 
-    if not files:
-        app = Kalpana(sys.argv)
+    parser = argparse.ArgumentParser()
+
+    def valid_file(fname):
+        if os.path.isfile(fname):
+            return fname
+        parser.error('File does not exist: {}'.format(fname))
+    def valid_dir(dirname):
+        if os.path.isdir(dirname):
+            return dirname
+        parser.error('Directory does not exist: {}'.format(dirname))
+
+    parser.add_argument('-c', '--config-directory', type=valid_dir)
+    parser.add_argument('files', nargs='*', type=valid_file)
+    args = parser.parse_args()
+
+    if not args.files:
+        app = Kalpana(args.config_directory)
     else:
-        app = Kalpana(sys.argv, files[0])
-        for f in files[1:]:
+        app = Kalpana(args.config_directory, file_to_open=args.files[0])
+        for f in args.files[1:]:
             subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
 
     sys.exit(app.exec_())

@@ -24,12 +24,11 @@ from PyQt4 import QtCore
 
 from libsyntyche import common
 
-from settingsmanager import get_paths
-
 class PluginManager(QtCore.QObject):
-    def __init__(self, *args):
+    def __init__(self, settings_manager, *args):
         super().__init__()
-        self.plugins, self.plugin_commands = init_plugins(*args)
+        self.plugins, self.plugin_commands =\
+                init_plugins(settings_manager, *args)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
@@ -38,8 +37,7 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
-                 settings_manager):
+def init_plugins(settings_manager, vert_layout, horz_layout, textarea, mainwindow):
     def add_widget(widget, side):
         from pluginlib import NORTH, SOUTH, EAST, WEST
         if side in (NORTH, SOUTH):
@@ -60,7 +58,7 @@ def init_plugins(vert_layout, horz_layout, textarea, mainwindow,
         textarea.save_file,                # save_file()
         mainwindow.close,                  # quit()
     ]
-    paths = get_paths()
+    paths = settings_manager.paths
 
     plugins = []
     plugin_commands = {}
