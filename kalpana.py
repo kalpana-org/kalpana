@@ -152,7 +152,6 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (terminal.goto_line, textarea.goto_line),
         (terminal.search_and_replace, textarea.search_and_replace),
         (terminal.manage_settings, settings_manager.manage_settings),
-        (terminal.reload_theme, settings_manager.set_theme),
 
         # Settings manager
         (settings_manager.set_number_bar_visibility,
