@@ -1,10 +1,4 @@
-$checkbox_bgcolor: #888
-$checkbox_checked_color: black
 $details_color: #111
-$fontdialog_normal_bgcolor: #333
-$fontdialog_normal_textcolor: #ddd
-$fontdialog_inactive_bgcolor: #888
-$fontdialog_inactive_textcolor: #111
 $main_bgcolor: #222
 $main_fontfamily: Serif
 $main_fontsize: 14pt
@@ -88,41 +82,4 @@ QScrollBar::add-line:horizontal {
 }
 QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
     background: none;
-}
-
-QDialog {
-    background: $main_bgcolor;
-    border: 0px;
-}
-
-QListWidget {
-    outline: 0;
-    color: $fontdialog_normal_textcolor;
-    background: $fontdialog_normal_bgcolor;
-    border: 2px solid $details_color;
-}
-QListWidget::corner {
-    background: $details_color;
-}
-QListView::item:selected:active {
-    color: $fontdialog_normal_bgcolor;
-    background: $fontdialog_normal_textcolor;
-}
-QListView::item:selected:!active {
-    color: $fontdialog_inactive_textcolor;
-    background: $fontdialog_inactive_bgcolor;
-}
-QListView::item:hover {
-    background: $fontdialog_normal_bgcolor;
-}
-
-QListWidget::indicator:unchecked {
-    background: $checkbox_bgcolor;
-}
-QListWidget::indicator:checked {
-    border: 4px solid $checkbox_bgcolor;
-    background: $checkbox_checked_color;
-}
-LoadOrderLabel {
-    color: $fontdialog_normal_textcolor;
 }

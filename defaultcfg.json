@@ -4,10 +4,6 @@
       "values": [false, true],
       "acronym": "ai"
     },
-    "show_fonts_in_dialoglist": {
-      "values": [false, true],
-      "acronym": "sfid"
-    },
     "linenumbers": {
       "values": [false, true],
       "acronym": "ln"
