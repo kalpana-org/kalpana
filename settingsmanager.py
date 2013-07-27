@@ -42,6 +42,8 @@ class SettingsManager(QObject):
         super().__init__()
         self.paths = get_paths(configdir)
 
+        self.current_cssdata = ''
+
         self.settings = {}
         self.allowed_setting_values = {}
         self.setting_names = {}
@@ -174,11 +176,12 @@ class SettingsManager(QObject):
         if not os.path.exists(self.paths['theme']):
             defaultcss = common.local_path(join('themes','default.css'))
             shutil.copyfile(defaultcss, self.paths['theme'])
-        stylesheet = common.read_stylesheet(self.paths['theme'])
+        cssdata = common.read_file(self.paths['theme'])
         # plugin_themes = [p.get_theme() for p in self.plugins]
         # stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
-        self.set_stylesheet.emit(stylesheet)
-
+        if cssdata != self.current_cssdata:
+            self.set_stylesheet.emit(common.parse_stylesheet(cssdata))
+        self.current_cssdata = cssdata
 
 
 ## ==== Functions ========================================================= ##
