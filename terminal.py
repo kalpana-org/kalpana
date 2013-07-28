@@ -67,8 +67,6 @@ class Terminal(QtGui.QSplitter):
 
     search_and_replace = pyqtSignal(str)
     give_up_focus = pyqtSignal()
-    open_loadorder_dialog = pyqtSignal()
-    reload_theme = pyqtSignal()
     goto_line = pyqtSignal(str)
 
     def __init__(self, parent, get_filepath):
@@ -292,6 +290,7 @@ class Terminal(QtGui.QSplitter):
 
 
     # ==== Commands ============================== #
+
     def cmd_open(self, arg):
         fname = arg.lstrip('!').lstrip()
         self.request_open_file.emit(fname, arg.startswith('!'))
@@ -306,7 +305,6 @@ class Terminal(QtGui.QSplitter):
     def cmd_quit(self, arg):
         self.request_quit.emit(arg.startswith('!'))
 
-
     def cmd_search_and_replace(self, arg):
         self.search_and_replace.emit(arg)
 
@@ -317,9 +315,6 @@ class Terminal(QtGui.QSplitter):
             self.print_(self.cmds[arg][1])
         else:
             self.error('No such command')
-
-    def cmd_reload_theme(self, arg):
-        self.reload_theme.emit()
 
     def cmd_set(self, arg):
         self.manage_settings.emit(arg)
@@ -335,7 +330,6 @@ class Terminal(QtGui.QSplitter):
         'q': (cmd_quit, 'Quit Kalpana'),
         '/': (cmd_search_and_replace, 'Search/replace'),
         '?': (cmd_help, 'List commands or help for [command]'),
-        'rt': (cmd_reload_theme, 'Reload theme from config'),
         ':': (cmd_goto_line, 'Go to line'),
         '=': (cmd_set, 'Manage settings')
     }

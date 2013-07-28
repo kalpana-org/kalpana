@@ -1,36 +1,38 @@
 {
-  "settings": {
-    "autoindent": {
-      "values": [false, true],
-      "acronym": "ai"
-    },
-    "show_fonts_in_dialoglist": {
-      "values": [false, true],
-      "acronym": "sfid"
-    },
-    "linenumbers": {
-      "values": [false, true],
-      "acronym": "ln"
-    },
-    "open_in_new_window": {
-      "values": [false, true],
-      "acronym": "nw"
-    },
-    "vscrollbar": {
-      "values": ["on", "off", "auto"],
-      "acronym": "vs"
-    },
-    "start_in_term": {
-      "values": [true, false],
-      "acronym": "sit"
-    },
-    "cmd_separator": {
-      "values": ["§"],
-      "acronym": "cs"
-    },
-    "terminal_key": {
-      "values": ["Escape"],
-      "acronym": "tk"
-    }
+  "ai": {
+    "type": "bool",
+    "default": false,
+    "desc": "auto-indent"
+  },
+  "ln": {
+    "type": "bool",
+    "default": false,
+    "desc": "line numbers"
+  },
+  "nw": {
+    "type": "bool",
+    "default": false,
+    "desc": "open in new window"
+  },
+  "vs": {
+    "type": "str",
+    "allowed values": ["on", "off", "auto"],
+    "default": "on",
+    "desc": "vertical scrollbar"
+  },
+  "sit": {
+    "type": "bool",
+    "default": false,
+    "desc": "start in terminal"
+  },
+  "cs": {
+    "type": "str",
+    "default": "§",
+    "desc": "terminal command separator"
+  },
+  "tk": {
+    "type": "keycode",
+    "default": "Escape",
+    "desc": "terminal key"
   }
 }

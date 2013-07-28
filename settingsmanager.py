@@ -16,10 +16,9 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from os.path import join, exists, dirname, isfile
+from os.path import join, exists, dirname
 import re
 import shutil
-import sys
 
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, QObject, Qt
@@ -42,10 +41,12 @@ class SettingsManager(QObject):
         super().__init__()
         self.paths = get_paths(configdir)
 
-        self.settings = {}
-        self.allowed_setting_values = {}
-        self.setting_names = {}
+        self.current_cssdata = ''
 
+        self.default_config = get_default_config()
+        self.settings = {}
+
+    # ======= Dict wrappers =============
     def get_setting(self, key):
         return self.settings[key]
 
@@ -54,33 +55,27 @@ class SettingsManager(QObject):
 
     def get_config_directory(self):
         return self.paths['config_dir']
+    # ===================================
+
 
     def load_settings(self, refresh_only=False):
         """
         Load settings from the main config file.
         """
-        default_config_path = common.local_path('defaultcfg.json')
-        settings_dict = read_config(self.paths['config_file'],
-                                    default_config_path)
+        self.settings = read_config(self.paths['config_file'], self.default_config)
 
-        loaded_settings = settings_dict['settings']
-        self.allowed_setting_values = settings_dict['legal_values']
-        self.setting_names = settings_dict['acronyms']
-
-        if loaded_settings['start_in_term'] and not refresh_only:
+        if self.settings['sit'] and not refresh_only:
             self.switch_focus_to_terminal.emit()
 
-        for key, value in loaded_settings.items():
-            self.set_setting(key, value, quiet=True)
+        for key, value in self.settings.items():
+            self.update_runtime_setting(key, value)
 
-        # Make sure any potential corrected errors are saved
         self.save_settings()
-
         self.read_plugin_config.emit()
         self.set_theme()
 
 
-    def manage_settings(self, argument):
+    def change_setting(self, argument):
         """
         Called from terminal.
         Allowed value for argument:
@@ -94,8 +89,8 @@ class SettingsManager(QObject):
         or the structure of argument does not follow above specification.
         """
         if not argument.strip():
-            self.print_.emit('Settings: {}'\
-                             .format(', '.join(sorted(self.setting_names))))
+            self.print_.emit('Settings: {}'.format(', '.\
+                             join(sorted(self.default_config.keys()))))
             return
 
         arg_rx = re.compile(r"""
@@ -108,65 +103,58 @@ class SettingsManager(QObject):
             $
         """, re.VERBOSE)
         parsed_arg = arg_rx.match(argument)
-        acronym = parsed_arg.group('setting')
-        if acronym not in self.setting_names:
-            self.error.emit('No such setting: {}'.format(acronym))
+        setting = parsed_arg.group('setting')
+        if setting not in self.default_config:
+            self.error.emit('No such setting: {}'.format(setting))
             return
-        name = self.setting_names[acronym]
 
         # Set new value if there is one
         if parsed_arg.group('value'):
             new_value = parsed_arg.group('value')
-            success = self.set_setting(name, new_value)
-            if success:
+            parsed_value = parse_terminal_setting(new_value, self.default_config[setting])
+            if parsed_value is None:
+                self.error.emit('Wrong value {} for setting: {}'\
+                                .format(new_value, setting))
+            else:
+                self.update_runtime_setting(setting, parsed_value)
+                self.settings[setting] = parsed_value
                 self.save_settings()
+                self.print_.emit('{} now set to: {}'.format(setting, parsed_value))
         # Otherwise just print the current value
         else:
-            value = self.settings[name]
+            def get_allowed_values(settings_info):
+                out = settings_info['type']
+                if 'allowed values' in settings_info:
+                    out += ': ' + ', '.join(map(str, settings_info['allowed values']))
+                return out
+            value = self.settings[setting]
+            name = self.default_config[setting]['desc']
             self.print_.emit('{} = {} ({})'.format(name, value,
-                ', '.join([str(x) for x in self.allowed_setting_values[name]])))
+                             get_allowed_values(self.default_config[setting])))
 
-
-    def set_setting(self, key, new_value, quiet=False):
+    def update_runtime_setting(self, key, new_value):
         """
-        Set the value of a setting the the specified new value.
-
-        key is the name of the setting.
-        new_value is the new value.
-        quiet means only errors will be printed.
+        Change specific runtime-settings.
         """
-        # TODO: this needs to be better
-        if isinstance(new_value, str):
-            if new_value.lower() in ('n', 'false'):
-                new_value = False
-            elif new_value.lower() in ('y', 'true'):
-                new_value = True
-
-        if len(self.allowed_setting_values[key]) > 1 \
-                and new_value not in self.allowed_setting_values[key]:
-            self.error.emit('Wrong value {} for setting: {}'\
-                            .format(new_value, key))
-            return False
-        self.settings[key] = new_value
-        if not quiet:
-            self.print_.emit('{} now set to: {}'.format(key, new_value))
-
-        # Setting specific settings... yyyeah.
-        if key == 'linenumbers':
+        if key == 'ln':
             self.set_number_bar_visibility.emit(new_value)
-        elif key == 'vscrollbar':
+        elif key == 'vs':
             policy = {'on': Qt.ScrollBarAlwaysOn,
                       'auto': Qt.ScrollBarAsNeeded,
-                      'off':Qt.ScrollBarAlwaysOff}
+                      'off': Qt.ScrollBarAlwaysOff}
             self.set_vscrollbar_visibility.emit(policy[new_value])
-        elif key == 'cmd_separator':
+        elif key == 'cs':
             self.set_terminal_command_separator.emit(new_value)
-        elif key == 'terminal_key':
+        elif key == 'tk':
             self.set_terminal_key.emit(new_value)
-        return True
 
     def save_settings(self):
-        write_config(self.paths['config_file'], self.settings)
+        """ Save the settings to the config file """
+        config_file_path = self.paths['config_file']
+        if not exists(dirname(config_file_path)):
+            os.makedirs(dirname(config_file_path), mode=0o755, exist_ok=True)
+            print('Creating config path...')
+        common.write_json(config_file_path, self.settings)
         self.write_plugin_config.emit()
 
     def set_theme(self):
@@ -174,64 +162,65 @@ class SettingsManager(QObject):
         if not os.path.exists(self.paths['theme']):
             defaultcss = common.local_path(join('themes','default.css'))
             shutil.copyfile(defaultcss, self.paths['theme'])
-        stylesheet = common.read_stylesheet(self.paths['theme'])
+        cssdata = common.read_file(self.paths['theme'])
         # plugin_themes = [p.get_theme() for p in self.plugins]
         # stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
-        self.set_stylesheet.emit(stylesheet)
-
+        if cssdata != self.current_cssdata:
+            self.set_stylesheet.emit(common.parse_stylesheet(cssdata))
+        self.current_cssdata = cssdata
 
 
 ## ==== Functions ========================================================= ##
 
-def read_config(config_file_path, default_config):
-    """ Read the config and update the appropriate variables. """
+def allowed_value(value, settings_info):
+    if 'allowed values' in settings_info:
+        if value not in settings_info['allowed values']:
+            return False
+    return True
+
+def parse_terminal_setting(value, settings_info):
+    if settings_info['type'] == 'bool':
+        if value.lower() in ('1', 'y', 'true'):
+            return True
+        elif value.lower() in ('0', 'n', 'false'):
+            return False
+        else:
+            return None
+    if not allowed_value(value, settings_info):
+        return None
+    return value
+
+def get_default_config():
     default_config = common.read_json(common.local_path('defaultcfg.json'))
+    return default_config
 
-    legal_values = {k:v['values'] for k,v \
-                    in default_config['settings'].items()}
-    acronyms = {v['acronym']:name for name,v \
-                    in default_config['settings'].items()}
-
-    def check_config(cfg, defcfg):
-        """ Make sure the config is valid """
-        out = {}
-        for key, section in defcfg.items():
-            out[key] = cfg.get(key, section['values'][0])
-            # If there are restrictions on the value, set to the default
-            if len(legal_values[key]) > 1 \
-                        and out[key] not in legal_values[key]:
-                print('config option "{}" has illegal value: {}'
-                      ''.format(key, out[key]))
-                out[key] = section['values'][0]
-        return out
-
+def read_config(config_file_path, default_config):
+    default_settings = {k:v['default'] for k,v in default_config.items()}
     try:
-        rawcfg = common.read_json(config_file_path)
-    except (IOError, ValueError):
+        raw_settings = common.read_json(config_file_path)
+    except:
         print('no/bad config')
-        cfg = check_config({}, default_config['settings'])
-    else:
-        cfg = check_config(rawcfg['settings'], default_config['settings'])
+        return default_settings
 
-    return {'settings': cfg,
-            'legal_values': legal_values,
-            'acronyms': acronyms}
+    raw_settings = {k:v for k,v in raw_settings.items()
+                    if k in default_settings\
+                        and is_valid_setting(v, default_config[k])}
 
+    settings = default_settings.copy()
+    settings.update(raw_settings)
+    return settings
 
-def write_config(config_file_path, settings):
-    """
-    Read the config, update the info with appropriate variables (optional)
-    and then overwrite the old file with the updated config.
-    """
-    cfg = {
-        'settings': settings
-    }
+def is_valid_setting(value, settings_info):
+    # TODO: Might do some real checking wrt keycode in the future eh?
+    if (settings_info['type'] == 'str' and type(value) != str)\
+    or (settings_info['type'] == 'bool' and type(value) != bool)\
+    or (settings_info['type'] == 'keycode' and type(value) != str):
+        return False
+    # lol fuk u if the type is something else eheh
 
-    if not exists(dirname(config_file_path)):
-        os.makedirs(dirname(config_file_path), mode=0o755, exist_ok=True)
-        print('Creating config path...')
-    common.write_json(config_file_path, cfg)
-
+    if not allowed_value(value, settings_info):
+        return False
+    return True
 
 def get_paths(custom_config_dir):
     import platform
