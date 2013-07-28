@@ -77,7 +77,7 @@ class TextArea(LineTextWidget):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if self.get_settings('autoindent'):
+        if self.get_settings('ai'):
             cursor = self.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document().findBlockByNumber(blocknum-1)
@@ -233,7 +233,7 @@ class TextArea(LineTextWidget):
         if not os.path.isfile(filename):
             self.error.emit('File not found!')
             return
-        if self.get_settings('open_in_new_window') and not self.new_and_empty():
+        if self.get_settings('nw') and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0], filename])
         elif not self.document().isModified() or force:
             success = self.open_file(filename)
@@ -268,7 +268,7 @@ class TextArea(LineTextWidget):
         """
         Main new file function
         """
-        if self.get_settings('open_in_new_window') and not self.new_and_empty():
+        if self.get_settings('nw') and not self.new_and_empty():
             subprocess.Popen([sys.executable, sys.argv[0]])
             return True
         elif not self.document().isModified() or force:
