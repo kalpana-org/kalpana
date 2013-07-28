@@ -173,8 +173,10 @@ class SettingsManager(QObject):
 ## ==== Functions ========================================================= ##
 
 def allowed_value(value, settings_info):
-    return 'allowed values' in settings_info \
-            and value in settings_info['allowed values']
+    if 'allowed values' in settings_info:
+        if value not in settings_info['allowed values']:
+            return False
+    return True
 
 def parse_terminal_setting(value, settings_info):
     if settings_info['type'] == 'bool':
