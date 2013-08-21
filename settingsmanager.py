@@ -40,7 +40,8 @@ class SettingsManager(QObject):
     def __init__(self, configdir):
         super().__init__()
         self.paths = get_paths(configdir)
-
+        if not exists(self.paths['config_dir']):
+            os.makedirs(self.paths['config_dir'], mode=0o755, exist_ok=True)
         self.current_cssdata = ''
 
         self.default_config = get_default_config()
@@ -151,9 +152,6 @@ class SettingsManager(QObject):
     def save_settings(self):
         """ Save the settings to the config file """
         config_file_path = self.paths['config_file']
-        if not exists(dirname(config_file_path)):
-            os.makedirs(dirname(config_file_path), mode=0o755, exist_ok=True)
-            print('Creating config path...')
         common.write_json(config_file_path, self.settings)
         self.write_plugin_config.emit()
 
