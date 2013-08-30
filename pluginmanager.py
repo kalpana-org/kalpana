@@ -70,7 +70,7 @@ def get_plugins(plugin_root_path, loadorder_path):
     if not os.path.exists(loadorder_path):
         open(loadorder_path, 'a').close()
     loadorder = [l for l in common.read_file(loadorder_path).splitlines()
-                 if not l.startswith('#')]
+                 if l and not l.startswith('#')]
 
     out = []
     for plugin_name in loadorder:
