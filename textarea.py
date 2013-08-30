@@ -64,7 +64,7 @@ class TextArea(LineTextWidget):
 
     def goto_line(self, raw_line_num):
         if type(raw_line_num) == str:
-            if raw_line_num.strip().isdigit():
+            if not raw_line_num.strip().isdigit():
                 self.error.emit('Invalid line number')
                 return
             raw_line_num = int(raw_line_num.strip())
