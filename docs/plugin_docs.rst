@@ -33,24 +33,11 @@ common includes some miscellaneous useful functions. Import it with `import libs
 
 See https://github.com/nycz/libsyntyche for more info.
 
-Functions
-=========
-read_json(path)
-    * Return the content of the json-config file as a corresponding python object (usually a dict, tuple or list)
-
-write_json(path, data)
-    * Write the ``data`` to the specified ``path``.
-    * ``data`` can be any python object (see the json library docs for more info) but most times you would want to use a dict, list or tuple. Lists' and tuples' order will be preserved.
-
 
 pluginlib Reference
 -------------------
 For all references to Qt classes, see http://pyqt.sourceforge.net/Docs/PyQt4/classes.html
 
-Constants
-=========
-NORTH, SOUTH, EAST, WEST
-    * The sides to which a widget can be added in ``add_widget()``.
 
 Fields
 ======
@@ -71,28 +58,19 @@ GUIPlugin.hotkeys
 
 "Events"
 ========
-*These methods are called by Kalpana itself. You most likely do not want to call them manually. The scare quotes are there to remind you that they are regular functions and all you need to do is overload them. Nothing fancy.*
-
-GUIPlugin.start(self)
-    * Is called when the plugin has been initiated. This is the equivalent of a constructor. **Do not use __init__()!**
-
-GUIPlugin.config_changed(self)
-    * Is called when the (text in the) document is modified.
-
-GUIPlugin.file_saved(self)
-    * Is called when the file is saved.
+GUIPlugin.__init__(self, objects, get_path)
+    * objects is a dict:
+        * 'mainwindow': mainwindow,
+        * 'textarea': textarea,
+        * 'terminal': terminal,
+        * 'settings manager': settings_manager
+    * get_path is a functions that returns a string with the path to the plugin's directory. This is where config files should be stored.
 
 GUIPlugin.read_config(self)
     * Is called when the config is (re)loaded.
 
 GUIPlugin.write_config(self)
     * Is called when the config is saved.
-
-GUIPlugin.theme_config(self)
-    * Is called whenever the theme is reloaded.
-    * Must return a dict with strings to be replaced with strings in the plugin's ``qtstylesheet.css``. See ``defaultcfg.json`` and ``qtstylesheet.css`` for real life examples.
-    * Do not overload it if you do not wish to modify the stylesheet with the config.
-    * *Example:* {"details_color": "#111", "term_fontfamily": "Monospace"}
 
 
 Regular methods
@@ -102,30 +80,3 @@ Regular methods
 GUIPlugin.add_widget(widget, side)
     * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
     * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
-
-GUIPlugin.get_path()
-    * Return a string with the path to the plugin's directory. This is where config files should be stored.
-
-GUIPlugin.get_filepath()
-    * Return the path of the file currently open in Kalpana.
-    * If no file is open or saved, an empty string is returned.
-
-GUIPlugin.get_text()
-    * Return the text currently in the main textarea in Kalpana. This is a wrapper around ``QTextDocument.toPlainText()``.
-
-GUIPlugin.new_file(force=False)
-    * Try to open a new file.
-    * If ``force`` is True, ignore unsaved changes and create a new file anyway.
-    * Return True if it was successful, otherwise False
-
-GUIPlugin.open_file(filename)
-    * Try to open another file. ``filename`` is the file to be opened.
-    * Return True if it was successful, otherwise False
-
-GUIPlugin.save_file(filename="")
-    * Try to save the currently open file.
-    * If ``filename`` is not specified, save the file with the current filename.
-    * Return True if it was successful, otherwise False
-
-GUIPlugin.quit()
-    * Try to close Kalpana. Will not work unless all changes to the current file is saved.

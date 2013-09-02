@@ -51,17 +51,15 @@ class MainWindow(QtGui.QFrame):
 
 
     def create_ui(self, textarea, terminal):
-        vert_layout = QtGui.QVBoxLayout(self)
-        common.kill_theming(vert_layout)
+        self.outer_v_layout = QtGui.QVBoxLayout(self)
+        common.kill_theming(self.outer_v_layout)
 
-        horz_layout = QtGui.QHBoxLayout()
-        common.kill_theming(horz_layout)
-        vert_layout.addLayout(horz_layout)
+        self.inner_h_layout = QtGui.QHBoxLayout()
+        common.kill_theming(self.inner_h_layout)
+        self.outer_v_layout.addLayout(self.inner_h_layout)
 
-        horz_layout.addWidget(textarea)
-        vert_layout.addWidget(terminal)
-
-        return vert_layout, horz_layout
+        self.inner_h_layout.addWidget(textarea)
+        self.outer_v_layout.addWidget(terminal)
 
 
     # Override

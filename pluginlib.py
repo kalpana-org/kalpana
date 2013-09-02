@@ -16,23 +16,13 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
-NORTH, SOUTH, EAST, WEST, = list(range(4))
-
 class GUIPlugin:
     hotkeys = {}
     commands = {}
 
-    def __init__(self, callbacks, path):
-        self.get_text, self.get_filepath, self.add_widget,\
-            self.new_file, self.open_file, self.save_file,\
-            self.quit = callbacks
-
-        self.get_path = lambda:path
-
-        self.start()
-
-    def start(self):
-        pass
+    def __init__(self, objects, get_path):
+        self.objects = objects
+        self.get_path = get_path
 
     def read_config(self):
         pass
@@ -40,15 +30,9 @@ class GUIPlugin:
     def write_config(self):
         pass
 
-    def contents_changed(self):
-        pass
-
-    def file_saved(self):
-        pass
-
-    def get_theme(self):
-        from os.path import isfile, join
-        from libsyntyche.common import read_stylesheet
-        if not isfile(join(self.path, 'stylesheet.css')):
-            return ''
-        return read_stylesheet(join(self.path, 'stylesheet.css'))
+    # def get_theme(self):
+    #     from os.path import isfile, join
+    #     from libsyntyche.common import read_stylesheet
+    #     if not isfile(join(self.path, 'stylesheet.css')):
+    #         return ''
+    #     return read_stylesheet(join(self.path, 'stylesheet.css'))

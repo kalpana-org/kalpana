@@ -46,14 +46,12 @@ class Kalpana(QtGui.QApplication):
             = create_objects(configdir)
 
         # UI
-        vert_layout, horz_layout \
-            = self.mainwindow.create_ui(self.textarea, self.terminal)
+        self.mainwindow.create_ui(self.textarea, self.terminal)
 
         # Plugins
-        self.plugin_manager \
-            = PluginManager(self.settings_manager,
-                            vert_layout,horz_layout,
-                            self.textarea, self.mainwindow)
+        self.plugin_manager = PluginManager(self.settings_manager,
+                    self.mainwindow, self.textarea, self.terminal)
+        
         self.terminal.update_commands(self.plugin_manager.plugin_commands)
 
         # Signals

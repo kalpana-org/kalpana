@@ -37,27 +37,14 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(settings_manager, vert_layout, horz_layout, textarea, mainwindow):
-    def add_widget(widget, side):
-        from pluginlib import NORTH, SOUTH, EAST, WEST
-        if side in (NORTH, SOUTH):
-            layout = vert_layout
-        elif side in (WEST, EAST):
-            layout = horz_layout
-        if side in (NORTH, WEST):
-            layout.insertWidget(0, widget)
-        elif side in (SOUTH, EAST):
-            layout.addWidget(widget)
+def init_plugins(settings_manager, mainwindow, textarea, terminal):
 
-    callbacks = [
-        textarea.document().toPlainText,   # get_text()
-        lambda:textarea.file_path,         # get_filepath()
-        add_widget,                        # add_widget()
-        textarea.new_file,                 # new_file()
-        textarea.open_file,                # open_file()
-        textarea.save_file,                # save_file()
-        mainwindow.close,                  # quit()
-    ]
+    objects = {
+        'mainwindow': mainwindow,
+        'textarea': textarea,
+        'terminal': terminal,
+        'settings manager': settings_manager
+    }
     paths = settings_manager.paths
 
     plugins = []
@@ -69,12 +56,10 @@ def init_plugins(settings_manager, vert_layout, horz_layout, textarea, mainwindo
             print('"{0}" is not a valid plugin and was not loaded.'\
                   .format(name))
         else:
-            p = plugin_constructor(callbacks, path)
+            p = plugin_constructor(objects, lambda:path)
             plugins.append(p)
             settings_manager.read_plugin_config.connect(p.read_config)
             settings_manager.write_plugin_config.connect(p.write_config)
-            textarea.file_saved.connect(p.file_saved)
-            textarea.document().contentsChanged.connect(p.contents_changed)
             plugin_commands.update(p.commands)
 
     return plugins, plugin_commands
@@ -85,7 +70,7 @@ def get_plugins(plugin_root_path, loadorder_path):
     if not os.path.exists(loadorder_path):
         open(loadorder_path, 'w').close()
     loadorder = [l for l in common.read_file(loadorder_path).splitlines()
-                 if not l.startswith('#')]
+                 if l and not l.startswith('#')]
 
     out = []
     for plugin_name in loadorder:

@@ -62,11 +62,13 @@ class TextArea(LineTextWidget):
         self.wordcount_changed.emit(wordcount)
 
 
-    def goto_line(self, line_str):
-        if not line_str.strip().isdigit():
-            self.error.emit('Invalid line number')
-            return
-        line_num = min(int(line_str.strip()), self.document().blockCount())
+    def goto_line(self, raw_line_num):
+        if type(raw_line_num) == str:
+            if not raw_line_num.strip().isdigit():
+                self.error.emit('Invalid line number')
+                return
+            raw_line_num = int(raw_line_num.strip())
+        line_num = min(raw_line_num, self.document().blockCount())
         block = self.document().findBlockByNumber(line_num - 1)
         new_cursor = QtGui.QTextCursor(block)
         self.setTextCursor(new_cursor)
