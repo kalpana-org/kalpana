@@ -67,6 +67,7 @@ class Terminal(QtGui.QSplitter):
 
     search_and_replace = pyqtSignal(str)
     give_up_focus = pyqtSignal()
+    count_words = pyqtSignal()
     goto_line = pyqtSignal(str)
 
     def __init__(self, parent, get_filepath):
@@ -308,6 +309,9 @@ class Terminal(QtGui.QSplitter):
     def cmd_search_and_replace(self, arg):
         self.search_and_replace.emit(arg)
 
+    def cmd_count_words(self, arg):
+        self.count_words.emit()
+
     def cmd_help(self, arg):
         if not arg:
             self.print_(' '.join(sorted(self.cmds)))
@@ -331,5 +335,6 @@ class Terminal(QtGui.QSplitter):
         '/': (cmd_search_and_replace, 'Search/replace'),
         '?': (cmd_help, 'List commands or help for [command]'),
         ':': (cmd_goto_line, 'Go to line'),
+        'l': (cmd_count_words, 'Print wordcount'),
         '=': (cmd_set, 'Manage settings')
     }

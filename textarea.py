@@ -56,10 +56,14 @@ class TextArea(LineTextWidget):
 
         self.file_path = ''
 
+    def get_wordcount(self):
+        return len(re.findall(r'\S+', self.document().toPlainText()))
+
+    def print_wordcount(self):
+        self.print_.emit('Words: {}'.format(self.get_wordcount()))
 
     def contents_changed(self):
-        wordcount = len(re.findall(r'\S+', self.document().toPlainText()))
-        self.wordcount_changed.emit(wordcount)
+        self.wordcount_changed.emit(self.get_wordcount())
 
 
     def goto_line(self, raw_line_num):

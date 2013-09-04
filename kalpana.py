@@ -148,6 +148,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (textarea.hide_terminal, terminal.hide),
         (terminal.give_up_focus, textarea.setFocus),
         (terminal.goto_line, textarea.goto_line),
+        (terminal.count_words, textarea.print_wordcount),
         (terminal.search_and_replace, textarea.search_and_replace),
         (terminal.manage_settings, settings_manager.change_setting),
 
