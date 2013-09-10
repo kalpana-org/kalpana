@@ -21,10 +21,10 @@ import os.path
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
 
-from libsyntyche.common import set_hotkey
+from libsyntyche.common import set_hotkey, kill_theming
 
 
-class Terminal(QtGui.QSplitter):
+class Terminal(QtGui.QWidget):
 
     class TerminalInputBox(QtGui.QLineEdit):
         tab_pressed = pyqtSignal()
@@ -77,21 +77,19 @@ class Terminal(QtGui.QSplitter):
 
         self.command_separator = ' '
 
-        # Splitter settings
-        self.setHandleWidth(2)
-        set_hotkey('Alt+Left', self, self.move_splitter_left)
-        set_hotkey('Alt+Right', self, self.move_splitter_right)
+        # Create layout
+        layout = QtGui.QVBoxLayout(self)
+        kill_theming(layout)
 
         # I/O fields creation
         self.input_term = self.TerminalInputBox(self)
         self.output_term = self.TerminalOutputBox(self)
         self.output_term.setDisabled(True)
-        self.output_term.setAlignment(Qt.AlignRight)
-
-        self.addWidget(self.input_term)
-        self.addWidget(self.output_term)
+        layout.addWidget(self.input_term)
+        layout.addWidget(self.output_term)
 
         self.input_term.returnPressed.connect(self.parse_command)
+
         # Autocomplete
         self.ac_suggestions = []
         self.ac_index = 0
