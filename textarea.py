@@ -35,6 +35,8 @@ class TextArea(LineTextWidget):
     wordcount_changed = pyqtSignal(int)
     modification_changed = pyqtSignal(bool)
     filename_changed = pyqtSignal(str)
+    file_created = pyqtSignal()
+    file_opened = pyqtSignal()
     file_saved = pyqtSignal()
 
     def __init__(self, parent, get_settings):
@@ -284,6 +286,7 @@ class TextArea(LineTextWidget):
             self.document().clear()
             self.document().setModified(False)
             self.set_file_name(new=True)
+            self.file_created.emit()
             return True
         else:
             return False
@@ -305,6 +308,7 @@ class TextArea(LineTextWidget):
                 self.document().setModified(False)
                 self.set_file_name(filename)
                 self.moveCursor(QtGui.QTextCursor.Start)
+                self.file_opened.emit()
                 return True
         return False
 
