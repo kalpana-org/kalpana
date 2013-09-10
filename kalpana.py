@@ -51,7 +51,7 @@ class Kalpana(QtGui.QApplication):
         # Plugins
         self.plugin_manager = PluginManager(self.settings_manager,
                     self.mainwindow, self.textarea, self.terminal)
-        
+
         self.terminal.update_commands(self.plugin_manager.plugin_commands)
 
         # Signals

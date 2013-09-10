@@ -251,6 +251,9 @@ class TextArea(LineTextWidget):
 
     def request_save_file(self, filename='', force=False):
         if not filename:
+            # Don't save if there's nothing to save
+            if not self.document().isModified():
+                return
             if self.file_path:
                 result = self.save_file()
                 if not result:
