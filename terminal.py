@@ -333,6 +333,6 @@ class Terminal(QtGui.QWidget):
         '/': (cmd_search_and_replace, 'Search/replace'),
         '?': (cmd_help, 'List commands or help for [command]'),
         ':': (cmd_goto_line, 'Go to line'),
-        'l': (cmd_count_words, 'Print wordcount'),
+        'c': (cmd_count_words, 'Print wordcount'),
         '=': (cmd_set, 'Manage settings')
     }
