@@ -119,7 +119,7 @@ class Terminal(QtGui.QWidget):
             run_function = lambda _,arg: run_plugin_command(function, arg)
             plugin_commands[key] = (run_function, help)
 
-        self.cmds.update(plugin_commands)
+        self.commands.update(plugin_commands)
 
     def show(self):
         super().show()
@@ -148,9 +148,9 @@ class Terminal(QtGui.QWidget):
     # ==== Autocomplete ========================== #
 
     def get_autocompletable_text(self):
-        cmds = ('o', 'o!', 's', 's!')
+        commands = ('o', 'o!', 's', 's!')
         text = self.input_term.text()
-        for c in cmds:
+        for c in commands:
             if text.startswith(c + ' '):
                 return text[:len(c)+1], text[len(c)+1:]
         return None, None
@@ -263,9 +263,9 @@ class Terminal(QtGui.QWidget):
         self.output_term.setText('')
 
         command = text[0].lower()
-        if command in self.cmds:
+        if command in self.commands:
             # Run command
-            self.cmds[command][0](self, text[1:].strip())
+            self.commands[command][0](self, text[1:].strip())
         else:
             self.error('No such command (? for help)')
 
@@ -294,9 +294,9 @@ class Terminal(QtGui.QWidget):
 
     def cmd_help(self, arg):
         if not arg:
-            self.print_(' '.join(sorted(self.cmds)))
-        elif arg in self.cmds:
-            self.print_(self.cmds[arg][1])
+            self.print_(' '.join(sorted(self.commands)))
+        elif arg in self.commands:
+            self.print_(self.commands[arg][1])
         else:
             self.error('No such command')
 
@@ -307,7 +307,7 @@ class Terminal(QtGui.QWidget):
         self.goto_line.emit(arg)
 
 
-    cmds = {
+    commands = {
         'o': (cmd_open, 'Open [file]'),
         'n': (cmd_new, 'Open new file'),
         's': (cmd_save, 'Save (as) [file]'),
