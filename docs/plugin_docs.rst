@@ -38,6 +38,8 @@ pluginlib Reference
 -------------------
 For all references to Qt classes, see http://pyqt.sourceforge.net/Docs/PyQt4/classes.html
 
+**Do not forget the to call the super-class' constructor in your UserPlugin! Eg.:** ``super().__init__(objects, get_path)``
+
 
 Fields
 ======
@@ -47,8 +49,7 @@ GUIPlugin.commands
     * *Example:* ``{'x': (self.explode, 'This will make everything explode')}``
     * The function must take one argument (the terminal argument) which will be a string (it may be an empty string).
     * *Example:* ``def explode(self, argument):``
-    * The function may return a tuple with a string to be printed to the terminal and a bool indication an error (``True`` for error, ``False`` for no error). If nothing is return, nothing will be printed.
-    * *Example:* ``("This is awesome", False)`` or ``("Oh shit everything blew up", True)``
+    * The return value does nothing.
 
 
 GUIPlugin.hotkeys
@@ -64,7 +65,7 @@ GUIPlugin.__init__(self, objects, get_path)
         * 'textarea': textarea,
         * 'terminal': terminal,
         * 'settings manager': settings_manager
-    * get_path is a functions that returns a string with the path to the plugin's directory. This is where config files should be stored.
+    * get_path is a function that returns a string with the path to the plugin's directory. This is where config files should be stored.
 
 GUIPlugin.read_config(self)
     * Is called when the config is (re)loaded.
@@ -77,6 +78,8 @@ Regular methods
 ===============
 *These methods will never be called by Kalpana. You most likely do not want to overload them with your own versions.*
 
-GUIPlugin.add_widget(widget, side)
-    * Add a widget (must be a ``QtGui.QWidget``) to the specified side of Kalpana's main textarea. The sides are ``NORTH``, ``SOUTH``, ``EAST`` or ``WEST`` (see above).
-    * All widgets are added to the right of *the widget added just before*. This means that the earlier a plugin is loaded, the farther to the left it will be, while still on the specified side of the textarea.
+GUIPlugin.print_(self, text)
+    * text will be shown in the terminal
+
+GUIPlugin.error(self, text)
+    * text will be shown as an error in the terminal

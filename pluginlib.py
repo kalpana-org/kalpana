@@ -15,12 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from PyQt4.QtCore import pyqtSignal, QObject
 
-class GUIPlugin:
+class GUIPlugin(QObject):
     hotkeys = {}
     commands = {}
+    signal_print = pyqtSignal(str)
+    signal_error = pyqtSignal(str)
 
     def __init__(self, objects, get_path):
+        super().__init__()
         self.objects = objects
         self.get_path = get_path
 
@@ -29,6 +33,12 @@ class GUIPlugin:
 
     def write_config(self):
         pass
+
+    def print_(self, arg):
+        self.signal_print.emit(arg)
+
+    def error(self, arg):
+        self.signal_error.emit(arg)
 
     # def get_theme(self):
     #     from os.path import isfile, join

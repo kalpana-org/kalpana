@@ -62,21 +62,6 @@ class Terminal(GenericTerminal):
         self.hide()
 
     def update_commands(self, plugin_commands):
-        # Plugins
-        def run_plugin_command(function, arg):
-            result = function(arg)
-            if result:
-                text, error = result
-                if error:
-                    self.error(text)
-                else:
-                    self.print_(text)
-
-        for key, value in plugin_commands.items():
-            function, help = value
-            run_function = lambda _,arg: run_plugin_command(function, arg)
-            plugin_commands[key] = (run_function, help)
-
         self.commands.update(plugin_commands)
 
     def show(self):
