@@ -75,10 +75,6 @@ class Terminal(GenericTerminal):
         else:
             self.show()
 
-    def prompt_command(self, cmd):
-        self.input_term.setText(cmd + ' ')
-        self.show()
-
     # ==== Autocomplete ========================== #
 
     def get_autocompletable_text(self):

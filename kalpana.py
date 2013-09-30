@@ -110,9 +110,9 @@ def create_objects(configdir):
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     hotkeys = {
         'Ctrl+N': textarea.request_new_file,
-        'Ctrl+O': lambda:terminal.prompt_command('o'),
+        'Ctrl+O': lambda:terminal.prompt('o '),
         'Ctrl+S': textarea.request_save_file,
-        'Ctrl+Shift+S': lambda:terminal.prompt_command('s'),
+        'Ctrl+Shift+S': lambda:terminal.prompt('s '),
         'F3': textarea.search_next,
         # terminal hotkey is automagically set when the config is loaded
     }
@@ -135,7 +135,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (settings_manager.error, terminal.error),
         (textarea.print_, terminal.print_),
         (textarea.error, terminal.error),
-        (textarea.prompt_command, terminal.prompt_command),
+        (textarea.prompt, terminal.prompt),
         (mainwindow.error, terminal.error),
 
         # File operations

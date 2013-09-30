@@ -60,6 +60,7 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal):
             plugins.append(p)
             p.signal_print.connect(terminal.print_)
             p.signal_error.connect(terminal.error)
+            p.signal_prompt.connect(terminal.prompt)
             settings_manager.read_plugin_config.connect(p.read_config)
             settings_manager.write_plugin_config.connect(p.write_config)
             plugin_commands.update(p.commands)

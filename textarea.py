@@ -31,7 +31,7 @@ class TextArea(LineTextWidget):
     print_ = pyqtSignal(str)
     error = pyqtSignal(str)
     hide_terminal = pyqtSignal()
-    prompt_command = pyqtSignal(str)
+    prompt = pyqtSignal(str)
     wordcount_changed = pyqtSignal(int)
     modification_changed = pyqtSignal(bool)
     filename_changed = pyqtSignal(str)
@@ -262,7 +262,7 @@ class TextArea(LineTextWidget):
                     self.error.emit('File not saved! IOError!')
             else:
                 self.error.emit('No filename')
-                self.prompt_command.emit('s')
+                self.prompt.emit('s ')
         else:
             if os.path.isfile(filename) and not force:
                 self.error.emit('File already exists, use s! to overwrite')

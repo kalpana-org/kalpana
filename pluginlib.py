@@ -22,6 +22,7 @@ class GUIPlugin(QObject):
     commands = {}
     signal_print = pyqtSignal(str)
     signal_error = pyqtSignal(str)
+    signal_prompt = pyqtSignal(str)
 
     def __init__(self, objects, get_path):
         super().__init__()
@@ -39,6 +40,9 @@ class GUIPlugin(QObject):
 
     def error(self, arg):
         self.signal_error.emit(arg)
+
+    def prompt(self, arg):
+        self.signal_prompt.emit(arg)
 
     # def get_theme(self):
     #     from os.path import isfile, join
