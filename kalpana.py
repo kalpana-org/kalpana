@@ -157,8 +157,6 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
             textarea.set_number_bar_visibility),
         (settings_manager.set_vscrollbar_visibility,
             textarea.setVerticalScrollBarPolicy),
-        (settings_manager.set_terminal_command_separator,
-            terminal.set_command_separator),
         (settings_manager.set_terminal_key,
             mainwindow.set_terminal_key),
         (settings_manager.switch_focus_to_terminal,

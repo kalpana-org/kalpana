@@ -75,8 +75,6 @@ class Terminal(QtGui.QWidget):
 
         self.get_filepath = get_filepath
 
-        self.command_separator = ' '
-
         # Create layout
         layout = QtGui.QVBoxLayout(self)
         kill_theming(layout)
@@ -122,9 +120,6 @@ class Terminal(QtGui.QWidget):
             plugin_commands[key] = (run_function, help)
 
         self.cmds.update(plugin_commands)
-
-    def set_command_separator(self, separator):
-        self.command_separator = separator
 
     def show(self):
         super().show()
@@ -267,25 +262,12 @@ class Terminal(QtGui.QWidget):
         self.input_term.setText('')
         self.output_term.setText('')
 
-        run_cmd = lambda c,space: self.cmds[c][0](self,
-                                                  text[len(c)+space:].strip())
-
-        if self.command_separator in text:
-            cmd = text.split(self.command_separator, 1)[0]
-            if cmd in self.cmds:
-                run_cmd(cmd, 1)
-            else:
-                self.error('No such command (? for help)')
+        command = text[0].lower()
+        if command in self.cmds:
+            # Run command
+            self.cmds[command][0](self, text[1:].strip())
         else:
-            possible_cmds = [cmd for cmd in self.cmds if text.startswith(cmd)]
-            if not possible_cmds:
-                self.error('No such command (? for help)')
-            elif len(possible_cmds) == 1:
-                # If only one command matches, run it
-                run_cmd(possible_cmds[0], 0)
-            else:
-                self.error('Ambiguous command, could mean: ' +\
-                           ', '.join(possible_cmds))
+            self.error('No such command (? for help)')
 
 
     # ==== Commands ============================== #

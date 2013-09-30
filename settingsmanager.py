@@ -31,7 +31,6 @@ class SettingsManager(QObject):
     switch_focus_to_terminal = pyqtSignal()
     set_number_bar_visibility = pyqtSignal(bool)
     set_vscrollbar_visibility = pyqtSignal(Qt.ScrollBarPolicy)
-    set_terminal_command_separator = pyqtSignal(str)
     set_terminal_key = pyqtSignal(str)
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
@@ -144,8 +143,6 @@ class SettingsManager(QObject):
                       'auto': Qt.ScrollBarAsNeeded,
                       'off': Qt.ScrollBarAlwaysOff}
             self.set_vscrollbar_visibility.emit(policy[new_value])
-        elif key == 'cs':
-            self.set_terminal_command_separator.emit(new_value)
         elif key == 'tk':
             self.set_terminal_key.emit(new_value)
 
