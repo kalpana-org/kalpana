@@ -19,74 +19,27 @@
 import os.path
 
 from PyQt4 import QtGui
-from PyQt4.QtCore import pyqtSignal, Qt, QDir, QEvent
+from PyQt4.QtCore import pyqtSignal
 
-from libsyntyche.common import set_hotkey, kill_theming
+from libsyntyche.terminal import GenericTerminalInputBox, GenericTerminalOutputBox, GenericTerminal
 
 
-class Terminal(QtGui.QWidget):
-
-    class TerminalInputBox(QtGui.QLineEdit):
-        tab_pressed = pyqtSignal()
-        reset_ac_suggestions = pyqtSignal()
-        reset_history_travel = pyqtSignal()
-        history_up = pyqtSignal()
-        history_down = pyqtSignal()
-
-        # This has to be here, keyPressEvent does not capture tab press
-        def event(self, event):
-            if event.type() == QEvent.KeyPress and\
-                        event.modifiers() == Qt.NoModifier:
-                if event.key() == Qt.Key_Tab:
-                    self.tab_pressed.emit()
-                    return True
-            return super().event(event)
-
-        def keyPressEvent(self, event):
-            if event.text() or event.key() in (Qt.Key_Left, Qt.Key_Right):
-                QtGui.QLineEdit.keyPressEvent(self, event)
-                self.reset_ac_suggestions.emit()
-                self.reset_history_travel.emit()
-            elif event.key() == Qt.Key_Up:
-                self.history_up.emit()
-            elif event.key() == Qt.Key_Down:
-                self.history_down.emit()
-            else:
-                return super().keyPressEvent(event)
-
-    # This needs to be here for the stylesheet
-    class TerminalOutputBox(QtGui.QLineEdit):
-        pass
-
+class Terminal(GenericTerminal):
     request_new_file = pyqtSignal(bool)
     request_open_file = pyqtSignal(str, bool)
     request_save_file = pyqtSignal(str, bool)
     request_quit = pyqtSignal(bool)
 
     manage_settings = pyqtSignal(str)
-
     search_and_replace = pyqtSignal(str)
     give_up_focus = pyqtSignal()
-    count_words = pyqtSignal()
+    count_words = pyqtSignal(str)
     goto_line = pyqtSignal(str)
 
     def __init__(self, parent, get_filepath):
-        super().__init__(parent)
+        super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
 
         self.get_filepath = get_filepath
-
-        # Create layout
-        layout = QtGui.QVBoxLayout(self)
-        kill_theming(layout)
-
-        # I/O fields creation
-        self.input_term = self.TerminalInputBox(self)
-        self.output_term = self.TerminalOutputBox(self)
-        self.output_term.setDisabled(True)
-        layout.addWidget(self.input_term)
-        layout.addWidget(self.output_term)
-
-        self.input_term.returnPressed.connect(self.parse_command)
 
         # Autocomplete
         self.ac_suggestions = []
@@ -94,12 +47,17 @@ class Terminal(QtGui.QWidget):
         self.input_term.tab_pressed.connect(self.autocomplete)
         self.input_term.reset_ac_suggestions.connect(self.reset_ac_suggestions)
 
-        # History
-        self.history = ['']
-        self.history_index = 0
-        self.input_term.reset_history_travel.connect(self.reset_history_travel)
-        self.input_term.history_up.connect(self.history_up)
-        self.input_term.history_down.connect(self.history_down)
+        self.commands = {
+            'o': (self.cmd_open, 'Open [file]'),
+            'n': (self.cmd_new, 'Open new file'),
+            's': (self.cmd_save, 'Save (as) [file]'),
+            'q': (self.cmd_quit, 'Quit Kalpana'),
+            '/': (self.search_and_replace, 'Search/replace'),
+            '?': (self.cmd_help, 'List commands or help for [command]'),
+            ':': (self.goto_line, 'Go to line'),
+            'c': (self.count_words, 'Print wordcount'),
+            '=': (self.manage_settings, 'Manage settings')
+        }
 
         self.hide()
 
@@ -131,15 +89,6 @@ class Terminal(QtGui.QWidget):
             self.hide()
         else:
             self.show()
-
-    def print_(self, text):
-        self.output_term.setText(str(text))
-        self.show()
-
-
-    def error(self, text):
-        self.output_term.setText('Error: ' + text)
-        self.show()
 
     def prompt_command(self, cmd):
         self.input_term.setText(cmd + ' ')
@@ -212,64 +161,6 @@ class Terminal(QtGui.QWidget):
         self.ac_index = 0
 
 
-    # ==== Splitter ============================== #
-
-    def move_splitter(self, dir):
-        s1, s2 = self.sizes()
-        jump = int((s1 + s2) * 0.1)
-        if dir == 'left':
-            new_s1 = max(0, s1 - jump)
-        else:
-            new_s1 = min(s1 + s2, s1 + jump)
-        new_s2 = s1 + s2 - new_s1
-        self.setSizes((new_s1, new_s2))
-
-    def move_splitter_left(self):
-        self.move_splitter('left')
-
-    def move_splitter_right(self):
-        self.move_splitter('right')
-
-
-    # ==== History =============================== #
-
-    def history_up(self):
-        if self.history_index < len(self.history)-1:
-            self.history_index += 1
-        self.input_term.setText(self.history[self.history_index])
-
-    def history_down(self):
-        if self.history_index > 0:
-            self.history_index -= 1
-        self.input_term.setText(self.history[self.history_index])
-
-    def add_history(self, text):
-        self.history[0] = text
-        self.history.insert(0, '')
-
-    def reset_history_travel(self):
-        self.history_index = 0
-        self.history[self.history_index] = self.input_term.text()
-
-
-    # ==== Misc ================================= #
-
-    def parse_command(self):
-        text = self.input_term.text()
-        if not text.strip():
-            return
-        self.add_history(text)
-        self.input_term.setText('')
-        self.output_term.setText('')
-
-        command = text[0].lower()
-        if command in self.commands:
-            # Run command
-            self.commands[command][0](self, text[1:].strip())
-        else:
-            self.error('No such command (? for help)')
-
-
     # ==== Commands ============================== #
 
     def cmd_open(self, arg):
@@ -286,35 +177,3 @@ class Terminal(QtGui.QWidget):
     def cmd_quit(self, arg):
         self.request_quit.emit(arg.startswith('!'))
 
-    def cmd_search_and_replace(self, arg):
-        self.search_and_replace.emit(arg)
-
-    def cmd_count_words(self, arg):
-        self.count_words.emit()
-
-    def cmd_help(self, arg):
-        if not arg:
-            self.print_(' '.join(sorted(self.commands)))
-        elif arg in self.commands:
-            self.print_(self.commands[arg][1])
-        else:
-            self.error('No such command')
-
-    def cmd_set(self, arg):
-        self.manage_settings.emit(arg)
-
-    def cmd_goto_line(self, arg):
-        self.goto_line.emit(arg)
-
-
-    commands = {
-        'o': (cmd_open, 'Open [file]'),
-        'n': (cmd_new, 'Open new file'),
-        's': (cmd_save, 'Save (as) [file]'),
-        'q': (cmd_quit, 'Quit Kalpana'),
-        '/': (cmd_search_and_replace, 'Search/replace'),
-        '?': (cmd_help, 'List commands or help for [command]'),
-        ':': (cmd_goto_line, 'Go to line'),
-        'c': (cmd_count_words, 'Print wordcount'),
-        '=': (cmd_set, 'Manage settings')
-    }

@@ -11,7 +11,7 @@ $term_output_bgcolor: #191919
 $term_output_textcolor: #ddd
 
 
-TerminalInputBox {
+GenericTerminalInputBox {
     border: 0px;
     border-top: 2px solid $details_color;
     font-family: $term_fontfamily;
@@ -22,17 +22,13 @@ TerminalInputBox {
     selection-background-color: $term_input_textcolor;
 }
 
-TerminalOutputBox {
+GenericTerminalOutputBox {
     border: 0px;
     border-top: 2px solid $details_color;
     font-family: $term_fontfamily;
     font-size: $term_fontsize;
     color: $term_output_textcolor;
     background: $term_output_bgcolor;
-}
-
-QSplitter::handle:horizontal  {
-    background: $details_color;
 }
 
 QPlainTextEdit {
