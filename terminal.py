@@ -17,6 +17,7 @@
 
 
 import os.path
+import re
 
 from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal
@@ -40,12 +41,6 @@ class Terminal(GenericTerminal):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
 
         self.get_filepath = get_filepath
-
-        # Autocomplete
-        self.ac_suggestions = []
-        self.ac_index = 0
-        self.input_term.tab_pressed.connect(self.autocomplete)
-        self.input_term.reset_ac_suggestions.connect(self.reset_ac_suggestions)
 
         self.commands = {
             'o': (self.cmd_open, 'Open [file]'),
@@ -77,48 +72,28 @@ class Terminal(GenericTerminal):
 
     # ==== Autocomplete ========================== #
 
-    def get_autocompletable_text(self):
-        commands = ('o', 'o!', 's', 's!')
-        text = self.input_term.text()
-        for c in commands:
-            if text.startswith(c + ' '):
-                return text[:len(c)+1], text[len(c)+1:]
-        return None, None
-
-
     def autocomplete(self):
         """
         Main autocomplete functions.
         Is called whenever tab is pressed.
         """
-        cmdprefix, ac_text = self.get_autocompletable_text()
-        if ac_text is None:
+        text = self.input_term.text()
+        rx = re.match(r'([os]!?)\s*(.*)', text)
+        if not rx:
             return
-
-        set_text = lambda p:self.input_term.setText(cmdprefix + p)
+        cmdprefix, ac_text = rx.groups()
 
         # Autocomplete with the working directory if the line is empty
-        if ac_text.strip() == '':
+        if not ac_text:
             wd = os.path.abspath(self.get_filepath())
             if not os.path.isdir(wd):
                 wd = os.path.dirname(wd)
-            set_text(wd + os.path.sep)
+            self.prompt(cmdprefix + ' ' + wd + os.path.sep)
             return
 
-        # Generate new suggestions if none exist
-        if not self.ac_suggestions:
-            self.ac_suggestions = self.get_ac_suggestions(ac_text)
+        autocompleted_text = self.run_autocompletion(ac_text)
+        self.prompt(cmdprefix + ' ' + autocompleted_text)
 
-        # If there's only one possibility, set it and move on
-        if len(self.ac_suggestions) == 1:
-            set_text(self.ac_suggestions[0])
-            self.reset_ac_suggestions()
-        # Otherwise start scrolling through 'em
-        elif self.ac_suggestions:
-            set_text(self.ac_suggestions[self.ac_index])
-            self.ac_index += 1
-            if self.ac_index == len(self.ac_suggestions):
-                self.ac_index = 0
 
     def get_ac_suggestions(self, path):
         """
@@ -133,13 +108,6 @@ class Terminal(GenericTerminal):
                        if p.startswith(namepart)]
         return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
 
-    def reset_ac_suggestions(self):
-        """
-        Reset the list of suggestions if another button than tab
-        has been pressed.
-        """
-        self.ac_suggestions = []
-        self.ac_index = 0
 
 
     # ==== Commands ============================== #
