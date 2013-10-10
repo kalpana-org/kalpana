@@ -93,6 +93,11 @@ class Kalpana(QtGui.QApplication):
 
     def connect_own_signals(self):
         self.settings_manager.set_stylesheet.connect(self.setStyleSheet)
+        self.terminal.list_plugins.connect(self.list_plugins)
+
+    def list_plugins(self, _):
+        plugins = self.plugin_manager.plugin_names
+        self.terminal.print_(', '.join(plugins))
 
 
 ## === Non-method functions ================================================ ##
@@ -121,9 +126,6 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         common.set_hotkey(key, mainwindow, function)
 
 def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
-    """
-    "spider" as in "spider in the net"
-    """
     connect = (
         # (SIGNAL, SLOT)
         (textarea.wordcount_changed, mainwindow.update_wordcount),

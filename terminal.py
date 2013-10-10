@@ -36,6 +36,7 @@ class Terminal(GenericTerminal):
     give_up_focus = pyqtSignal()
     count_words = pyqtSignal(str)
     goto_line = pyqtSignal(str)
+    list_plugins = pyqtSignal(str)
 
     def __init__(self, parent, get_filepath):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
@@ -51,7 +52,8 @@ class Terminal(GenericTerminal):
             '?': (self.cmd_help, 'List commands or help for [command]'),
             ':': (self.goto_line, 'Go to line'),
             'c': (self.count_words, 'Print wordcount'),
-            '=': (self.manage_settings, 'Manage settings')
+            '=': (self.manage_settings, 'Manage settings'),
+            'p': (self.list_plugins, 'List active plugins')
         }
 
         self.hide()
