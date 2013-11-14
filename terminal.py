@@ -107,7 +107,7 @@ class Terminal(GenericTerminal):
         if not os.path.isdir(dirpath):
             return []
         suggestions = [os.path.join(dirpath, p) for p in sorted(os.listdir(dirpath))
-                       if p.startswith(namepart)]
+                       if p.lower().startswith(namepart.lower())]
         return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
 
 
