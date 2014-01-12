@@ -24,14 +24,15 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal
 
 from libsyntyche.common import write_file
+from libsyntyche.filehandling import FileHandler
 from linewidget import LineTextWidget
 
 
-class TextArea(LineTextWidget):
+class TextArea(LineTextWidget, FileHandler):
     print_ = pyqtSignal(str)
-    error = pyqtSignal(str)
+    error_sig = pyqtSignal(str)
     hide_terminal = pyqtSignal()
-    prompt = pyqtSignal(str)
+    prompt_sig = pyqtSignal(str)
     wordcount_changed = pyqtSignal(int)
     modification_changed = pyqtSignal(bool)
     filename_changed = pyqtSignal(str)
@@ -66,7 +67,6 @@ class TextArea(LineTextWidget):
 
     def contents_changed(self):
         self.wordcount_changed.emit(self.get_wordcount())
-
 
     def goto_line(self, raw_line_num):
         if type(raw_line_num) == str:
@@ -214,83 +214,34 @@ class TextArea(LineTextWidget):
             self.setTextCursor(temp_cursor)
             self.error.emit('Text not found')
 
-
     ## ==== File ops help functions ======================================= ##
 
-    def new_and_empty(self):
-        """ Return True if the file is empty and unsaved. """
-        return not self.document().isModified() and not self.file_path
-
-
-    def set_file_name(self, filename='', new=False):
+    def set_filename(self, filename='', new=False):
         """ Set both the output file and the title to filename. """
         assert bool(filename) != new # Either a filename or new, not both/none
         self.file_path = '' if new else filename
         self.filename_changed.emit('New file' if new else filename)
 
+    ## ==== Overloads from FileHandler ==================================== ##
 
-    ## ==== File operations: new/open/save ================================ ##
+    def error(self, text):
+        self.error_sig.emit(text)
 
-    def request_new_file(self, force=False):
-        success = self.new_file(force)
-        if not success:
-            self.error.emit('Unsaved changes! Force new with n! or save first.')
+    def prompt(self, text):
+        self.prompt_sig.emit(text)
 
+    def is_modified(self):
+        return self.document().isModified()
 
-    def request_open_file(self, filename, force=False):
-        if not os.path.isfile(filename):
-            self.error.emit('File not found!')
-            return
-        if self.get_settings('nw') and not self.new_and_empty():
-            subprocess.Popen([sys.executable, sys.argv[0], filename])
-        elif not self.document().isModified() or force:
-            success = self.open_file(filename)
-            if not success:
-                self.error.emit('File could not be decoded!')
-        else:
-            self.error.emit('Unsaved changes! Force open with o! or save first.')
+    def dirty_window_and_start_in_new_process(self):
+        """ Return True if the file is empty and unsaved. """
+        return self.get_settings('nw') and (self.document().isModified() or self.file_path)
 
-
-    def request_save_file(self, filename='', force=False):
-        if not filename:
-            # Don't save if there's nothing to save
-            if not self.document().isModified():
-                return
-            if self.file_path:
-                result = self.save_file()
-                if not result:
-                    self.error.emit('File not saved! IOError!')
-            else:
-                self.error.emit('No filename')
-                self.prompt.emit('s ')
-        else:
-            if os.path.isfile(filename) and not force:
-                self.error.emit('File already exists, use s! to overwrite')
-            # Make sure the parent directory actually exists
-            elif os.path.isdir(os.path.dirname(filename)):
-                result = self.save_file(filename)
-                if not result:
-                    self.error.emit('File not saved! IOError!')
-            else:
-                self.error.emit('Invalid path')
-
-
-    def new_file(self, force=False):
-        """
-        Main new file function
-        """
-        if self.get_settings('nw') and not self.new_and_empty():
-            subprocess.Popen([sys.executable, sys.argv[0]])
-            return True
-        elif not self.document().isModified() or force:
-            self.document().clear()
-            self.document().setModified(False)
-            self.set_file_name(new=True)
-            self.file_created.emit()
-            return True
-        else:
-            return False
-
+    def post_new(self):
+        self.document().clear()
+        self.document().setModified(False)
+        self.set_filename(new=True)
+        self.file_created.emit()
 
     def open_file(self, filename):
         """
@@ -306,35 +257,16 @@ class TextArea(LineTextWidget):
             else:
                 self.document().setPlainText(''.join(lines))
                 self.document().setModified(False)
-                self.set_file_name(filename)
+                self.set_filename(filename)
                 self.moveCursor(QtGui.QTextCursor.Start)
                 self.file_opened.emit()
                 return True
         return False
 
+    def write_file(self, filename):
+        write_file(filename, self.document().toPlainText())
 
-    def save_file(self, filename=''):
-        """
-        Main save file function
-
-        Save the file with the specified filename.
-        If no filename is provided, save the file with the existing filename,
-        (aka don't save as, just save normally)
-        """
-        if filename:
-            savefname = filename
-        else:
-            savefname = self.file_path
-
-        assert savefname.strip() != ''
-
-        try:
-            write_file(savefname, self.document().toPlainText())
-        except IOError as e:
-            print(e)
-            return False
-        else:
-            self.set_file_name(savefname)
-            self.document().setModified(False)
-            self.file_saved.emit()
-            return True
+    def post_save(self, filename):
+        self.set_filename(filename)
+        self.document().setModified(False)
+        self.file_saved.emit()

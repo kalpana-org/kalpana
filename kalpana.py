@@ -70,7 +70,7 @@ class Kalpana(QtGui.QApplication):
             if not self.textarea.open_file(file_to_open):
                 self.close()
         else:
-            self.textarea.set_file_name(new=True)
+            self.textarea.set_filename(new=True)
 
         self.mainwindow.show()
 
@@ -136,8 +136,8 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (settings_manager.print_, terminal.print_),
         (settings_manager.error, terminal.error),
         (textarea.print_, terminal.print_),
-        (textarea.error, terminal.error),
-        (textarea.prompt, terminal.prompt),
+        (textarea.error_sig, terminal.error),
+        (textarea.prompt_sig, terminal.prompt),
         (mainwindow.error, terminal.error),
 
         # File operations
