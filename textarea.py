@@ -185,30 +185,23 @@ class TextArea(LineTextWidget, FileHandler):
             self.error('Text not found')
 
 
-    def replace_all(self):
-        if self.replace_buffer is None:
-            self.error("No previous replaces")
-            return
-
+    def replace_all(self, replace_buffer):
         temp_cursor = self.textCursor()
         times = 0
+        self.moveCursor(QtGui.QTextCursor.Start)
         while True:
-            found = self.find(self.search_buffer)
+            found = self.find(self.search_buffer, self.search_flags)
             if found:
-                self.textCursor().insertText(self.replace_buffer)
+                self.textCursor().insertText(replace_buffer)
                 times += 1
             else:
-                if self.textCursor().atStart():
-                    break
-                else:
-                    self.moveCursor(QtGui.QTextCursor.Start)
-                    continue
+                break
         if times:
-            self.print_.emit('{0} instance{1} replaced'.format(times,
-                                                            's'*(times>0)))
+            self.print_.emit('{0} instance{1} replaced'.format(times, 's'*(times>0)))
         else:
-            self.setTextCursor(temp_cursor)
             self.error('Text not found')
+        self.setTextCursor(temp_cursor)
+
 
     ## ==== File ops help functions ======================================= ##
 
