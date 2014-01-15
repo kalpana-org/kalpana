@@ -55,7 +55,6 @@ class TextArea(LineTextWidget, FileHandler):
         self.document().blockCountChanged.connect(self.new_line)
 
         self.search_buffer = None
-        self.replace_buffer = None
 
         self.file_path = ''
 
@@ -129,7 +128,6 @@ class TextArea(LineTextWidget, FileHandler):
         elif replace_rx.match(arg):
             match = replace_rx.match(arg)
             self.search_buffer = match.group('search')
-            # self.replace_buffer = match.group('replace')
             generate_flags(match.group('flags'))
             if 'a' in match.group('flags'):
                 self.replace_all(match.group('replace'))
@@ -139,11 +137,10 @@ class TextArea(LineTextWidget, FileHandler):
         else:
             self.error('Malformed search/replace expression')
 
+    def searching_backwards(self):
+        return QtGui.QTextDocument.FindBackward & self.search_flags
 
     def search_next(self):
-        def searching_backwards():
-            return QtGui.QTextDocument.FindBackward & self.search_flags
-
         if self.search_buffer is None:
             self.error('No previous searches')
             return
@@ -151,8 +148,8 @@ class TextArea(LineTextWidget, FileHandler):
         found = self.find(self.search_buffer, self.search_flags)
         if not found:
             if not self.textCursor().atStart() \
-                        or (searching_backwards() and not self.textCursor().atEnd()):
-                if searching_backwards():
+                        or (self.searching_backwards() and not self.textCursor().atEnd()):
+                if self.searching_backwards():
                     self.moveCursor(QtGui.QTextCursor.End)
                 else:
                     self.moveCursor(QtGui.QTextCursor.Start)
@@ -167,8 +164,8 @@ class TextArea(LineTextWidget, FileHandler):
         found = self.find(self.search_buffer, self.search_flags)
         if not found:
             if not self.textCursor().atStart() \
-                        or (searching_backwards() and not self.textCursor().atEnd()):
-                if searching_backwards():
+                        or (self.searching_backwards() and not self.textCursor().atEnd()):
+                if self.searching_backwards():
                     self.moveCursor(QtGui.QTextCursor.End)
                 else:
                     self.moveCursor(QtGui.QTextCursor.Start)
