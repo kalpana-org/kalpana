@@ -16,17 +16,15 @@ Technical shit
 
 Search and replace
 ------------------
-Kalpana uses a vim-like syntax, meaning that you will have to escape forward-slash `/` with backslash like `\/` if you want to search for it.
+Kalpana uses a vim-like syntax, meaning that you will have to escape forward-slash `/` with backslash like `\/` if you want to search for it. Search terms are case-sensitive search by default.
 
-* `/foobar` - search for foobar
-* `/` - search for next occurence of the last search term (in this case foobar)
-* `/foobar/fishies/` - replace foobar with fishies
-* `//` - repeat the last replacement on the next occurence
-* `/foobar//` - delete foobar
-* `/foobar/fishies/a` - replace all occurences of foobar with fishies
-* `/foobar//a` - delete all occurences of foobar
-* `//explosions/` - omitting the search term in the replace expression means changing the replace term while keeping the search term unchanged. Otherwise works like the four examples above.
-* That means that `///` deletes the next occurence of the last search term. Weird but yeah.
+* `/<search>[/[FLAGS]]`
+* `/<search>/[<replace>]/[FLAGS]`
+* Flags:
+    * `a` – Replace all matched search terms
+    * `b` – Search/replace backwards
+    * `i` — Case-insensitive search
+    * `w` – Match only whole words
 
 
 Shortcuts
@@ -36,7 +34,6 @@ Shortcuts
 * `Ctrl + S`: Save
 * `Ctrl + Shift + S`: Save as
 * `F3`: Find next (has to first search for something in the terminal)
-* `Alt + [Right/Left]`: Move the divider in the terminal
 * `Escape`: Toggle terminal *(default)*
 
 *__NOTE:__ The terminal toggle key is configurable. Valid settings are explained here:
