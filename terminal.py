@@ -37,6 +37,7 @@ class Terminal(GenericTerminal):
     count_words = pyqtSignal(str)
     goto_line = pyqtSignal(str)
     list_plugins = pyqtSignal(str)
+    print_filename = pyqtSignal(str)
 
     def __init__(self, parent, get_filepath):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
@@ -53,7 +54,8 @@ class Terminal(GenericTerminal):
             ':': (self.goto_line, 'Go to line'),
             'c': (self.count_words, 'Print wordcount'),
             '=': (self.manage_settings, 'Manage settings'),
-            'p': (self.list_plugins, 'List active plugins')
+            'p': (self.list_plugins, 'List active plugins'),
+            'f': (self.print_filename, 'Print name of the active file')
         }
 
         self.hide()

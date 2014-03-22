@@ -31,6 +31,7 @@ Commands
 * `=<option> [<value>]` – Show `<option>`'s value or set it to `<value>`
 * `?[<command>]` – List all commands or show help for `<command>`
 * `c` – Print wordcount
+* `f[ndm]` – Print file info, n for name, d for directory, m for modified or nothing for full path
 * `n[!]` – Create new file, use `!` to ignore unsaved changes
 * `o[!] <filename>` – Open `<filename>`, use `!` to ignore unsaved changes
 * `p` – List all active plugins

@@ -64,6 +64,26 @@ class TextArea(LineTextWidget, FileHandler):
     def print_wordcount(self):
         self.print_.emit('Words: {}'.format(self.get_wordcount()))
 
+    def print_filename(self, arg):
+        if arg not in ('n','d','m','?',''):
+            self.error('Invalid argument')
+            return
+        if arg == '?':
+            self.print_.emit('f=full path, fn=name, fd=directory, fm=modified')
+            return
+        if self.file_path:
+            if arg == 'n':
+                self.print_.emit(os.path.basename(self.file_path))
+            elif arg == 'd':
+                self.print_.emit(os.path.dirname(self.file_path))
+            elif arg == 'm':
+                x = (not self.is_modified()) * 'not '
+                self.print_.emit('File is {}modified'.format(x))
+            else:
+                self.print_.emit(self.file_path)
+        else:
+            self.print_.emit('File is not saved yet')
+
     def contents_changed(self):
         self.wordcount_changed.emit(self.get_wordcount())
 

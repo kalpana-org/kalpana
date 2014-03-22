@@ -153,6 +153,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (terminal.count_words, textarea.print_wordcount),
         (terminal.search_and_replace, textarea.search_and_replace),
         (terminal.manage_settings, settings_manager.change_setting),
+        (terminal.print_filename, textarea.print_filename),
 
         # Settings manager
         (settings_manager.set_number_bar_visibility,
