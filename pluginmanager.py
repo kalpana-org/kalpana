@@ -27,29 +27,29 @@ from libsyntyche import common
 class PluginManager(QtCore.QObject):
     def __init__(self, settings_manager, *args):
         super().__init__()
-        self.plugins, self.plugin_commands, self.plugin_names =\
+        self.plugins, self.plugin_commands =\
                 init_plugins(settings_manager, *args)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
-        for p in self.plugins:
+        for name, p in self.plugins:
             hotkeys.update(p.hotkeys)
         return hotkeys
 
 
 def init_plugins(settings_manager, mainwindow, textarea, terminal):
+    plugins = []
+    plugin_commands = {}
 
     objects = {
         'mainwindow': mainwindow,
         'textarea': textarea,
         'terminal': terminal,
-        'settings manager': settings_manager
+        'settings manager': settings_manager,
+        'plugins': plugins
     }
-    paths = settings_manager.paths
 
-    plugins = []
-    plugin_commands = {}
-    plugin_names = []
+    paths = settings_manager.paths
     for name, path, module in get_plugins(paths['plugins'], paths['loadorder']):
         try:
             plugin_constructor = module.UserPlugin
@@ -58,8 +58,7 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal):
                   .format(name))
         else:
             p = plugin_constructor(objects, lambda:path)
-            plugins.append(p)
-            plugin_names.append(name)
+            plugins.append((name, p))
             p.signal_print.connect(terminal.print_)
             p.signal_error.connect(terminal.error)
             p.signal_prompt.connect(terminal.prompt)
@@ -67,7 +66,7 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal):
             settings_manager.write_plugin_config.connect(p.write_config)
             plugin_commands.update(p.commands)
 
-    return plugins, plugin_commands, plugin_names
+    return plugins, plugin_commands
 
 
 def get_plugins(plugin_root_path, loadorder_path):

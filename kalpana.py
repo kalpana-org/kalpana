@@ -96,8 +96,8 @@ class Kalpana(QtGui.QApplication):
         self.terminal.list_plugins.connect(self.list_plugins)
 
     def list_plugins(self, _):
-        plugins = self.plugin_manager.plugin_names
-        self.terminal.print_(', '.join(plugins))
+        plugins = self.plugin_manager.plugins
+        self.terminal.print_(', '.join(name for name, p in plugins))
 
 
 ## === Non-method functions ================================================ ##
