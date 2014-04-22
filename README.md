@@ -11,6 +11,7 @@ Technical shit
 * Written in Python 3, will not work on Python 2 or earlier
 * Requires PyQt
 * Requires libsyntyche *(https://github.com/nycz/libsyntyche)*
+* Optionally requires PyEnchant and language dictionaries for Enchant's backends (eg. Hunspell, Aspell) for the spell check to work
 * Probably won't work on Mac
 
 
@@ -26,6 +27,7 @@ Shortcuts
 
 Commands
 --------
+* `&` – See *Spell check*
 * `/` – See *Search and replace*
 * `:<line>` – Go to `<line>`
 * `=<option> [<value>]` – Show `<option>`'s value or set it to `<value>`
@@ -42,6 +44,20 @@ Commands
 Tab completion
 --------------
 For commands `o` and `s`, you can use tab to autocomplete filepaths in the terminal. Pressing tab without a filepath inserts the current working directory (where kalpana was started from)
+
+
+Spell check
+-----------
+The spell checking uses PyEnchant and requires language dictionaries to be installed for it to work properly. Kalpana will run without either, but the spell check will not.
+
+The *default* language is set in the config, but changing it will only change which language is set when Kalpana starts. To change during run-time, use the appropriate command below.
+
+Custom words can be added to the so-called *personal word list* to stop them from being flagged by the spell check. The lists are unique for each language code and are saved in files in the `spellcheck-pwl` directory in the config directory.
+
+* `&` – Toggle spell check on/off
+* `&<languagecode>` – Set the language (eg. `en_US`)
+* `&=` – Show word suggestions for the word the cursor is in
+* `&+[<word>] – Add a word to the personal word list, omit `<word>` to automatically insert the word the cursor currently is in
 
 
 Search and replace
@@ -67,6 +83,7 @@ The config is reloaded everytime Kalpana is activated, which means that if you c
 
 ###Options###
 * `ai` – Use auto-indentation. *Allowed values: true/false*
+* `dl` – Default language for spell checking. *Allowed values: language codes for existing PyEnchant-compatible language dictionaries (eg. en_US)*
 * `ln` – Show line numbers. *Allowed values: true/false*
 * `nw` – Open files in a new windows. *Allowed values: true/false*
 * `sit` – Set focus on the terminal on startup. *Allowed values: true/false*

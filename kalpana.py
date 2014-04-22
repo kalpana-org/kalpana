@@ -105,7 +105,8 @@ class Kalpana(QtGui.QApplication):
 def create_objects(configdir):
     settings_manager = SettingsManager(configdir)
     mainwindow = MainWindow()
-    textarea = TextArea(mainwindow, settings_manager.get_setting)
+    textarea = TextArea(mainwindow, settings_manager.get_setting,
+                        settings_manager.paths['spellcheck-pwl'])
     terminal = Terminal(mainwindow, lambda: textarea.file_path)
     mainwindow.set_is_modified_callback(textarea.document().isModified)
     mainwindow.terminal_key = \
@@ -135,7 +136,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         # Print/error/prompt
         (settings_manager.print_, terminal.print_),
         (settings_manager.error, terminal.error),
-        (textarea.print_, terminal.print_),
+        (textarea.print_sig, terminal.print_),
         (textarea.error_sig, terminal.error),
         (textarea.prompt_sig, terminal.prompt),
         (mainwindow.error, terminal.error),
@@ -154,6 +155,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (terminal.search_and_replace, textarea.search_and_replace),
         (terminal.manage_settings, settings_manager.change_setting),
         (terminal.print_filename, textarea.print_filename),
+        (terminal.spellcheck, textarea.spellcheck),
 
         # Settings manager
         (settings_manager.set_number_bar_visibility,

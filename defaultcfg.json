@@ -29,5 +29,10 @@
     "type": "keycode",
     "default": "Escape",
     "desc": "terminal key"
+  },
+  "dl": {
+    "type": "str",
+    "default": "en_US",
+    "desc": "default spellcheck language"
   }
 }

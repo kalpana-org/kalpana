@@ -39,8 +39,9 @@ class SettingsManager(QObject):
     def __init__(self, configdir):
         super().__init__()
         self.paths = get_paths(configdir)
-        if not exists(self.paths['config_dir']):
-            os.makedirs(self.paths['config_dir'], mode=0o755, exist_ok=True)
+        for x in ('config_dir', 'plugins', 'spellcheck-pwl'):
+            if not exists(self.paths[x]):
+                os.makedirs(self.paths[x], mode=0o755, exist_ok=True)
         self.current_cssdata = ''
 
         self.default_config = get_default_config()
@@ -233,5 +234,6 @@ def get_paths(custom_config_dir):
         'config_file':  path('kalpana.conf'),
         'theme':        path('stylesheet.css'),
         'loadorder':    path('loadorder.conf'),
-        'plugins':      path('plugins')
+        'plugins':      path('plugins'),
+        'spellcheck-pwl': path('spellcheck-pwl')
     }

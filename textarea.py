@@ -19,6 +19,12 @@ import os.path
 import re
 import subprocess
 import sys
+try:
+    import enchant
+except ImportError:
+    enchant_present = False
+else:
+    enchant_present = True
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal
@@ -26,10 +32,11 @@ from PyQt4.QtCore import pyqtSignal
 from libsyntyche.common import write_file
 from libsyntyche.filehandling import FileHandler
 from linewidget import LineTextWidget
+from settingsmanager import get_paths
 
 
 class TextArea(LineTextWidget, FileHandler):
-    print_ = pyqtSignal(str)
+    print_sig = pyqtSignal(str)
     error_sig = pyqtSignal(str)
     hide_terminal = pyqtSignal()
     prompt_sig = pyqtSignal(str)
@@ -40,9 +47,10 @@ class TextArea(LineTextWidget, FileHandler):
     file_opened = pyqtSignal()
     file_saved = pyqtSignal()
 
-    def __init__(self, parent, get_settings):
+    def __init__(self, parent, get_settings, pwlpath):
         super().__init__(parent)
         self.get_settings = get_settings
+        self.pwlpath = pwlpath
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -55,34 +63,37 @@ class TextArea(LineTextWidget, FileHandler):
         self.document().blockCountChanged.connect(self.new_line)
 
         self.search_buffer = None
-
+        self.highlighter = None
         self.file_path = ''
+
+    def print_(self, arg):
+        self.print_sig.emit(arg)
 
     def get_wordcount(self):
         return len(re.findall(r'\S+', self.document().toPlainText()))
 
     def print_wordcount(self):
-        self.print_.emit('Words: {}'.format(self.get_wordcount()))
+        self.print_('Words: {}'.format(self.get_wordcount()))
 
     def print_filename(self, arg):
         if arg not in ('n','d','m','?',''):
             self.error('Invalid argument')
             return
         if arg == '?':
-            self.print_.emit('f=full path, fn=name, fd=directory, fm=modified')
+            self.print_('f=full path, fn=name, fd=directory, fm=modified')
             return
         if self.file_path:
             if arg == 'n':
-                self.print_.emit(os.path.basename(self.file_path))
+                self.print_(os.path.basename(self.file_path))
             elif arg == 'd':
-                self.print_.emit(os.path.dirname(self.file_path))
+                self.print_(os.path.dirname(self.file_path))
             elif arg == 'm':
                 x = (not self.is_modified()) * 'not '
-                self.print_.emit('File is {}modified'.format(x))
+                self.print_('File is {}modified'.format(x))
             else:
-                self.print_.emit(self.file_path)
+                self.print_(self.file_path)
         else:
-            self.print_.emit('File is not saved yet')
+            self.print_('File is not saved yet')
 
     def contents_changed(self):
         self.wordcount_changed.emit(self.get_wordcount())
@@ -110,6 +121,72 @@ class TextArea(LineTextWidget, FileHandler):
             prevblock = self.document().findBlockByNumber(blocknum-1)
             indent = re.match(r'[\t ]*', prevblock.text()).group(0)
             cursor.insertText(indent)
+
+    ## ==== Spellcheck ==================================================== ##
+
+    class Highlighter(QtGui.QSyntaxHighlighter):
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.dict = None
+
+        def highlightBlock(self, text):
+            if not self.dict:
+                return
+
+            format = QtGui.QTextCharFormat()
+            format.setUnderlineColor(QtCore.Qt.red)
+            format.setUnderlineStyle(QtGui.QTextCharFormat.SpellCheckUnderline)
+
+            for word in re.finditer(r'(?i)[\w\']+', text):
+                if not self.dict.check(word.group().strip("'")):
+                    self.setFormat(word.start(), word.end() - word.start(), format)
+
+    def spellcheck(self, arg):
+        def get_word():
+            cursor = self.textCursor()
+            cursor.select(QtGui.QTextCursor.WordUnderCursor)
+            return cursor.selectedText()
+
+        if not enchant_present:
+            self.error('PyEnchant spell check dependency not installed!')
+            return
+        if self.highlighter is None:
+            self.highlighter = self.Highlighter(self)
+            self.set_spellcheck_language(self.get_settings('dl'))
+        if arg == '?':
+            self.print_('&: toggle, &en_US: set language, &=: check word, &+: add word')
+        elif arg == '=':
+            word = get_word()
+            if re.match(r'[\w\']+$', word):
+                suggestions = ', '.join(self.highlighter.dict.suggest(word)[:3])
+                self.print_('{}: {}'.format(word, suggestions))
+        elif arg == '+':
+            word = get_word()
+            if re.match(r'[\w\']+$', word):
+                self.prompt('&+' + word)
+        elif arg.startswith('+'):
+            self.highlighter.dict.add_to_pwl(arg[1:])
+            lang = self.highlighter.dict.tag
+            self.highlighter.rehighlight()
+            self.print_('Added to {} dictionary: {}'.format(lang, arg[1:]))
+        elif not arg:
+            if self.highlighter.document() is None:
+                self.highlighter.setDocument(self.document())
+                self.print_('Spell check is now on')
+            else:
+                self.highlighter.setDocument(None)
+                self.print_('Spell check is now off')
+        else:
+            self.set_spellcheck_language(arg)
+
+    def set_spellcheck_language(self, lang):
+        if lang in [x for x,y in enchant.list_dicts()]:
+            pwl = os.path.join(self.pwlpath, lang+'.pwl')
+            self.highlighter.dict = enchant.DictWithPWL(lang, pwl=pwl)
+            self.highlighter.rehighlight()
+            self.print_('Language set to {}'.format(lang))
+        else:
+            self.error('Language {} does not exist!'.format(lang))
 
 
     ## ==== Save & replace ================================================ ##
@@ -199,7 +276,7 @@ class TextArea(LineTextWidget, FileHandler):
             t.setPosition(t.position() - l)
             t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
             self.setTextCursor(t)
-            self.print_.emit('Replaced on line {}, pos {}'
+            self.print_('Replaced on line {}, pos {}'
                              ''.format(t.blockNumber(), t.positionInBlock()))
         else:
             self.error('Text not found')
@@ -217,7 +294,7 @@ class TextArea(LineTextWidget, FileHandler):
             else:
                 break
         if times:
-            self.print_.emit('{0} instance{1} replaced'.format(times, 's'*(times>0)))
+            self.print_('{0} instance{1} replaced'.format(times, 's'*(times>0)))
         else:
             self.error('Text not found')
         self.setTextCursor(temp_cursor)
