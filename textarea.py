@@ -172,7 +172,8 @@ class TextArea(LineTextWidget, FileHandler):
         elif not arg:
             if self.highlighter.document() is None:
                 self.highlighter.setDocument(self.document())
-                self.print_('Spell check is now on')
+                lang = self.highlighter.dict.tag
+                self.print_('Spell check is now on ({})'.format(lang))
             else:
                 self.highlighter.setDocument(None)
                 self.print_('Spell check is now off')
