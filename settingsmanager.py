@@ -182,6 +182,16 @@ def parse_terminal_setting(value, settings_info):
             return False
         else:
             return None
+    elif settings_info['type'] == 'int':
+        try:
+            return int(value)
+        except:
+            return None
+    elif settings_info['type'] == 'float':
+        try:
+            return float(value)
+        except:
+            return None
     if not allowed_value(value, settings_info):
         return None
     return value
@@ -208,10 +218,15 @@ def read_config(config_file_path, default_config):
 
 def is_valid_setting(value, settings_info):
     # TODO: Might do some real checking wrt keycode in the future eh?
-    if (settings_info['type'] == 'str' and type(value) != str)\
-    or (settings_info['type'] == 'bool' and type(value) != bool)\
-    or (settings_info['type'] == 'keycode' and type(value) != str):
-        return False
+    valid_types = (
+        ('str',  str),
+        ('bool', bool),
+        ('int',  int),
+        ('float', float),
+        ('keycode', str))
+    for name, type_ in valid_types:
+        if settings_info['type'] == name and type(value) != type_:
+            return False
     # lol fuk u if the type is something else eheh
 
     if not allowed_value(value, settings_info):
