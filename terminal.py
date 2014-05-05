@@ -69,6 +69,9 @@ class Terminal(GenericTerminal):
         self.output_term.animate = animate
 
     def set_terminal_animation_interval(self, interval):
+        if interval < 1:
+            self.error('Too low animation interval')
+            return
         self.output_term.set_timer_interval(interval)
 
     def show(self):

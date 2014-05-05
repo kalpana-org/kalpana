@@ -88,6 +88,8 @@ The config is reloaded everytime Kalpana is activated, which means that if you c
 * `nw` – Open files in a new windows. *Allowed values: true/false*
 * `sit` – Set focus on the terminal on startup. *Allowed values: true/false*
 * `tk` – Terminal toggling hotkey. *Allowed values: http://pyqt.sourceforge.net/Docs/PyQt4/qkeysequence.html*
+* `ato` – Animate the terminal output, typing out each character one by one. *Allowed values: true/false*
+* `tai` – The interval of each character being typed out in the output part of the terminal, in milliseconds. *Allowed values: a positive integer*
 * `vs` – Show the vertical scrollbar. *Allowed values: `on`/`off`/`auto`, auto means it only appears when needed*
 
 Boolean values (true/false) can be represented as `y`, `1` or `true` and `n`, `0` or `false` respectively (case-insensitive).
