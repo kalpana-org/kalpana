@@ -65,6 +65,12 @@ class Terminal(GenericTerminal):
     def update_commands(self, plugin_commands):
         self.commands.update(plugin_commands)
 
+    def set_terminal_animation(self, animate):
+        self.output_term.animate = animate
+
+    def set_terminal_animation_interval(self, interval):
+        self.output_term.set_timer_interval(interval)
+
     def show(self):
         super().show()
         self.input_term.setFocus()

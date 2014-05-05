@@ -32,6 +32,8 @@ class SettingsManager(QObject):
     set_number_bar_visibility = pyqtSignal(bool)
     set_vscrollbar_visibility = pyqtSignal(Qt.ScrollBarPolicy)
     set_terminal_key = pyqtSignal(str)
+    set_terminal_animation = pyqtSignal(bool)
+    set_terminal_animation_interval = pyqtSignal(int)
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
@@ -146,6 +148,10 @@ class SettingsManager(QObject):
             self.set_vscrollbar_visibility.emit(policy[new_value])
         elif key == 'tk':
             self.set_terminal_key.emit(new_value)
+        elif key == 'ato':
+            self.set_terminal_animation.emit(new_value)
+        elif key == 'tai':
+            self.set_terminal_animation_interval.emit(new_value)
 
     def save_settings(self):
         """ Save the settings to the config file """

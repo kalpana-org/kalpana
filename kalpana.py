@@ -164,6 +164,10 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
             textarea.setVerticalScrollBarPolicy),
         (settings_manager.set_terminal_key,
             mainwindow.set_terminal_key),
+        (settings_manager.set_terminal_animation,
+            terminal.set_terminal_animation),
+        (settings_manager.set_terminal_animation_interval,
+            terminal.set_terminal_animation_interval),
         (settings_manager.switch_focus_to_terminal,
             terminal.show)
     )

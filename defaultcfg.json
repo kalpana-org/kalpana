@@ -34,5 +34,15 @@
     "type": "str",
     "default": "en_US",
     "desc": "default spellcheck language"
+  },
+  "ato": {
+    "type": "bool",
+    "default": false,
+    "desc": "animate terminal output"
+  },
+  "tai": {
+    "type": "int",
+    "default": 5,
+    "desc": "terminal animation interval"
   }
 }
