@@ -91,6 +91,7 @@ The config is reloaded everytime Kalpana is activated, which means that if you c
 * `ato` – Animate the terminal output, typing out each character one by one. *Allowed values: true/false*
 * `tai` – The interval of each character being typed out in the output part of the terminal, in milliseconds. *Allowed values: a positive integer*
 * `vs` – Show the vertical scrollbar. *Allowed values: `on`/`off`/`auto`, auto means it only appears when needed*
+* `pw` – Set the maximum width of the page (the space you actually write text). *Allowed values: a positive integer*
 
 Boolean values (true/false) can be represented as `y`, `1` or `true` and `n`, `0` or `false` respectively (case-insensitive).
 
