@@ -44,5 +44,10 @@
     "type": "int",
     "default": 5,
     "desc": "terminal animation interval"
+  },
+  "pw": {
+    "type": "int",
+    "default": 1000,
+    "desc": "max page width"
   }
 }

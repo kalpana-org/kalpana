@@ -37,6 +37,7 @@ class SettingsManager(QObject):
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
+    set_page_width = pyqtSignal(int)
 
     def __init__(self, configdir):
         super().__init__()
@@ -152,6 +153,8 @@ class SettingsManager(QObject):
             self.set_terminal_animation.emit(new_value)
         elif key == 'tai':
             self.set_terminal_animation_interval.emit(new_value)
+        elif key == 'pw':
+            self.set_page_width.emit(new_value)
 
     def save_settings(self):
         """ Save the settings to the config file """

@@ -57,8 +57,9 @@ class MainWindow(QtGui.QFrame):
         self.inner_h_layout = QtGui.QHBoxLayout()
         common.kill_theming(self.inner_h_layout)
         self.outer_v_layout.addLayout(self.inner_h_layout)
-
-        self.inner_h_layout.addWidget(textarea)
+        self.inner_h_layout.addStretch()
+        self.inner_h_layout.addWidget(textarea, stretch=1)
+        self.inner_h_layout.addStretch()
         self.outer_v_layout.addWidget(terminal)
 
 

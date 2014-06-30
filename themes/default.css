@@ -9,7 +9,12 @@ $term_input_bgcolor: #222
 $term_input_textcolor: #ddd
 $term_output_bgcolor: #191919
 $term_output_textcolor: #ddd
+$border_color: black
 
+
+MainWindow {
+    background: #181818;
+}
 
 GenericTerminalInputBox {
     border: 0px;
@@ -35,6 +40,8 @@ QPlainTextEdit {
     font-family: $main_fontfamily;
     font-size: $main_fontsize;
     border: 0px;
+    border-left: 2px solid $border_color;
+    border-right: 2px solid $border_color;
     color: $main_textcolor;
     background: $main_bgcolor;
     selection-color: $main_bgcolor;
