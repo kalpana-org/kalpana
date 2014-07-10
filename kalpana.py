@@ -39,7 +39,7 @@ class Kalpana(QtGui.QApplication):
     error = pyqtSignal(str)
 
     def __init__(self, configdir, file_to_open=None):
-        super().__init__([])
+        super().__init__(['kalpana'])
 
         # Create the objects
         self.mainwindow, self.textarea, self.terminal, self.settings_manager \
