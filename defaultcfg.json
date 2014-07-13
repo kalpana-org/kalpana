@@ -49,5 +49,10 @@
     "type": "int",
     "default": 1000,
     "desc": "max page width"
+  },
+  "swc": {
+    "type": "bool",
+    "default": false,
+    "desc": "show wordcount in titlebar"
   }
 }

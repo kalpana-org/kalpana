@@ -65,9 +65,13 @@ class TextArea(LineTextWidget, FileHandler):
         self.search_buffer = None
         self.highlighter = None
         self.file_path = ''
+        self.show_wordcount = False
 
     def print_(self, arg):
         self.print_sig.emit(arg)
+
+    def set_show_wordcount(self, value):
+        self.show_wordcount = value
 
     def get_wordcount(self):
         return len(re.findall(r'\S+', self.document().toPlainText()))
@@ -96,7 +100,8 @@ class TextArea(LineTextWidget, FileHandler):
             self.print_('File is not saved yet')
 
     def contents_changed(self):
-        self.wordcount_changed.emit(self.get_wordcount())
+        if self.show_wordcount:
+            self.wordcount_changed.emit(self.get_wordcount())
 
     def goto_line(self, raw_line_num):
         if type(raw_line_num) == str:

@@ -92,6 +92,7 @@ The config is reloaded everytime Kalpana is activated, which means that if you c
 * `tai` – The interval of each character being typed out in the output part of the terminal, in milliseconds. *Allowed values: a positive integer*
 * `vs` – Show the vertical scrollbar. *Allowed values: `on`/`off`/`auto`, auto means it only appears when needed*
 * `pw` – Set the maximum width of the page (the space you actually write text). *Allowed values: a positive integer*
+* `swc` – Toggle the automatically updating wordcount in the titlebar. If this is disabled, wordcount can still be shown using the `c` command. Note that on slower computers and/or large files, enabling this option may slow down Kalpana. *Allowed values: true/false*
 
 Boolean values (true/false) can be represented as `y`, `1` or `true` and `n`, `0` or `false` respectively (case-insensitive).
 

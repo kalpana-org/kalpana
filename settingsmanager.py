@@ -34,6 +34,7 @@ class SettingsManager(QObject):
     set_terminal_key = pyqtSignal(str)
     set_terminal_animation = pyqtSignal(bool)
     set_terminal_animation_interval = pyqtSignal(int)
+    set_show_wordcount = pyqtSignal(bool)
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
@@ -155,6 +156,8 @@ class SettingsManager(QObject):
             self.set_terminal_animation_interval.emit(new_value)
         elif key == 'pw':
             self.set_page_width.emit(new_value)
+        elif key == 'swc':
+            self.set_show_wordcount.emit(new_value)
 
     def save_settings(self):
         """ Save the settings to the config file """

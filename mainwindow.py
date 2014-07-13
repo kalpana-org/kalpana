@@ -37,6 +37,7 @@ class MainWindow(QtGui.QFrame):
         self.wordcount = 0
         self.filename = ''
         self.is_modified = False
+        self.show_wordcount = False
 
         # This is set in kalpana.py in create_objects()
         self.terminal_key = None
@@ -45,6 +46,9 @@ class MainWindow(QtGui.QFrame):
     def set_is_modified_callback(self, callback):
         self.get_document_is_modified = callback
 
+    def set_show_wordcount(self, value):
+        self.show_wordcount = value
+        self.update_title()
 
     def set_terminal_key(self, value):
         self.terminal_key.setKey(QtGui.QKeySequence(value))
@@ -114,6 +118,9 @@ class MainWindow(QtGui.QFrame):
 
 
     def update_title(self):
-        title = '{0}{1} - {2}{0}'\
-                ''.format('*'*self.is_modified, self.wordcount, self.filename)
+        wc = ''
+        if self.show_wordcount:
+            wc = '{} - '.format(self.wordcount)
+        title = '{0}{1}{2}{0}'\
+                ''.format('*'*self.is_modified, wc, self.filename)
         self.setWindowTitle(title)

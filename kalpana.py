@@ -170,6 +170,8 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
             terminal.set_terminal_animation_interval),
         (settings_manager.switch_focus_to_terminal, terminal.show),
         (settings_manager.set_page_width, textarea.setMaximumWidth),
+        (settings_manager.set_show_wordcount, textarea.set_show_wordcount),
+        (settings_manager.set_show_wordcount, mainwindow.set_show_wordcount)
     )
     for signal, slot in connect:
         signal.connect(slot)
