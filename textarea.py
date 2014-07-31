@@ -62,6 +62,7 @@ class TextArea(LineTextWidget, FileHandler):
         self.document().contentsChanged.connect(self.contents_changed)
         self.document().blockCountChanged.connect(self.new_line)
 
+        self.blocks = 0
         self.search_buffer = None
         self.highlighter = None
         self.file_path = ''
@@ -120,12 +121,13 @@ class TextArea(LineTextWidget, FileHandler):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if self.get_settings('ai'):
+        if self.get_settings('ai') and blocks > self.blocks:
             cursor = self.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document().findBlockByNumber(blocknum-1)
             indent = re.match(r'[\t ]*', prevblock.text()).group(0)
             cursor.insertText(indent)
+        self.blocks = blocks
 
     ## ==== Spellcheck ==================================================== ##
 
@@ -332,6 +334,7 @@ class TextArea(LineTextWidget, FileHandler):
     def post_new(self):
         self.document().clear()
         self.document().setModified(False)
+        self.blocks = 1
         self.set_filename(new=True)
         self.file_created.emit()
 
@@ -349,6 +352,7 @@ class TextArea(LineTextWidget, FileHandler):
             else:
                 self.document().setPlainText(''.join(lines))
                 self.document().setModified(False)
+                self.blocks = self.blockCount()
                 self.set_filename(filename)
                 self.moveCursor(QtGui.QTextCursor.Start)
                 self.file_opened.emit()
