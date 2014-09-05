@@ -42,6 +42,8 @@ class MainWindow(QtGui.QFrame):
         # This is set in kalpana.py in create_objects()
         self.terminal_key = None
 
+        self.textarea = None
+
     # Ugly as fuck, but eh...
     def set_is_modified_callback(self, callback):
         self.get_document_is_modified = callback
@@ -55,6 +57,7 @@ class MainWindow(QtGui.QFrame):
 
 
     def create_ui(self, textarea, terminal):
+        self.textarea = textarea
         self.outer_v_layout = QtGui.QVBoxLayout(self)
         common.kill_theming(self.outer_v_layout)
 
@@ -102,6 +105,9 @@ class MainWindow(QtGui.QFrame):
             subprocess.Popen([sys.executable, sys.argv[0], u])
         event.acceptProposedAction()
 
+    # Override
+    def wheelEvent(self, event):
+        self.textarea.wheelEvent(event)
 
     def update_filename(self, filename):
         self.filename = filename

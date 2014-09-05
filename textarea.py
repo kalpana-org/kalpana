@@ -68,6 +68,20 @@ class TextArea(LineTextWidget, FileHandler):
         self.file_path = ''
         self.show_wordcount = False
 
+    # Override
+    def wheelEvent(self, event):
+        # Can't call super().wheelEvent b/c it sends the event to the parent
+        # when at the top or bottom of the page. Parent then sends it back
+        # creating an infinite loop. Just ftr.
+        steps = -event.delta()//120
+        multiplier = 3 # To make it scroll as much as default
+        if event.orientation() == QtCore.Qt.Horizontal:
+            sb = self.horizontalScrollBar()
+        elif event.orientation() == QtCore.Qt.Vertical:
+            sb = self.verticalScrollBar()
+        sb.setValue(sb.value() + sb.singleStep()*steps*multiplier)
+        event.accept()
+
     def print_(self, arg):
         self.print_sig.emit(arg)
 
