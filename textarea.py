@@ -59,7 +59,6 @@ class TextArea(LineTextWidget, FileHandler):
         def modified_slot(is_modified):
             self.modification_changed.emit(is_modified)
         self.document().modificationChanged.connect(modified_slot)
-        self.document().contentsChanged.connect(self.contents_changed)
         self.document().blockCountChanged.connect(self.new_line)
 
         self.blocks = 0
@@ -87,6 +86,7 @@ class TextArea(LineTextWidget, FileHandler):
 
     def set_show_wordcount(self, value):
         self.show_wordcount = value
+        self.wordcount_changed.emit(self.get_wordcount())
 
     def get_wordcount(self):
         return len(re.findall(r'\S+', self.document().toPlainText()))
@@ -113,10 +113,6 @@ class TextArea(LineTextWidget, FileHandler):
                 self.print_(self.file_path)
         else:
             self.print_('File is not saved yet')
-
-    def contents_changed(self):
-        if self.show_wordcount:
-            self.wordcount_changed.emit(self.get_wordcount())
 
     def goto_line(self, raw_line_num):
         if type(raw_line_num) == str:
@@ -377,6 +373,8 @@ class TextArea(LineTextWidget, FileHandler):
         write_file(filename, self.document().toPlainText())
 
     def post_save(self, filename):
+        if self.show_wordcount:
+            self.wordcount_changed.emit(self.get_wordcount())
         self.set_filename(filename)
         self.document().setModified(False)
         self.file_saved.emit()
