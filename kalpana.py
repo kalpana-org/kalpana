@@ -104,10 +104,9 @@ class Kalpana(QtGui.QApplication):
 
 def create_objects(configdir):
     settings_manager = SettingsManager(configdir)
-    mainwindow = MainWindow()
-    textarea = TextArea(mainwindow, settings_manager.get_setting,
-                        settings_manager.paths['spellcheck-pwl'])
-    terminal = Terminal(mainwindow, lambda: textarea.file_path)
+    mainwindow = MainWindow(settings_manager)
+    textarea = TextArea(mainwindow, settings_manager)
+    terminal = Terminal(mainwindow, settings_manager, lambda: textarea.file_path)
     mainwindow.set_is_modified_callback(textarea.document().isModified)
     mainwindow.terminal_key = \
         QtGui.QShortcut(QtGui.QKeySequence(''), mainwindow, terminal.toggle)
@@ -158,20 +157,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         (terminal.spellcheck, textarea.spellcheck),
 
         # Settings manager
-        (settings_manager.set_number_bar_visibility,
-            textarea.set_number_bar_visibility),
-        (settings_manager.set_vscrollbar_visibility,
-            textarea.setVerticalScrollBarPolicy),
-        (settings_manager.set_terminal_key,
-            mainwindow.set_terminal_key),
-        (settings_manager.set_terminal_animation,
-            terminal.set_terminal_animation),
-        (settings_manager.set_terminal_animation_interval,
-            terminal.set_terminal_animation_interval),
-        (settings_manager.switch_focus_to_terminal, terminal.show),
-        (settings_manager.set_page_width, textarea.setMaximumWidth),
-        (settings_manager.set_show_wordcount, textarea.set_show_wordcount),
-        (settings_manager.set_show_wordcount, mainwindow.set_show_wordcount)
+        (settings_manager.switch_focus_to_terminal, terminal.show)
     )
     for signal, slot in connect:
         signal.connect(slot)

@@ -23,9 +23,10 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import pyqtSignal
 
 from libsyntyche.terminal import GenericTerminalInputBox, GenericTerminalOutputBox, GenericTerminal
+from common import Configable
 
 
-class Terminal(GenericTerminal):
+class Terminal(GenericTerminal, Configable):
     request_new_file = pyqtSignal(bool)
     request_open_file = pyqtSignal(str, bool)
     request_save_file = pyqtSignal(str, bool)
@@ -40,8 +41,11 @@ class Terminal(GenericTerminal):
     print_filename = pyqtSignal(str)
     spellcheck = pyqtSignal(str)
 
-    def __init__(self, parent, get_filepath):
+    def __init__(self, parent, settingsmanager, get_filepath):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
+        self.init_settings_functions(settingsmanager)
+        self.register_setting('tai', self.set_terminal_animation_interval)
+        self.register_setting('ato', self.set_terminal_animation)
 
         self.get_filepath = get_filepath
 
@@ -65,6 +69,7 @@ class Terminal(GenericTerminal):
     def update_commands(self, plugin_commands):
         self.commands.update(plugin_commands)
 
+    # ==== Setting callbacks ========================================
     def set_terminal_animation(self, animate):
         self.output_term.animate = animate
 
@@ -73,6 +78,7 @@ class Terminal(GenericTerminal):
             self.error('Too low animation interval')
             return
         self.output_term.set_timer_interval(interval)
+    # ===============================================================
 
     def show(self):
         super().show()

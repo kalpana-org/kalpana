@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from collections import defaultdict
 import os
 from os.path import join, exists, dirname
 import re
@@ -29,16 +30,9 @@ class SettingsManager(QObject):
     print_ = pyqtSignal(str)
     error = pyqtSignal(str)
     switch_focus_to_terminal = pyqtSignal()
-    set_number_bar_visibility = pyqtSignal(bool)
-    set_vscrollbar_visibility = pyqtSignal(Qt.ScrollBarPolicy)
-    set_terminal_key = pyqtSignal(str)
-    set_terminal_animation = pyqtSignal(bool)
-    set_terminal_animation_interval = pyqtSignal(int)
-    set_show_wordcount = pyqtSignal(bool)
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
     set_stylesheet = pyqtSignal(str)
-    set_page_width = pyqtSignal(int)
 
     def __init__(self, configdir):
         super().__init__()
@@ -50,10 +44,14 @@ class SettingsManager(QObject):
 
         self.default_config = get_default_config()
         self.settings = {}
+        self.setting_callbacks = defaultdict(list)
 
     # ======= Dict wrappers =============
     def get_setting(self, key):
         return self.settings[key]
+
+    def get_path(self, key):
+        return self.paths[key]
 
     def get_loadorder_path(self):
         return self.paths['loadorder']
@@ -61,6 +59,9 @@ class SettingsManager(QObject):
     def get_config_directory(self):
         return self.paths['config_dir']
     # ===================================
+
+    def register_setting(self, settingname, callback):
+        self.setting_callbacks[settingname].append(callback)
 
 
     def load_settings(self, refresh_only=False):
@@ -141,23 +142,8 @@ class SettingsManager(QObject):
         """
         Change specific runtime-settings.
         """
-        if key == 'ln':
-            self.set_number_bar_visibility.emit(new_value)
-        elif key == 'vs':
-            policy = {'on': Qt.ScrollBarAlwaysOn,
-                      'auto': Qt.ScrollBarAsNeeded,
-                      'off': Qt.ScrollBarAlwaysOff}
-            self.set_vscrollbar_visibility.emit(policy[new_value])
-        elif key == 'tk':
-            self.set_terminal_key.emit(new_value)
-        elif key == 'ato':
-            self.set_terminal_animation.emit(new_value)
-        elif key == 'tai':
-            self.set_terminal_animation_interval.emit(new_value)
-        elif key == 'pw':
-            self.set_page_width.emit(new_value)
-        elif key == 'swc':
-            self.set_show_wordcount.emit(new_value)
+        for callback in self.setting_callbacks.get(key, []):
+            callback(new_value)
 
     def save_settings(self):
         """ Save the settings to the config file """

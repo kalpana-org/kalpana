@@ -32,10 +32,10 @@ from PyQt4.QtCore import pyqtSignal
 from libsyntyche.common import write_file
 from libsyntyche.filehandling import FileHandler
 from linewidget import LineTextWidget
-from settingsmanager import get_paths
+from common import Configable
 
 
-class TextArea(LineTextWidget, FileHandler):
+class TextArea(LineTextWidget, FileHandler, Configable):
     print_sig = pyqtSignal(str)
     error_sig = pyqtSignal(str)
     hide_terminal = pyqtSignal()
@@ -47,10 +47,14 @@ class TextArea(LineTextWidget, FileHandler):
     file_opened = pyqtSignal()
     file_saved = pyqtSignal()
 
-    def __init__(self, parent, get_settings, pwlpath):
+    def __init__(self, parent, settingsmanager):
         super().__init__(parent)
-        self.get_settings = get_settings
-        self.pwlpath = pwlpath
+        self.init_settings_functions(settingsmanager)
+        # This function is actually in linewidget.py
+        self.register_setting('ln', self.set_number_bar_visibility)
+        self.register_setting('vs', self.set_vscrollbar_visibility)
+        self.register_setting('pw', self.setMaximumWidth)
+        self.register_setting('swc', self.set_show_wordcount)
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -71,8 +75,16 @@ class TextArea(LineTextWidget, FileHandler):
     def print_(self, arg):
         self.print_sig.emit(arg)
 
+    # ==== Setting callbacks ========================================
+    def set_vscrollbar_visibility(self, arg):
+        policy = {'on': QtCore.Qt.ScrollBarAlwaysOn,
+                  'auto': QtCore.Qt.ScrollBarAsNeeded,
+                  'off': QtCore.Qt.ScrollBarAlwaysOff}
+        self.setVerticalScrollBarPolicy(policy[arg])
+
     def set_show_wordcount(self, value):
         self.show_wordcount = value
+    # ===============================================================
 
     def get_wordcount(self):
         return len(re.findall(r'\S+', self.document().toPlainText()))
@@ -121,7 +133,7 @@ class TextArea(LineTextWidget, FileHandler):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if self.get_settings('ai') and blocks > self.blocks:
+        if self.get_setting('ai') and blocks > self.blocks:
             cursor = self.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document().findBlockByNumber(blocknum-1)
@@ -159,7 +171,7 @@ class TextArea(LineTextWidget, FileHandler):
             return
         if self.highlighter is None:
             self.highlighter = self.Highlighter(self)
-            self.set_spellcheck_language(self.get_settings('dl'))
+            self.set_spellcheck_language(self.get_setting('dl'))
         if arg == '?':
             self.print_('&: toggle, &en_US: set language, &=: check word, &+: add word')
         elif arg == '=':
@@ -189,7 +201,8 @@ class TextArea(LineTextWidget, FileHandler):
 
     def set_spellcheck_language(self, lang):
         if lang in [x for x,y in enchant.list_dicts()]:
-            pwl = os.path.join(self.pwlpath, lang+'.pwl')
+            pwlpath = self.get_path('spellcheck-pwl')
+            pwl = os.path.join(pwlpath, lang+'.pwl')
             self.highlighter.dict = enchant.DictWithPWL(lang, pwl=pwl)
             self.highlighter.rehighlight()
             self.print_('Language set to {}'.format(lang))
@@ -329,7 +342,7 @@ class TextArea(LineTextWidget, FileHandler):
 
     def dirty_window_and_start_in_new_process(self):
         """ Return True if the file is empty and unsaved. """
-        return self.get_settings('nw') and (self.document().isModified() or self.file_path)
+        return self.get_setting('nw') and (self.document().isModified() or self.file_path)
 
     def post_new(self):
         self.document().clear()
