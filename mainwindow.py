@@ -33,7 +33,6 @@ class MainWindow(QtGui.QFrame, Configable):
         super().__init__()
         self.init_settings_functions(settingsmanager)
         self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
-        self.register_setting('terminal hotkey', self.set_terminal_key)
 
         self.setAcceptDrops(True)
 
@@ -43,9 +42,6 @@ class MainWindow(QtGui.QFrame, Configable):
         self.filename = ''
         self.is_modified = False
         self.show_wordcount = False
-
-        # This is set in kalpana.py in create_objects()
-        self.terminal_key = None
 
         self.textarea = None
 
@@ -57,9 +53,6 @@ class MainWindow(QtGui.QFrame, Configable):
     def set_show_wordcount(self, value):
         self.show_wordcount = value
         self.update_title()
-
-    def set_terminal_key(self, value):
-        self.terminal_key.setKey(QtGui.QKeySequence(value))
     # =======================================================
 
     def create_ui(self, textarea, terminal):

@@ -62,6 +62,7 @@ class Kalpana(QtGui.QApplication):
         # Hotkeys
         set_key_shortcuts(self.mainwindow, self.textarea, self.terminal,
                           self.plugin_manager.get_compiled_hotkeys())
+        self.init_hotkeys()
 
         self.settings_manager.load_settings()
         self.install_event_filter()
@@ -99,6 +100,22 @@ class Kalpana(QtGui.QApplication):
         plugins = self.plugin_manager.plugins
         self.terminal.print_(', '.join(name for name, p in plugins))
 
+    # === Configurable hotkeys =========================================
+
+    def init_hotkeys(self):
+        l = (('terminal', self.terminal.toggle, self.set_terminal_hotkey),)
+        self.hotkeys = {name: QtGui.QShortcut(QtGui.QKeySequence(''),
+                                              self.mainwindow, callback)
+                        for name, callback, _ in l}
+        for n, _, callback in l:
+            self.settings_manager.register_setting(n + ' hotkey', callback)
+
+    def set_terminal_hotkey(self, newkey):
+        self.set_hotkey('terminal', newkey)
+
+    def set_hotkey(self, hotkey, newkey):
+        self.hotkeys[hotkey].setKey(QtGui.QKeySequence(newkey))
+
 
 ## === Non-method functions ================================================ ##
 
@@ -108,8 +125,6 @@ def create_objects(configdir):
     textarea = TextArea(mainwindow, settings_manager)
     terminal = Terminal(mainwindow, settings_manager, lambda: textarea.file_path)
     mainwindow.set_is_modified_callback(textarea.document().isModified)
-    mainwindow.terminal_key = \
-        QtGui.QShortcut(QtGui.QKeySequence(''), mainwindow, terminal.toggle)
     return mainwindow, textarea, terminal, settings_manager
 
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
@@ -119,7 +134,6 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         'Ctrl+S': textarea.request_save_file,
         'Ctrl+Shift+S': lambda:terminal.prompt('s '),
         'F3': textarea.search_next,
-        # terminal hotkey is automagically set when the config is loaded
     }
     hotkeys.update(plugin_hotkeys)
     for key, function in hotkeys.items():
