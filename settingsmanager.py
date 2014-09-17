@@ -106,7 +106,7 @@ class SettingsManager(QObject):
 
         # Make sure the settings aren't fucked up yo
         for key, value in self.settings.items():
-            if oldsettings.get(key) == value:
+            if refresh_only and oldsettings.get(key) == value:
                 continue
             # First make a simple check to see if the value is the right type
             if not valid_setting(key, value, self.setting_types):
