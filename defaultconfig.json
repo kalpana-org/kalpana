@@ -1,0 +1,17 @@
+{
+  "automatic": {
+    "Auto-Indent": false,
+    "Line Numbers": false,
+    "open in New Window": false,
+    "Vertical Scrollbar": "on",
+    "Animate Terminal Output": false,
+    "Terminal Animation Interval": 5,
+    "max Page Width": 1000,
+    "Show WordCount in titlebar": false
+  },
+  "manual": {
+    "start in terminal": false,
+    "terminal hotkey": "Escape",
+    "default spellcheck language": "en_US"
+  }
+}

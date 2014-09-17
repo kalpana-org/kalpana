@@ -23,13 +23,18 @@ import subprocess
 from PyQt4 import QtCore, QtGui
 
 from libsyntyche import common
+from common import Configable
 
 
-class MainWindow(QtGui.QFrame):
+class MainWindow(QtGui.QFrame, Configable):
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, settingsmanager):
         super().__init__()
+        self.init_settings_functions(settingsmanager)
+        self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
+        self.register_setting('terminal hotkey', self.set_terminal_key)
+
         self.setAcceptDrops(True)
 
         self.force_quit_flag = False
@@ -48,13 +53,14 @@ class MainWindow(QtGui.QFrame):
     def set_is_modified_callback(self, callback):
         self.get_document_is_modified = callback
 
+    # ==== Setting callbacks ================================
     def set_show_wordcount(self, value):
         self.show_wordcount = value
         self.update_title()
 
     def set_terminal_key(self, value):
         self.terminal_key.setKey(QtGui.QKeySequence(value))
-
+    # =======================================================
 
     def create_ui(self, textarea, terminal):
         self.textarea = textarea

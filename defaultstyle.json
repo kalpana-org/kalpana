@@ -1,0 +1,20 @@
+{
+  "document background": "#222",
+  "document border color": "black",
+  "document text color": "#ddd",
+  "document font": "Serif",
+  "document font size": "12pt",
+
+  "terminal input background": "#222",
+  "terminal input text color": "#ddd",
+  "terminal output background": "#191919",
+  "terminal output text color": "#ddd",
+  "terminal font": "Monospace",
+  "terminal font size": "11pt",
+  "terminal border color": "#111",
+
+  "margin background": "#181818",
+
+  "scrollbar slider color": "#111",
+  "scrollbar width": "15px"
+}
