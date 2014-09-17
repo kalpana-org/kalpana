@@ -60,10 +60,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.setTabStopWidth(30)
         self.setContextMenuPolicy(QtCore.Qt.PreventContextMenu)
 
-        def modified_slot(is_modified):
-            self.modification_changed.emit(is_modified)
-        self.document().modificationChanged.connect(modified_slot)
-        self.document().blockCountChanged.connect(self.new_line)
+        self.blockCountChanged.connect(self.new_line)
 
         self.blocks = 0
         self.search_buffer = None

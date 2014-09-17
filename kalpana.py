@@ -129,7 +129,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
     connect = (
         # (SIGNAL, SLOT)
         (textarea.wordcount_changed, mainwindow.update_wordcount),
-        (textarea.modification_changed, mainwindow.update_file_modified),
+        (textarea.modificationChanged, mainwindow.update_file_modified),
         (textarea.filename_changed, mainwindow.update_filename),
 
         # Print/error/prompt
