@@ -32,7 +32,7 @@ from PyQt4.QtCore import pyqtSignal
 from libsyntyche.common import write_file
 from libsyntyche.filehandling import FileHandler
 from linewidget import LineTextWidget
-from common import Configable
+from common import Configable, SettingsError
 
 
 class TextArea(LineTextWidget, FileHandler, Configable):
@@ -51,10 +51,10 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         super().__init__(parent)
         self.init_settings_functions(settingsmanager)
         # This function is actually in linewidget.py
-        self.register_setting('ln', self.set_number_bar_visibility)
-        self.register_setting('vs', self.set_vscrollbar_visibility)
-        self.register_setting('pw', self.setMaximumWidth)
-        self.register_setting('swc', self.set_show_wordcount)
+        self.register_setting('Line Numbers', self.set_number_bar_visibility)
+        self.register_setting('Vertical Scrollbar', self.set_vscrollbar_visibility)
+        self.register_setting('max Page Width', self.set_maximum_width)
+        self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -80,7 +80,14 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         policy = {'on': QtCore.Qt.ScrollBarAlwaysOn,
                   'auto': QtCore.Qt.ScrollBarAsNeeded,
                   'off': QtCore.Qt.ScrollBarAlwaysOff}
+        if arg not in policy:
+            raise SettingsError('Vertical scrollbar setting "{}" is not valid!'.format(arg))
         self.setVerticalScrollBarPolicy(policy[arg])
+
+    def set_maximum_width(self, value):
+        if value < 1:
+            raise SettingsError('A negative page width is not possible!')
+        self.setMaximumWidth(value)
 
     def set_show_wordcount(self, value):
         self.show_wordcount = value
@@ -133,7 +140,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
 
     def new_line(self, blocks):
         """ Generate auto-indentation if the option is enabled. """
-        if self.get_setting('ai') and blocks > self.blocks:
+        if self.get_setting('Auto-Indent') and blocks > self.blocks:
             cursor = self.textCursor()
             blocknum = cursor.blockNumber()
             prevblock = self.document().findBlockByNumber(blocknum-1)
@@ -171,7 +178,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
             return
         if self.highlighter is None:
             self.highlighter = self.Highlighter(self)
-            self.set_spellcheck_language(self.get_setting('dl'))
+            self.set_spellcheck_language(self.get_setting('default spellcheck language'))
         if arg == '?':
             self.print_('&: toggle, &en_US: set language, &=: check word, &+: add word')
         elif arg == '=':
@@ -342,7 +349,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
 
     def dirty_window_and_start_in_new_process(self):
         """ Return True if the file is empty and unsaved. """
-        return self.get_setting('nw') and (self.document().isModified() or self.file_path)
+        return self.get_setting('open in New Window') and (self.document().isModified() or self.file_path)
 
     def post_new(self):
         self.document().clear()

@@ -44,8 +44,8 @@ class Terminal(GenericTerminal, Configable):
     def __init__(self, parent, settingsmanager, get_filepath):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
         self.init_settings_functions(settingsmanager)
-        self.register_setting('tai', self.set_terminal_animation_interval)
-        self.register_setting('ato', self.set_terminal_animation)
+        self.register_setting('Terminal Animation Interval', self.set_terminal_animation_interval)
+        self.register_setting('Animate Terminal Output', self.set_terminal_animation)
 
         self.get_filepath = get_filepath
 

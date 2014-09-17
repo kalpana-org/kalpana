@@ -32,8 +32,8 @@ class MainWindow(QtGui.QFrame, Configable):
     def __init__(self, settingsmanager):
         super().__init__()
         self.init_settings_functions(settingsmanager)
-        self.register_setting('swc', self.set_show_wordcount)
-        self.register_setting('tk', self.set_terminal_key)
+        self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
+        self.register_setting('terminal hotkey', self.set_terminal_key)
 
         self.setAcceptDrops(True)
 
