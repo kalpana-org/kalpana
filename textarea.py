@@ -375,6 +375,8 @@ class TextArea(LineTextWidget, FileHandler, Configable):
                 self.document().setModified(False)
                 self.blocks = self.blockCount()
                 self.set_filename(filename)
+                if self.show_wordcount:
+                    self.wordcount_changed.emit(self.get_wordcount())
                 self.moveCursor(QtGui.QTextCursor.Start)
                 self.file_opened.emit()
                 return True
