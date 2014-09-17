@@ -41,7 +41,8 @@ class SettingsManager(QObject):
         for x in ('config_dir', 'plugins', 'spellcheck-pwl'):
             if not exists(self.paths[x]):
                 os.makedirs(self.paths[x], mode=0o755, exist_ok=True)
-        self.current_cssdata = ''
+        self.current_style = {}
+        self.css_template = common.read_file(common.local_path('template.css'))
 
         self.default_config = get_default_config()
 
@@ -188,16 +189,14 @@ class SettingsManager(QObject):
         self.write_plugin_config.emit()
 
     def set_theme(self):
-        # Copy in the default theme if a customized doesn't exist
-        if not os.path.exists(self.paths['theme']):
-            defaultcss = common.local_path(join('themes','default.css'))
-            shutil.copyfile(defaultcss, self.paths['theme'])
-        cssdata = common.read_file(self.paths['theme'])
-        # plugin_themes = [p.get_theme() for p in self.plugins]
-        # stylesheet = '\n'.join([stylesheet] + [p for p in plugin_themes if p])
-        if cssdata != self.current_cssdata:
-            self.set_stylesheet.emit(common.parse_stylesheet(cssdata))
-        self.current_cssdata = cssdata
+        result = get_updated_css(self.paths['style'],
+                                             self.current_style,
+                                             self.css_template)
+        if result is not None:
+            new_style, new_css = result
+            # This actually sets the style, is catched in kalpana.py
+            self.set_stylesheet.emit(new_css)
+            self.current_style = new_style
 
 
 ## ==== Functions ========================================================= ##
@@ -290,6 +289,34 @@ def parse_terminal_setting(value, setting_type):
         return value
     return None
 
+def get_updated_css(stylepath, current_style, css_template):
+    """
+    Return the style json and the complete css if it is valid and has been
+    changed since last update, otherwise return None.
+
+    current_style - a dict with keys to format() the template
+    css_template - a format()-ready string that matches current_style
+    """
+    # Copy in the default theme if a customized doesn't exist
+    if not os.path.exists(stylepath):
+        defaultcss = common.local_path('defaultstyle.json')
+        shutil.copyfile(defaultcss, stylepath)
+    try:
+        style = common.read_json(stylepath)
+    except:
+        print('Invalid style config: unable to parse it as json')
+        return
+    # Only update if something's changed
+    if style != current_style:
+        try:
+            css = css_template.format(**style)
+        except KeyError:
+            print('Invalid style config: key missing')
+            return
+        else:
+            return style, common.parse_stylesheet(css)
+    return
+
 def get_paths(custom_config_dir):
     import platform
     # Paths init
@@ -304,7 +331,7 @@ def get_paths(custom_config_dir):
     return {
         'config_dir':   config_dir,
         'config_file':  path('kalpana.conf'),
-        'theme':        path('stylesheet.css'),
+        'style':        path('style.conf'),
         'loadorder':    path('loadorder.conf'),
         'plugins':      path('plugins'),
         'spellcheck-pwl': path('spellcheck-pwl')
