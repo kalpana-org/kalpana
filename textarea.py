@@ -114,24 +114,13 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.print_('Words: {}'.format(self.get_wordcount()))
 
     def print_filename(self, arg):
-        if arg not in ('n','d','m','?',''):
-            self.error('Invalid argument')
-            return
-        if arg == '?':
-            self.print_('f=full path, fn=name, fd=directory, fm=modified')
-            return
-        if self.file_path:
-            if arg == 'n':
-                self.print_(os.path.basename(self.file_path))
-            elif arg == 'd':
-                self.print_(os.path.dirname(self.file_path))
-            elif arg == 'm':
-                x = (not self.is_modified()) * 'not '
-                self.print_('File is {}modified'.format(x))
-            else:
-                self.print_(self.file_path)
+        """ Wrapper callback for the f command. """
+        try:
+            result = get_file_info(arg, self.file_path, self.is_modified)
+        except KeyError as e:
+            self.error(str(e))
         else:
-            self.print_('File is not saved yet')
+            self.print_(result)
 
     def goto_line(self, raw_line_num):
         if type(raw_line_num) == str:
@@ -398,3 +387,25 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.set_filename(filename)
         self.document().setModified(False)
         self.file_saved.emit()
+
+
+# ==== Loose functions ==========================================
+
+def get_file_info(arg, file_path, is_modified):
+    """ Parse the f command and return the requested information """
+    if arg not in ('n','d','m','?',''):
+        raise KeyError('Invalid argument')
+    if arg == '?':
+        return 'f=full path, fn=name, fd=directory, fm=modified'
+    if file_path:
+        if arg == 'n':
+            return os.path.basename(file_path)
+        elif arg == 'd':
+            return os.path.dirname(file_path)
+        elif arg == 'm':
+            x = (not is_modified()) * 'not '
+            return 'File is {}modified'.format(x)
+        else:
+            return file_path
+    else:
+        return 'File is not saved yet'
