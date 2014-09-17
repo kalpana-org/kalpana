@@ -55,7 +55,7 @@ class MainWindow(QtGui.QFrame, Configable):
         self.update_title()
     # =======================================================
 
-    def create_ui(self, textarea, terminal):
+    def create_ui(self, chaptersidebar, textarea, terminal):
         self.textarea = textarea
         self.outer_v_layout = QtGui.QVBoxLayout(self)
         common.kill_theming(self.outer_v_layout)
@@ -66,6 +66,7 @@ class MainWindow(QtGui.QFrame, Configable):
         self.inner_h_layout.addStretch()
         self.inner_h_layout.addWidget(textarea, stretch=1)
         self.inner_h_layout.addStretch()
+        self.inner_h_layout.addWidget(chaptersidebar)
         self.outer_v_layout.addWidget(terminal)
 
 

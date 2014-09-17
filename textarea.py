@@ -40,6 +40,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     error_sig = pyqtSignal(str)
     hide_terminal = pyqtSignal()
     prompt_sig = pyqtSignal(str)
+    cursor_position_changed = pyqtSignal(int)
     wordcount_changed = pyqtSignal(int)
     modification_changed = pyqtSignal(bool)
     filename_changed = pyqtSignal(str)
@@ -61,6 +62,10 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.setContextMenuPolicy(QtCore.Qt.PreventContextMenu)
 
         self.blockCountChanged.connect(self.new_line)
+        def new_cursor_position():
+            blocknumber = self.textCursor().blockNumber()
+            self.cursor_position_changed.emit(blocknumber)
+        self.cursorPositionChanged.connect(new_cursor_position)
 
         self.blocks = 0
         self.search_buffer = None

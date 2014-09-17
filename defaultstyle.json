@@ -16,5 +16,10 @@
   "margin background": "#181818",
 
   "scrollbar slider color": "#111",
-  "scrollbar width": "15px"
+  "scrollbar width": "15px",
+
+  "sidebar background": "#222",
+  "sidebar text color": "#ddd",
+  "sidebar font": "Sans",
+  "sidebar font size": "10pt"
 }

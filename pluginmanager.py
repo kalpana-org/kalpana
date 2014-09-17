@@ -37,7 +37,7 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(settings_manager, mainwindow, textarea, terminal):
+def init_plugins(settings_manager, mainwindow, textarea, terminal, chaptersidebar):
     plugins = []
     plugin_commands = {}
 
@@ -46,7 +46,8 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal):
         'textarea': textarea,
         'terminal': terminal,
         'settings manager': settings_manager,
-        'plugins': plugins
+        'plugins': plugins,
+        'chaptersidebar': chaptersidebar
     }
 
     paths = settings_manager.paths

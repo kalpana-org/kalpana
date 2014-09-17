@@ -12,6 +12,19 @@
   "manual": {
     "start in terminal": false,
     "terminal hotkey": "Escape",
-    "default spellcheck language": "en_US"
+    "default spellcheck language": "en_US",
+    "chapter sidebar hotkey": "Ctrl+R",
+    "prologue chapter name": "[prologue]",
+    "chapter trigger string": ">>",
+    "chapter strings": [
+      [
+        ">> +CHAPTER (?P<num>\\d+) ?[:-] (?P<name>.+)",
+        "{num} - {name}"
+      ],
+      [
+        ">> +CHAPTER (?P<num>\\d+)\\s*$",
+        "{num}"
+      ]
+    ]
   }
 }

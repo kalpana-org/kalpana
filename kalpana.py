@@ -24,6 +24,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal, Qt
 
 from libsyntyche import common
+from chaptersidebar import ChapterSidebar
 from mainwindow import MainWindow
 from pluginmanager import PluginManager
 from settingsmanager import SettingsManager
@@ -42,21 +43,23 @@ class Kalpana(QtGui.QApplication):
         super().__init__(['kalpana'])
 
         # Create the objects
-        self.mainwindow, self.textarea, self.terminal, self.settings_manager \
+        self.mainwindow, self.textarea, self.terminal, self.chaptersidebar,\
+        self.settings_manager \
             = create_objects(configdir)
 
         # UI
-        self.mainwindow.create_ui(self.textarea, self.terminal)
+        self.mainwindow.create_ui(self.chaptersidebar, self.textarea, self.terminal)
 
         # Plugins
         self.plugin_manager = PluginManager(self.settings_manager,
-                    self.mainwindow, self.textarea, self.terminal)
+                    self.mainwindow, self.textarea, self.terminal,
+                    self.chaptersidebar)
 
         self.terminal.update_commands(self.plugin_manager.plugin_commands)
 
         # Signals
         connect_others_signals(self.mainwindow, self.textarea, self.terminal,
-                               self.settings_manager)
+                               self.chaptersidebar, self.settings_manager)
         self.connect_own_signals()
 
         # Hotkeys
@@ -103,7 +106,8 @@ class Kalpana(QtGui.QApplication):
     # === Configurable hotkeys =========================================
 
     def init_hotkeys(self):
-        l = (('terminal', self.terminal.toggle, self.set_terminal_hotkey),)
+        l = (('terminal', self.terminal.toggle, self.set_terminal_hotkey),
+             ('chapter sidebar', self.chaptersidebar.toggle, self.set_chaptersidebar_hotkey))
         self.hotkeys = {name: QtGui.QShortcut(QtGui.QKeySequence(''),
                                               self.mainwindow, callback)
                         for name, callback, _ in l}
@@ -112,6 +116,9 @@ class Kalpana(QtGui.QApplication):
 
     def set_terminal_hotkey(self, newkey):
         self.set_hotkey('terminal', newkey)
+
+    def set_chaptersidebar_hotkey(self, newkey):
+        self.set_hotkey('chapter sidebar', newkey)
 
     def set_hotkey(self, hotkey, newkey):
         self.hotkeys[hotkey].setKey(QtGui.QKeySequence(newkey))
@@ -123,9 +130,11 @@ def create_objects(configdir):
     settings_manager = SettingsManager(configdir)
     mainwindow = MainWindow(settings_manager)
     textarea = TextArea(mainwindow, settings_manager)
+    chaptersidebar = ChapterSidebar(settings_manager, textarea.toPlainText)
     terminal = Terminal(mainwindow, settings_manager, lambda: textarea.file_path)
+    # Ugly shit
     mainwindow.set_is_modified_callback(textarea.document().isModified)
-    return mainwindow, textarea, terminal, settings_manager
+    return mainwindow, textarea, terminal, chaptersidebar, settings_manager
 
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     hotkeys = {
@@ -139,12 +148,13 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     for key, function in hotkeys.items():
         common.set_hotkey(key, mainwindow, function)
 
-def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
+def connect_others_signals(mainwindow, textarea, terminal, chaptersidebar, settings_manager):
     connect = (
         # (SIGNAL, SLOT)
         (textarea.wordcount_changed, mainwindow.update_wordcount),
         (textarea.modificationChanged, mainwindow.update_file_modified),
         (textarea.filename_changed, mainwindow.update_filename),
+        (textarea.cursor_position_changed, chaptersidebar.update_active_chapter),
 
         # Print/error/prompt
         (settings_manager.print_, terminal.print_),
@@ -163,7 +173,7 @@ def connect_others_signals(mainwindow, textarea, terminal, settings_manager):
         # Misc
         (textarea.hide_terminal, terminal.hide),
         (terminal.give_up_focus, textarea.setFocus),
-        (terminal.goto_line, textarea.goto_line),
+        (terminal.goto_line, chaptersidebar.goto_line_or_chapter),
         (terminal.count_words, textarea.print_wordcount),
         (terminal.search_and_replace, textarea.search_and_replace),
         (terminal.manage_settings, settings_manager.change_setting),

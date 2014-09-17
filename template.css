@@ -34,6 +34,17 @@ QPlainTextEdit {{
     selection-background-color: {document text color};
 }}
 
+ChapterSidebar {{
+    background: {sidebar background};
+    font-family: "{sidebar font}";
+    font-size: {sidebar font size};
+}}
+
+ChapterSidebar::item {{
+    background: {sidebar background};
+    color: {sidebar text color};
+}}
+
 /* VERTICAL SCROLLBAR */
 QScrollBar:vertical {{
     background: {document background};
