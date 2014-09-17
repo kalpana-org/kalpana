@@ -160,7 +160,7 @@ class SettingsManager(QObject):
                                     self.setting_types['automatic'][setting])
             if parsed_value is None:
                 self.error.emit('Wrong value "{}" for setting: {}'\
-                                .format(new_value, setting))
+                                .format(new_value, setting.lower()))
             else:
                 try:
                     self.update_runtime_setting(setting, parsed_value)
@@ -169,7 +169,7 @@ class SettingsManager(QObject):
                 else:
                     self.auto_settings[setting] = parsed_value
                     self.save_settings()
-                    self.print_.emit('{} now set to: {}'.format(setting, parsed_value))
+                    self.print_.emit('{} now set to: {}'.format(setting.lower(), parsed_value))
         # Otherwise just print the current value
         else:
             name = setting.lower()
