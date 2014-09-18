@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from collections import OrderedDict
 import os.path
 import sys
 import subprocess
@@ -41,43 +42,32 @@ class Kalpana(QtGui.QApplication):
 
     def __init__(self, configdir, file_to_open=None):
         super().__init__(['kalpana'])
-
-        # Create the objects
-        self.mainwindow, self.textarea, self.terminal, self.chaptersidebar,\
-        self.settingsmanager \
-            = create_objects(configdir)
-
-        # UI
-        self.mainwindow.create_ui(self.chaptersidebar, self.textarea, self.terminal)
-
+        self.objects = create_objects(configdir)
+        self.objects['mainwindow'].create_ui(self.objects['chaptersidebar'],
+                                             self.objects['textarea'],
+                                             self.objects['terminal'])
         # Plugins
-        self.pluginmanager = PluginManager(self.settingsmanager,
-                    self.mainwindow, self.textarea, self.terminal,
-                    self.chaptersidebar)
-
-        self.terminal.update_commands(self.pluginmanager.plugin_commands)
-
+        self.pluginmanager = PluginManager(self.objects.copy())
+        self.objects['terminal'].update_commands(self.pluginmanager.plugin_commands)
         # Signals
-        connect_others_signals(self.mainwindow, self.textarea, self.terminal,
-                               self.chaptersidebar, self.settingsmanager)
+        connect_others_signals(*self.objects.values())
         self.connect_own_signals()
-
         # Hotkeys
-        set_key_shortcuts(self.mainwindow, self.textarea, self.terminal,
+        set_key_shortcuts(self.objects['mainwindow'], self.objects['textarea'],
+                          self.objects['terminal'],
                           self.pluginmanager.get_compiled_hotkeys())
         self.init_hotkeys()
-
-        self.settingsmanager.load_settings()
+        # Load settings and get it oooon
+        self.objects['settingsmanager'].load_settings()
         self.install_event_filter()
-
+        # Try to open a file and die if it doesn't work, or make a new file
         if file_to_open:
-            if not self.textarea.open_file(file_to_open):
+            if not self.objects['textarea'].open_file(file_to_open):
                 self.close()
         else:
-            self.textarea.set_filename(new=True)
-
-        self.mainwindow.show()
-
+            self.objects['textarea'].set_filename(new=True)
+        # FIN
+        self.objects['mainwindow'].show()
 
     def install_event_filter(self):
         # Event filter
@@ -87,32 +77,31 @@ class Kalpana(QtGui.QApplication):
                 if event.type() == QtCore.QEvent.ApplicationActivate:
                     self.activation_event.emit()
                 return False
-
         self.event_filter = AppEventFilter()
         def refresh_config():
-            self.settingsmanager.load_settings(refresh_only=True)
+            self.objects['settingsmanager'].load_settings(refresh_only=True)
         self.event_filter.activation_event.connect(refresh_config)
         self.installEventFilter(self.event_filter)
 
-
     def connect_own_signals(self):
-        self.settingsmanager.set_stylesheet.connect(self.setStyleSheet)
-        self.terminal.list_plugins.connect(self.list_plugins)
+        self.objects['settingsmanager'].set_stylesheet.connect(self.setStyleSheet)
+        self.objects['terminal'].list_plugins.connect(self.list_plugins)
 
     def list_plugins(self, _):
         plugins = self.pluginmanager.plugins
-        self.terminal.print_(', '.join(name for name, p in plugins))
+        self.objects['terminal'].print_(', '.join(name for name, p in plugins))
 
     # === Configurable hotkeys =========================================
 
     def init_hotkeys(self):
-        l = (('terminal', self.terminal.toggle, self.set_terminal_hotkey),
-             ('chapter sidebar', self.chaptersidebar.toggle, self.set_chaptersidebar_hotkey))
+        l = (('terminal', self.objects['terminal'].toggle, self.set_terminal_hotkey),
+             ('chapter sidebar', self.objects['chaptersidebar'].toggle, self.set_chaptersidebar_hotkey))
         self.hotkeys = {name: QtGui.QShortcut(QtGui.QKeySequence(''),
-                                              self.mainwindow, callback)
+                                              self.objects['mainwindow'],
+                                              callback)
                         for name, callback, _ in l}
         for n, _, callback in l:
-            self.settingsmanager.register_setting(n + ' hotkey', callback)
+            self.objects['settingsmanager'].register_setting(n + ' hotkey', callback)
 
     def set_terminal_hotkey(self, newkey):
         self.set_hotkey('terminal', newkey)
@@ -127,14 +116,18 @@ class Kalpana(QtGui.QApplication):
 ## === Non-method functions ================================================ ##
 
 def create_objects(configdir):
-    settingsmanager = SettingsManager(configdir)
-    mainwindow = MainWindow(settingsmanager)
-    textarea = TextArea(mainwindow, settingsmanager)
-    chaptersidebar = ChapterSidebar(settingsmanager, textarea.toPlainText)
-    terminal = Terminal(mainwindow, settingsmanager, lambda: textarea.file_path)
+    smgr = SettingsManager(configdir)
+    mw = MainWindow(smgr)
+    txta = TextArea(mw, smgr)
+    chsb = ChapterSidebar(smgr, txta.toPlainText)
+    term = Terminal(mw, smgr, lambda: txta.file_path)
     # Ugly shit
-    mainwindow.set_is_modified_callback(textarea.document().isModified)
-    return mainwindow, textarea, terminal, chaptersidebar, settingsmanager
+    mw.set_is_modified_callback(txta.document().isModified)
+    return OrderedDict((('chaptersidebar', chsb),
+                        ('mainwindow', mw),
+                        ('settingsmanager', smgr),
+                        ('terminal', term),
+                        ('textarea', txta)))
 
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     hotkeys = {
@@ -148,7 +141,7 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     for key, function in hotkeys.items():
         common.set_hotkey(key, mainwindow, function)
 
-def connect_others_signals(mainwindow, textarea, terminal, chaptersidebar, settingsmanager):
+def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal, textarea):
     connect = (
         # (SIGNAL, SLOT)
         (textarea.wordcount_changed, mainwindow.update_wordcount),

@@ -25,10 +25,9 @@ from PyQt4 import QtCore
 from libsyntyche import common
 
 class PluginManager(QtCore.QObject):
-    def __init__(self, settingsmanager, *args):
+    def __init__(self, objects):
         super().__init__()
-        self.plugins, self.plugin_commands =\
-                init_plugins(settingsmanager, *args)
+        self.plugins, self.plugin_commands = init_plugins(objects)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
@@ -37,19 +36,19 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(settingsmanager, mainwindow, textarea, terminal, chaptersidebar):
+def init_plugins(objects):
+    """
+    Initiate all plugins and return the plugins and the commands they use.
+
+    objects - an ordered dict of all objects that the plugins can use.
+              Note that is has been copy()'d before passed to this function,
+              so no edits to it here will fuck anything else up.
+    """
     plugins = []
     plugin_commands = {}
-
-    objects = {
-        'mainwindow': mainwindow,
-        'textarea': textarea,
-        'terminal': terminal,
-        'settings manager': settingsmanager,
-        'plugins': plugins,
-        'chaptersidebar': chaptersidebar
-    }
-
+    objects['plugins'] = plugins
+    settingsmanager = objects['settingsmanager']
+    terminal = objects['terminal']
     paths = settingsmanager.paths
     for name, path, module in get_plugins(paths['plugins'], paths['loadorder']):
         try:
@@ -66,7 +65,6 @@ def init_plugins(settingsmanager, mainwindow, textarea, terminal, chaptersidebar
             settingsmanager.read_plugin_config.connect(p.read_config)
             settingsmanager.write_plugin_config.connect(p.write_config)
             plugin_commands.update(p.commands)
-
     return plugins, plugin_commands
 
 
@@ -76,7 +74,6 @@ def get_plugins(plugin_root_path, loadorder_path):
         open(loadorder_path, 'w').close()
     loadorder = [l for l in common.read_file(loadorder_path).splitlines()
                  if l and not l.startswith('#')]
-
     out = []
     for plugin_name in loadorder:
         plugin_path = join(plugin_root_path,plugin_name)
