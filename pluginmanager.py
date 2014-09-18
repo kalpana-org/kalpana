@@ -25,10 +25,10 @@ from PyQt4 import QtCore
 from libsyntyche import common
 
 class PluginManager(QtCore.QObject):
-    def __init__(self, settings_manager, *args):
+    def __init__(self, settingsmanager, *args):
         super().__init__()
         self.plugins, self.plugin_commands =\
-                init_plugins(settings_manager, *args)
+                init_plugins(settingsmanager, *args)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
@@ -37,7 +37,7 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(settings_manager, mainwindow, textarea, terminal, chaptersidebar):
+def init_plugins(settingsmanager, mainwindow, textarea, terminal, chaptersidebar):
     plugins = []
     plugin_commands = {}
 
@@ -45,12 +45,12 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal, chaptersideba
         'mainwindow': mainwindow,
         'textarea': textarea,
         'terminal': terminal,
-        'settings manager': settings_manager,
+        'settings manager': settingsmanager,
         'plugins': plugins,
         'chaptersidebar': chaptersidebar
     }
 
-    paths = settings_manager.paths
+    paths = settingsmanager.paths
     for name, path, module in get_plugins(paths['plugins'], paths['loadorder']):
         try:
             plugin_constructor = module.UserPlugin
@@ -63,8 +63,8 @@ def init_plugins(settings_manager, mainwindow, textarea, terminal, chaptersideba
             p.signal_print.connect(terminal.print_)
             p.signal_error.connect(terminal.error)
             p.signal_prompt.connect(terminal.prompt)
-            settings_manager.read_plugin_config.connect(p.read_config)
-            settings_manager.write_plugin_config.connect(p.write_config)
+            settingsmanager.read_plugin_config.connect(p.read_config)
+            settingsmanager.write_plugin_config.connect(p.write_config)
             plugin_commands.update(p.commands)
 
     return plugins, plugin_commands
