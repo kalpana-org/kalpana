@@ -36,7 +36,6 @@ from textarea import TextArea
 class Kalpana(QtGui.QApplication):
     read_plugin_config = pyqtSignal()
     write_plugin_config = pyqtSignal()
-
     print_ = pyqtSignal(str)
     error = pyqtSignal(str)
 
@@ -156,6 +155,7 @@ def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal
         (textarea.error_sig, terminal.error),
         (textarea.prompt_sig, terminal.prompt),
         (mainwindow.error, terminal.error),
+        (chaptersidebar.error, terminal.error),
 
         # File operations
         (terminal.request_new_file, textarea.request_new_file),
