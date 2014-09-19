@@ -45,7 +45,6 @@ class SettingsManager(QObject):
         self.css_template = common.read_file(common.local_path('template.css'))
 
         self.default_config = get_default_config()
-
         self.auto_setting_acronyms = get_auto_setting_acronym(self.default_config)
         self.setting_types = get_setting_types(self.default_config)
         self.setting_callbacks = defaultdict(list)
@@ -210,8 +209,12 @@ def get_auto_setting_acronym(default_config):
     characters in the automatic settings' names.
     E.g. "A Super awesome Setting!" --> "ass"
     """
-    return {''.join(x for x in setting if x.isupper()).lower():setting
-            for setting in default_config['automatic']}
+    result =  {''.join(x for x in setting if x.isupper()).lower():setting
+               for setting in default_config['automatic']}
+    if '' in result:
+        raise SyntaxError('Fix the damn default config! One or more of the '
+                          'automatic settings don\'t have working acronyms.')
+    return result
 
 def get_setting_types(default_config):
     """
@@ -268,7 +271,12 @@ def valid_setting(setting, value, setting_types):
     return isinstance(value, type_)
 
 def parse_terminal_setting(value, setting_type):
-    """ Return the value converted to its correct type. """
+    """
+    Return the value converted to its correct type.
+
+    value - a string
+    setting_type - a type or None
+    """
     if setting_type == bool:
         if value.lower() in ('1', 'y', 'true'):
             return True
