@@ -15,7 +15,6 @@
     "default spellcheck language": "en_US",
     "chapter sidebar hotkey": "Ctrl+R",
     "prologue chapter name": "[prologue]",
-    "chapter trigger string": ">>",
     "chapter strings": [
       [
         ">> +CHAPTER (?P<num>\\d+) ?[:-] (?P<name>.+)",

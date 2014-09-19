@@ -5,6 +5,9 @@ from PyQt4 import QtCore, QtGui
 
 from common import Configable
 
+class ChapterError(Exception):
+    pass
+
 class ChapterSidebar(QtGui.QListWidget, Configable):
     goto_line = QtCore.pyqtSignal(int)
     error = QtCore.pyqtSignal(str)
@@ -14,7 +17,13 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         self.init_settings_functions(settingsmanager)
         self.get_text = get_text
         self.setDisabled(True)
-        self.chapters_detected = False
+        self.error_reasons = {
+            'no chapters': 'No chapters detected!',
+            'no settings': 'No chapter settings specified in the config!',
+            'broken settings': 'Chapter settings are broken, fix them!'
+        }
+        self.current_error = None
+        self.linenumbers = []
         self.hide()
 
     def toggle(self):
@@ -22,28 +31,35 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
             self.hide()
         else:
             self.update_list()
-            if self.chapters_detected:
+            if not self.current_error:
                 self.show()
             else:
-                self.error.emit('No chapters detected')
+                self.error.emit(self.error_reasons[self.current_error])
 
     def update_list(self):
         self.clear()
-        prefix = self.get_setting('prologue chapter name')
-        trigger = self.get_setting('chapter trigger string')
+        prologuename = self.get_setting('prologue chapter name')
         chapter_strings = self.get_setting('chapter strings')
-        text = self.get_text().splitlines()
-        result = update_list_data(text, trigger, prefix, chapter_strings)
-        if result is None:
-            self.chapters_detected = False
+        if not chapter_strings:
+            self.current_error = 'no settings'
             return
-        self.linenumbers, items = result
-        self.addItems(items)
-        self.mod_items_fonts(bold=True)
-        self.setFixedWidth(self.sizeHintForColumn(0)+5)
-        self.mod_items_fonts(bold=False)
-        self.item(0).setFont(mod_font(self.item(0), bold=True))
-        self.chapters_detected = True
+        try:
+            validate_chapter_strings(chapter_strings)
+        except AssertionError:
+            self.current_error = 'broken settings'
+            return
+        lines = self.get_text().splitlines()
+        try:
+            self.linenumbers, items = get_chapters_data(lines, prologuename, chapter_strings)
+        except ChapterError as e:
+            self.current_error = str(e)
+        else:
+            self.addItems(items)
+            self.mod_items_fonts(bold=True)
+            self.setFixedWidth(self.sizeHintForColumn(0)+5)
+            self.mod_items_fonts(bold=False)
+            self.item(0).setFont(mod_font(self.item(0), bold=True))
+            self.current_error = None
 
     def update_active_chapter(self, blocknumber):
         """
@@ -66,8 +82,8 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
             self.goto_line.emit(int(arg))
         elif re.match(r'c\d+', arg):
             self.update_list()
-            if not self.chapters_detected:
-                self.error.emit('No chapters detected')
+            if self.current_error:
+                self.error.emit(self.error_reasons[self.current_error])
                 return
             chapter = int(arg[1:])
             if chapter in range(len(self.linenumbers)):
@@ -79,17 +95,14 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
 
     def get_chapter_text(self, chapter):
         self.update_list()
-        if not self.chapters_detected:
-            self.error.emit('No chapters detected')
+        if self.current_error:
+            self.error.emit(self.error_reasons[self.current_error])
             return
         lines = self.get_text().splitlines()
-        if chapter not in range(len(self.linenumbers)):
-            self.error.emit('Invalid chapter number')
-            return
-        ln = self.linenumbers + [len(lines)+1]
-        text = '\n'.join(lines[ln[chapter]:ln[chapter+1]-1]).strip('\n\t ')
-        if not text:
-            self.error.emit('Chapter is only whitespace, ignoring')
+        try:
+            text = get_chapter_text(chapter, lines, self.linenumbers)
+        except ChapterError as e:
+            self.error.emit(str(e))
         else:
             return text
 
@@ -104,34 +117,72 @@ def mod_font(item, bold):
     font.setBold(bold)
     return font
 
-def update_list_data(text, trigger, prefix, chapter_strings):
+def get_chapter_text(chapter, lines, linenumbers):
+    """ Return the text inside the specified chapter. """
+    if chapter not in range(len(linenumbers)):
+        raise ChapterError('Invalid chapter number')
+    ln = linenumbers + [len(lines)+1]
+    text = '\n'.join(lines[ln[chapter]:ln[chapter+1]-1]).strip('\n\t ')
     if not text:
-        return
-    # Find all remotely possible lines (linenumber, text)
-    rough_list = [(n,t) for n,t in enumerate(text, 1) if t.startswith(trigger)]
-    if not rough_list:
-        return
-    # Find only those that match the regexes
+        raise ChapterError('Chapter is only whitespace, ignoring')
+    else:
+        return text
+
+def validate_chapter_strings(chapter_strings):
+    """
+    Make sure the chapter strings are as correct as possible.
+    Return None on success and raise AssertionError on failure.
+    """
+    for item in chapter_strings:
+        assert isinstance(item, list) and len(item) == 2
+        rx_str, template = item
+        assert isinstance(rx_str, str) and isinstance(template, str)
+        assert rx_str.strip() and template.strip()
+        try:
+            rx = re.compile(rx_str)
+        except re.error:
+            raise AssertionError()
+        try:
+            template.format(**rx.groupindex)
+        except KeyError:
+            raise AssertionError()
+
+def get_chapters_data(lines, prologuename, chapter_strings):
+    """
+    Return two lists:
+        linenumbers - the numbers of the lines where each chapter begins
+        items - string with name and wordcount to add to the sidebar widget.
+    """
+    if not lines:
+        raise ChapterError('no chapters')
+    # Find lines that match the regexes
     # Match to every rawstring possible, but overwrite earlier if needed
     out = {}
     for rx_str, template in chapter_strings: # all combinations
         rx = re.compile(rx_str)
-        for x in rough_list: # all lines
-            if rx.match(x[1]):
-                out[x[0]] = template.format(**rx.match(x[1]).groupdict()).strip()
+        for n, line in enumerate(lines, 1): # all lines
+            if rx.match(line):
+                matchdict = rx.match(line).groupdict()
+                # This happens if not all groups in the regex are matched
+                if None in matchdict.values():
+                    raise ChapterError('broken settings')
+                out[n] = template.format(**matchdict).strip()
     if not out:
-        return
+        raise ChapterError('no chapters')
+    out[0] = prologuename
     linenumbers, chapterlist = zip(*sorted(out.items(), key=itemgetter(0)))
-    chapter_lengths = get_chapter_wordcounts(linenumbers, text)
-    items = ['{}\n   {}'.format(x,y) for x,y in zip(chapterlist, chapter_lengths)]
-    if linenumbers[0] > 1:
-        wc = len(re.findall(r'\S+', '\n'.join(text[:linenumbers[0]-1])))
-        linenumbers = [0] + list(linenumbers)
-        items.insert(0, prefix + '\n   ' + str(wc))
-    return linenumbers, items
+    chapter_lengths = get_chapter_wordcounts(linenumbers, lines)
+    items = ['{}\n   {}'.format(x,y)
+             for x,y in zip(chapterlist, chapter_lengths)]
+    return list(linenumbers), items
 
-def get_chapter_wordcounts(real_chapter_lines, text):
-    """ Return a list of the word count for each chapter. """
-    chapter_lines = list(real_chapter_lines) + [len(text)]
-    return [len(re.findall(r'\S+', '\n'.join(text[chapter_lines[i]:chapter_lines[i+1]-1])))
+def get_chapter_wordcounts(real_chapter_lines, lines):
+    """
+    Return a list of the word count for each chapter.
+
+    real_chapter_lines - a list of line numbers where a chapter starts,
+                         including the prologue that starts on line 0.
+    """
+    chapter_lines = list(real_chapter_lines) + [len(lines)+1]
+    return [len(re.findall(r'\S+', '\n'.join(lines[chapter_lines[i]:chapter_lines[i+1]-1])))
             for i in range(len(chapter_lines)-1)]
