@@ -147,6 +147,7 @@ def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal
         (textarea.modificationChanged, mainwindow.update_file_modified),
         (textarea.filename_changed, mainwindow.update_filename),
         (textarea.cursor_position_changed, chaptersidebar.update_active_chapter),
+        (chaptersidebar.goto_line, textarea.goto_line),
 
         # Print/error/prompt
         (settingsmanager.print_, terminal.print_),
