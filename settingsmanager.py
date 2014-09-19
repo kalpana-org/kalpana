@@ -91,38 +91,14 @@ class SettingsManager(QObject):
 
     def load_settings(self, refresh_only=False):
         """ Load settings from the main config file. """
-        oldsettings = self.settings
-        self.auto_settings, self.manual_settings\
-                 = read_config(self.paths['config_file'], self.default_config)
-        self.settings = ChainMap(self.auto_settings, self.manual_settings)
-
-        def revert_setting(key):
-            if key in oldsettings:
-                reverted_value = oldsettings[key]
-            else:
-                reverted_value = self.default_config[key]
-            self.set_setting(key, reverted_value)
-
-        # Make sure the settings aren't fucked up yo
-        for key, value in self.settings.items():
-            if refresh_only and oldsettings.get(key) == value:
-                continue
-            # First make a simple check to see if the value is the right type
-            if not valid_setting(key, value, self.setting_types):
-                print('Invalid type for setting: "{}"'.format(key))
-                self.error.emit('Errors while reading the config. Check terminal output.')
-                revert_setting(key)
-            # Then do a live update and see if things blow up
-            try:
-                self.update_runtime_setting(key, value)
-            except SettingsError as e:
-                print(str(e))
-                self.error.emit('Errors while reading the config. Check terminal output.')
-                revert_setting(key)
-
+        self.settings, errormsg = \
+            load_settings(self.paths, self.default_config, self.settings,
+                          self.setting_callbacks, self.setting_types, refresh_only)
+        self.auto_settings, self.manual_settings = self.settings.maps
+        if errormsg:
+            self.error.emit(errormsg)
         if self.settings['start in terminal'] and not refresh_only:
             self.switch_focus_to_terminal.emit()
-
         self.save_settings()
         self.read_plugin_config.emit()
         self.set_theme()
@@ -146,39 +122,20 @@ class SettingsManager(QObject):
             self.print_.emit('Settings: {}'.format(', '.\
                              join(sorted(self.auto_setting_acronyms.keys()))))
             return
-        parsed_arg = re.match(r"(?P<setting>\S+)(\s+(?P<value>.+?))?\s*$", arg)
-        acronym = parsed_arg.group('setting')
-        if acronym not in self.auto_setting_acronyms:
-            self.error.emit('No such setting: {}'.format(acronym))
-            return
-        setting = self.auto_setting_acronyms[acronym]
-        # Set new value if there is one
-        if parsed_arg.group('value'):
-            new_value = parsed_arg.group('value')
-            parsed_value = parse_terminal_setting(new_value,
-                                    self.setting_types['automatic'][setting])
-            if parsed_value is None:
-                self.error.emit('Wrong value "{}" for setting: {}'\
-                                .format(new_value, setting.lower()))
-            else:
-                try:
-                    self.update_runtime_setting(setting, parsed_value)
-                except SettingsError as e:
-                    self.error.emit(str(e))
-                else:
-                    self.auto_settings[setting] = parsed_value
-                    self.save_settings()
-                    self.print_.emit('{} now set to: {}'.format(setting.lower(), parsed_value))
-        # Otherwise just print the current value
+        try:
+            setting, new_value = parse_setting_command(arg, self.auto_setting_acronyms,
+                                           self.setting_types, self.setting_callbacks)
+        except SettingsError as e:
+            self.error.emit(str(e))
         else:
-            name = setting.lower()
-            value = self.auto_settings[setting]
-            self.print_.emit('{} = {}'.format(name, value))
-
-    def update_runtime_setting(self, key, new_value):
-        """ Change specific runtime-settings. """
-        for callback in self.setting_callbacks.get(key, []):
-            callback(new_value)
+            # Print the current value if no new value is specified
+            if new_value is None:
+                self.print_.emit('{} = {}'.format(setting.lower(),
+                                                  self.auto_settings[setting]))
+            else:
+                self.auto_settings[setting] = new_value
+                self.save_settings()
+                self.print_.emit('{} now set to: {}'.format(setting.lower(), new_value))
 
     def save_settings(self):
         """ Save the settings to the config file """
@@ -269,6 +226,75 @@ def valid_setting(setting, value, setting_types):
     if type_ is None:
         return True
     return isinstance(value, type_)
+
+def update_runtime_setting(key, new_value, setting_callbacks):
+    """ Change specific runtime-settings. """
+    for callback in setting_callbacks.get(key, []):
+        callback(new_value)
+
+def load_settings(paths, default_config, oldsettings,
+                  setting_callbacks, setting_types, refresh_only):
+    """ Load settings from the main config file. """
+    auto_settings, manual_settings\
+             = read_config(paths['config_file'], default_config)
+    settings = ChainMap(auto_settings, manual_settings)
+    def revert_setting(key):
+        if key in oldsettings:
+            reverted_value = oldsettings[key]
+        else:
+            reverted_value = default_config[key]
+        if key in auto_settings:
+            auto_settings[key] = reverted_value
+        elif key in manual_settings:
+            manual_settings[key] = reverted_value
+    error = False
+    # Make sure the settings aren't fucked up yo
+    for key, value in settings.items():
+        if refresh_only and oldsettings.get(key) == value:
+            continue
+        # First make a simple check to see if the value is the right type
+        if not valid_setting(key, value, setting_types):
+            print('Invalid type for setting: "{}"'.format(key))
+            error = True
+            revert_setting(key)
+        # Then do a live update and see if things blow up
+        try:
+            update_runtime_setting(key, value, setting_callbacks)
+        except SettingsError as e:
+            print(str(e))
+            error = True
+            revert_setting(key)
+    error_text = 'Errors while reading the config. Check terminal output.'
+    return settings, error_text if error else None
+
+def parse_setting_command(arg, auto_setting_acronyms, setting_types, setting_callbacks):
+    """
+    Return a pair of the identified setting and its new value.
+    If no new value is specified, return the setting and None.
+    """
+    parsed_arg = re.match(r"(?P<setting>\S+)(\s+(?P<value>.+?))?\s*$", arg)
+    acronym = parsed_arg.group('setting')
+    if acronym not in auto_setting_acronyms:
+        raise SettingsError('No such setting: {}'.format(acronym))
+    setting = auto_setting_acronyms[acronym]
+    # Set new value if there is one
+    if parsed_arg.group('value'):
+        new_value = parsed_arg.group('value')
+        parsed_value = parse_terminal_setting(new_value,
+                                setting_types['automatic'][setting])
+        if parsed_value is None:
+            raise SettingsError('Wrong value "{}" for setting: {}'\
+                                .format(new_value, setting.lower()))
+        else:
+            try:
+                update_runtime_setting(setting, parsed_value, setting_callbacks)
+            except SettingsError:
+                raise
+            else:
+                return setting, parsed_value
+    # Otherwise just print the current value
+    else:
+        return setting, None
 
 def parse_terminal_setting(value, setting_type):
     """
