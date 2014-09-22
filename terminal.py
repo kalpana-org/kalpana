@@ -54,7 +54,7 @@ class Terminal(GenericTerminal, Configable):
             'n': (self.cmd_new, 'Open new file'),
             's': (self.cmd_save, 'Save (as) [file]'),
             'q': (self.cmd_quit, 'Quit Kalpana'),
-            '/': (self.search_and_replace, 'Search/replace'),
+            '/': (self.search_and_replace, 'Search/replace', {'keep whitespace': True}),
             '?': (self.cmd_help, 'List commands or help for [command]'),
             ':': (self.goto_line, 'Go to line'),
             'c': (self.count_words, 'Print wordcount'),
