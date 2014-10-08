@@ -12,7 +12,7 @@ Technical shit
 * Requires PyQt
 * Requires libsyntyche *(https://github.com/nycz/libsyntyche)*
 * Optionally requires PyEnchant and language dictionaries for Enchant's backends (eg. Hunspell, Aspell) for the spell check to work
-* Probably won't work on Mac
+* Probably won't work on Mac, possibly badly in Windows
 
 
 Shortcuts
@@ -23,13 +23,14 @@ Shortcuts
 * `Ctrl + Shift + S` – Save as
 * `F3` – Find next (has to first search for something in the terminal)
 * `Escape` – Toggle terminal *(default)*
+* `Ctrl + R` – Toggle chapter sidebar *(default)*
 
 
 Commands
 --------
 * `&` – See *Spell check*
 * `/` – See *Search and replace*
-* `:<line>` – Go to `<line>`
+* `:[c]<number>` – Go to line or go to chapter if `c` is supplied
 * `=<option> [<value>]` – Show `<option>`'s value or set it to `<value>`
 * `?[<command>]` – List all commands or show help for `<command>`
 * `c` – Print wordcount
@@ -75,34 +76,45 @@ Kalpana uses a vim-like syntax, meaning that you will have to escape forward-sla
 
 Config
 ------
-The config directory is in `~/.config/kalpana` on Linux and the local directory (where `kalpana.py` is) on Windows. This directory contains (among other things, in the case of Windows) `kalpana.conf`, `loadorder.conf`, `stylesheet.css` and the `plugin` directory.
+The config directory is in `~/.config/kalpana` on Linux and the local directory (where `kalpana.py` is) on Windows. This directory contains (among other things, in the case of Windows) `kalpana.conf`, `loadorder.conf`, `style.conf` and the `plugin` and `spellcheck-pwl` directories.
 
-The main config file (`kalpana.conf`) is automagically created from the default config (not simply copied) if it doesn't exist. It is not meant to be edited by hand but have fun if you're wild and crazy. Any setting keys that don't match settings in the default config are removed and any illegal options are reverted to default. Basically, don't fuck with da config, yo.
+The main config file (`kalpana.conf`) is automagically created from the default config (not simply copied) if it doesn't exist. It is simple JSON and is divided into two parts: `automatic` and `manual`.
+
+The `automatic` part is not meant to be edited by hand but instead by using the `=` command in Kalpana's internal terminal. The `manual` part can not be edited from within Kalpana but instead has to be edited manually.
 
 The config is reloaded everytime Kalpana is activated, which means that if you change something in one instance of Kalpana, as soon as you change to another one it gets that change as well.
 
-###Options###
+###Error handling###
+Blatantly obvious errors in the config (both parts of it) will try to be corrected when Kalpana reloads the config. Examples would be a number where there should `true` or `false` or a missing or extra option. All other errors should be found during runtime when they are used. Kalpana should never crash from a faulty setting. Emphasis on "should".
+
+###Automatic options###
 * `ai` – Use auto-indentation. *Allowed values: true/false*
-* `dl` – Default language for spell checking. *Allowed values: language codes for existing PyEnchant-compatible language dictionaries (eg. en_US)*
 * `ln` – Show line numbers. *Allowed values: true/false*
 * `nw` – Open files in a new windows. *Allowed values: true/false*
-* `sit` – Set focus on the terminal on startup. *Allowed values: true/false*
-* `tk` – Terminal toggling hotkey. *Allowed values: http://pyqt.sourceforge.net/Docs/PyQt4/qkeysequence.html*
+* `vs` – Show the vertical scrollbar. *Allowed values: `on`/`off`/`auto`, auto means it only appears when needed*
 * `ato` – Animate the terminal output, typing out each character one by one. *Allowed values: true/false*
 * `tai` – The interval of each character being typed out in the output part of the terminal, in milliseconds. *Allowed values: a positive integer*
-* `vs` – Show the vertical scrollbar. *Allowed values: `on`/`off`/`auto`, auto means it only appears when needed*
 * `pw` – Set the maximum width of the page (the space you actually write text). *Allowed values: a positive integer*
 * `swc` – Toggle the automatically updating wordcount in the titlebar. If this is disabled, wordcount can still be shown using the `c` command. Note that on slower computers and/or large files, enabling this option may slow down Kalpana. *Allowed values: true/false*
 
-Boolean values (true/false) can be represented as `y`, `1` or `true` and `n`, `0` or `false` respectively (case-insensitive).
+When changing settings using the `=` command, if the setting is a boolean (its default value is true or false), `y`, `1` or `true` will be interpreted as true (the boolean value, not the string "true") and  `n`, `0` or `false` will be interpreted as false. The interpretation is case insensitive.
+
+###Manual options###
+* `start in terminal` – If true, the terminal will be open and focused when Kalpana is started. *Allowed values: true/false*
+* `terminal hotkey` – *Allowed values: keycode*
+* `default spellcheck language` – *Allowed values: language codes for existing PyEnchant-compatible language dictionaries (eg. en_US)*
+* `chapter sidebar hotkey` – *Allowed values: keycode*
+* `prologue chapter name` – The name in the chapter sidebar for "chapter 0", the text that precedes the first chapter. *Allowed values: any text*
+* `chapter strings`
+
+Keycodes are either names of keys (eg. `Escape`, `F12` or `J`) or combinations (eg. `Ctrl+X`, `Ctrl+Shift+Y`). Further documentation: http://pyqt.sourceforge.net/Docs/PyQt4/qkeysequence.html
 
 
 Theme config
 ------------
-The theme is specified in `stylesheet.css` in the config directory. If the file doesn't exist, Kalpana will copy and use `themes/default.css` instead.
+Theme settings are specified in `style.conf` in the config directory. If the file doesn't exist, Kalpana will copy and use a default instead. The file is plain JSON and should be fairly self-explanatory.
 
-The syntax used is libsyntyche's modified version of Qt's stylesheets:
-https://github.com/nycz/libsyntyche
+The theme is reloaded every time the config is reloaded, ie. whenever the Kalpana window is activated/focused.
 
 
 Plugins
