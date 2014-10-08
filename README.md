@@ -112,7 +112,7 @@ Keycodes are either names of keys (eg. `Escape`, `F12` or `J`) or combinations (
 
 Theme config
 ------------
-Theme settings are specified in `style.conf` in the config directory. If the file doesn't exist, Kalpana will copy and use a default instead. The file is plain JSON and should be fairly self-explanatory.
+Theme settings are specified in `style.conf` in the config directory. If the file doesn't exist, Kalpana will copy and use a default instead. The file is plain JSON and should be fairly self-explanatory. The values should be valid CSS values.
 
 The theme is reloaded every time the config is reloaded, ie. whenever the Kalpana window is activated/focused.
 
