@@ -119,4 +119,4 @@ The theme is reloaded every time the config is reloaded, ie. whenever the Kalpan
 
 Plugins
 -------
-See `docs/plugin_docs.rst`.
+See `docs/plugins.md`.
