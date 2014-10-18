@@ -12,10 +12,11 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
     goto_line = QtCore.pyqtSignal(int)
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, settingsmanager, get_text):
+    def __init__(self, settingsmanager, get_text, get_text_cursor):
         super().__init__()
         self.init_settings_functions(settingsmanager)
         self.get_text = get_text
+        self.get_text_cursor = get_text_cursor
         self.setDisabled(True)
         self.error_reasons = {
             'no chapters': 'No chapters detected!',
@@ -58,15 +59,15 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
             self.mod_items_fonts(bold=True)
             self.setFixedWidth(self.sizeHintForColumn(0)+5)
             self.mod_items_fonts(bold=False)
-            self.item(0).setFont(mod_font(self.item(0), bold=True))
+            self.update_active_chapter(self.get_text_cursor().blockNumber(), force=True)
             self.current_error = None
 
-    def update_active_chapter(self, blocknumber):
+    def update_active_chapter(self, blocknumber, force=False):
         """
         Update the list to make the chapter the cursor is in bold.
         Triggered by moving the cursor (a signal from textarea.py).
         """
-        if not self.count() or not self.isVisible():
+        if not force and (not self.count() or not self.isVisible()):
             return
         pos = blocknumber+1
         self.mod_items_fonts(bold=False)

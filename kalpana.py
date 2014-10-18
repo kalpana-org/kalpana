@@ -118,7 +118,7 @@ def create_objects(configdir):
     smgr = SettingsManager(configdir)
     mw = MainWindow(smgr)
     txta = TextArea(mw, smgr)
-    chsb = ChapterSidebar(smgr, txta.toPlainText)
+    chsb = ChapterSidebar(smgr, txta.toPlainText, txta.textCursor)
     term = Terminal(mw, smgr, lambda: txta.file_path)
     # Ugly shit
     mw.set_is_modified_callback(txta.document().isModified)
