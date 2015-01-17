@@ -218,7 +218,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
             self.error('Language {} does not exist!'.format(lang))
 
 
-    ## ==== Save & replace ================================================ ##
+    ## ==== Search & replace ================================================ ##
 
     def search_and_replace(self, arg):
         def generate_flags(flagstr):
@@ -283,6 +283,9 @@ class TextArea(LineTextWidget, FileHandler, Configable):
                 if not found:
                     self.setTextCursor(temp_cursor)
                     self.error('Text not found')
+            else:
+                self.setTextCursor(temp_cursor)
+                self.error('Text not found')
 
 
     def replace_next(self, replace_buffer):
