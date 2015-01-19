@@ -81,13 +81,15 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         """ Scroll to the specified line or chapter. """
         if arg.isdigit():
             self.goto_line.emit(int(arg))
-        elif re.match(r'c\d+', arg):
+        elif re.match(r'c-?\d+', arg):
             self.update_list()
             if self.current_error:
                 self.error.emit(self.error_reasons[self.current_error])
                 return
-            chapter = int(arg[1:])
-            if chapter in range(len(self.linenumbers)):
+            chapter = int(arg[1:].strip('-'))
+            if chapter in range(1, len(self.linenumbers)):
+                if arg[1] == '-':
+                    chapter = -chapter
                 self.goto_line.emit(self.linenumbers[chapter])
             else:
                 self.error.emit('Invalid chapter number')

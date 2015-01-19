@@ -30,7 +30,7 @@ Commands
 --------
 * `&` – See *Spell check*
 * `/` – See *Search and replace*
-* `:[c]<number>` – Go to line or go to chapter if `c` is supplied
+* `:[c[-]]<number>` – Go to line or go to chapter if `c` is supplied, counting from the last chapter if `-` is supplied (:c-1 goes to the last chapter)
 * `=<option> [<value>]` – Show `<option>`'s value or set it to `<value>`
 * `?[<command>]` – List all commands or show help for `<command>`
 * `c` – Print wordcount
