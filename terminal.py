@@ -93,7 +93,7 @@ class Terminal(GenericTerminal, Configable):
 
     # ==== Autocomplete ========================== #
 
-    def autocomplete(self):
+    def autocomplete(self, reverse):
         """
         Main autocomplete functions.
         Is called whenever tab is pressed.
@@ -112,7 +112,7 @@ class Terminal(GenericTerminal, Configable):
             self.prompt(cmdprefix + ' ' + wd + os.path.sep)
             return
 
-        autocompleted_text = self.run_autocompletion(ac_text)
+        autocompleted_text = self.run_autocompletion(ac_text, reverse)
         self.prompt(cmdprefix + ' ' + autocompleted_text)
 
 
