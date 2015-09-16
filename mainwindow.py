@@ -79,12 +79,8 @@ class MainWindow(QtGui.QFrame, Configable):
             event.ignore()
 
     def quit(self, force):
-        if force:
-            self.force_quit_flag = True
-            self.close()
-        else:
-            self.force_quit_flag = False
-            self.close()
+        self.force_quit_flag = force
+        self.close()
 
     # Override
     def dragEnterEvent(self, event):
