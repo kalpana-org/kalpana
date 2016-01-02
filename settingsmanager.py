@@ -17,7 +17,7 @@
 
 from collections import defaultdict, ChainMap
 import os
-from os.path import join, exists, dirname
+from os.path import join, exists, dirname, isfile
 import re
 import shutil
 
@@ -143,6 +143,27 @@ class SettingsManager(QObject):
         settings = {'automatic': self.auto_settings, 'manual': self.manual_settings}
         common.write_json(config_file_path, settings)
         self.write_plugin_config.emit()
+
+    def set_stylefile(self, stylename):
+        configdir = self.paths['config_dir']
+        # List all the available styles
+        if not stylename.strip():
+            rx = r'style-.+?\.conf'
+            names = [x[6:-5] for x in os.listdir(configdir) if re.fullmatch(rx, x)]
+            self.print_.emit('Styles: {} (- for default)'.format(', '.join(names)))
+        # Reset style
+        elif stylename == '-':
+            self.paths['style'] = join(configdir, 'style.conf')
+            self.set_theme()
+            self.print_.emit('Resetting style to default')
+        # Style file is not available
+        elif not isfile(join(configdir, 'style-{}.conf'.format(stylename))):
+            self.error.emit('Style config "style-{}.conf" not found'.format(stylename))
+        # Set style
+        else:
+            self.paths['style'] = join(configdir, 'style-{}.conf'.format(stylename))
+            self.set_theme()
+            self.print_.emit('Setting style to {}'.format(stylename))
 
     def set_theme(self):
         result = get_updated_css(self.paths['style'],

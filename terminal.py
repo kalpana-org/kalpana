@@ -39,6 +39,7 @@ class Terminal(GenericTerminal, Configable):
     goto_line = pyqtSignal(str)
     list_plugins = pyqtSignal(str)
     print_filename = pyqtSignal(str)
+    set_stylefile = pyqtSignal(str)
     spellcheck = pyqtSignal(str)
 
     def __init__(self, parent, settingsmanager, get_filepath):
@@ -61,6 +62,7 @@ class Terminal(GenericTerminal, Configable):
             '=': (self.manage_settings, 'Manage settings'),
             'p': (self.list_plugins, 'List active plugins'),
             'f': (self.print_filename, 'Print name of the active file'),
+            'g': (self.set_stylefile, 'Set style for the interface'),
             '&': (self.spellcheck, 'Spellcheck (&? for help)')
         }
 
