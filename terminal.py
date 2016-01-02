@@ -47,7 +47,7 @@ class Terminal(GenericTerminal, Configable):
         self.init_settings_functions(settingsmanager)
         self.register_setting('Terminal Animation Interval', self.set_terminal_animation_interval)
         self.register_setting('Animate Terminal Output', self.set_terminal_animation)
-
+        self.get_configpath = lambda: settingsmanager.paths['config_dir']
         self.get_filepath = get_filepath
 
         self.commands = {
@@ -101,35 +101,45 @@ class Terminal(GenericTerminal, Configable):
         Is called whenever tab is pressed.
         """
         text = self.input_term.text()
-        rx = re.match(r'([os]!?)\s*(.*)', text)
+        rx = re.match(r'([os]!?|g)\s*(.*)', text)
         if not rx:
             return
         cmdprefix, ac_text = rx.groups()
 
-        # Autocomplete with the working directory if the line is empty
         if not ac_text:
-            wd = os.path.abspath(self.get_filepath())
-            if not os.path.isdir(wd):
-                wd = os.path.dirname(wd)
-            self.prompt(cmdprefix + ' ' + wd + os.path.sep)
-            return
+            if cmdprefix[0] in 'os':
+                # Autocomplete with the working directory if the line is empty
+                wd = os.path.abspath(self.get_filepath())
+                if not os.path.isdir(wd):
+                    wd = os.path.dirname(wd)
+                self.prompt(cmdprefix + ' ' + wd + os.path.sep)
+                return
 
         autocompleted_text = self.run_autocompletion(ac_text, reverse)
         self.prompt(cmdprefix + ' ' + autocompleted_text)
 
 
-    def get_ac_suggestions(self, path):
+    def get_ac_suggestions(self, prefix):
         """
         Return a list of all possible paths that starts with the
-        provided path.
+        provided string.
         All directories are suffixed with a / or \ depending on os.
         """
-        dirpath, namepart = os.path.split(path)
-        if not os.path.isdir(dirpath):
-            return []
-        suggestions = [os.path.join(dirpath, p) for p in sorted(os.listdir(dirpath))
-                       if p.lower().startswith(namepart.lower())]
-        return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
+        cmd = self.input_term.text()[0]
+        if cmd == 'g':
+            suggestions = [x[6:-5] for x in sorted(os.listdir(self.get_configpath()))
+                           if re.fullmatch(r'style-.+?\.conf', x)\
+                           and x.startswith('style-' + prefix)]
+            return suggestions
+        else:
+            dirpath, namepart = os.path.split(prefix)
+            if not os.path.isdir(dirpath):
+                return []
+            suggestions = [os.path.join(dirpath, p) for p in sorted(os.listdir(dirpath))
+                           if p.lower().startswith(namepart.lower())]
+            return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
+
+
 
 
 
