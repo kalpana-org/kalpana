@@ -158,6 +158,8 @@ def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal
         (mainwindow.error, terminal.error),
         (chaptersidebar.error, terminal.error),
 
+        (terminal.shake, textarea.shake),
+
         # File operations
         (terminal.request_new_file, textarea.request_new_file),
         (terminal.request_save_file, textarea.request_save_file),

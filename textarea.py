@@ -73,6 +73,19 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.file_path = ''
         self.show_wordcount = False
 
+    def shake(self):
+        a = QtCore.QPropertyAnimation(self, 'pos')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
+        a.setDuration(500)
+        a.setKeyValueAt(0, self.pos())
+        a.setKeyValueAt(0.2, self.pos() + QtCore.QPoint(40,0))
+        a.setKeyValueAt(0.4, self.pos() - QtCore.QPoint(80,0))
+        a.setKeyValueAt(0.6, self.pos() + QtCore.QPoint(40,0))
+        a.setKeyValueAt(0.8, self.pos() - QtCore.QPoint(80,0))
+        a.setKeyValueAt(1, self.pos())
+        a.start(QtCore.QPropertyAnimation.DeleteWhenStopped)
+        self.shakeanim = a
+
     # Override
     def wheelEvent(self, event):
         # Can't call super().wheelEvent b/c it sends the event to the parent
