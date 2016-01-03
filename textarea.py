@@ -73,6 +73,22 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.file_path = ''
         self.show_wordcount = False
 
+        # Scrollbar fadeout
+        self.hidescrollbartimer = QtCore.QTimer(self)
+        self.hidescrollbartimer.setInterval(1000)
+        self.hidescrollbartimer.setSingleShot(True)
+        self.hidescrollbartimer.timeout.connect(self.hide_scrollbar)
+        self.verticalScrollBar().valueChanged.connect(self.scrollbar_moved)
+        self.hidescrollbareffect = QtGui.QGraphicsOpacityEffect(self.verticalScrollBar())
+        self.verticalScrollBar().setGraphicsEffect(self.hidescrollbareffect)
+        a = QtCore.QPropertyAnimation(self.hidescrollbareffect, 'opacity')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutQuint)
+        a.setDuration(500)
+        a.setStartValue(1)
+        a.setEndValue(0)
+        self.hidescrollbaranim = a
+        self.scrollbar_moved()
+
     def shake(self):
         a = QtCore.QPropertyAnimation(self, 'pos')
         a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
@@ -85,6 +101,14 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         a.setKeyValueAt(1, self.pos())
         a.start(QtCore.QPropertyAnimation.DeleteWhenStopped)
         self.shakeanim = a
+
+    def scrollbar_moved(self):
+        self.hidescrollbaranim.stop()
+        self.hidescrollbareffect.setOpacity(1)
+        self.hidescrollbartimer.start()
+
+    def hide_scrollbar(self):
+        self.hidescrollbaranim.start()
 
     # Override
     def wheelEvent(self, event):
