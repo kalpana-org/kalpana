@@ -61,8 +61,14 @@ class Kalpana(QtGui.QApplication):
         self.install_event_filter()
         # Try to open a file and die if it doesn't work, or make a new file
         if file_to_open:
-            if not self.objects['textarea'].open_file(file_to_open):
-                self.close()
+            if os.path.exists(file_to_open):
+                if not self.objects['textarea'].open_file(file_to_open):
+                    print('Bad encoding! Use utf-8 or latin1.')
+                    self.close()
+            else:
+                # If the path doesn't exist, open a new file with the name
+                self.objects['textarea'].document().setModified(True)
+                self.objects['textarea'].set_filename(file_to_open)
         else:
             self.objects['textarea'].set_filename(new=True)
         # FIN
@@ -191,17 +197,13 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    def valid_file(fname):
-        if os.path.isfile(fname):
-            return fname
-        parser.error('File does not exist: {}'.format(fname))
     def valid_dir(dirname):
         if os.path.isdir(dirname):
             return dirname
         parser.error('Directory does not exist: {}'.format(dirname))
 
     parser.add_argument('-c', '--config-directory', type=valid_dir)
-    parser.add_argument('files', nargs='*', type=valid_file)
+    parser.add_argument('files', nargs='*')
     args = parser.parse_args()
 
     if not args.files:
