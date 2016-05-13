@@ -19,7 +19,7 @@
 import os.path
 import re
 
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import pyqtSignal
 
 from libsyntyche.terminal import GenericTerminalInputBox, GenericTerminalOutputBox, GenericTerminal
@@ -41,6 +41,8 @@ class Terminal(GenericTerminal, Configable):
     print_filename = pyqtSignal(str)
     set_stylefile = pyqtSignal(str)
     spellcheck = pyqtSignal(str)
+
+    shake = pyqtSignal()
 
     def __init__(self, parent, settingsmanager, get_filepath):
         super().__init__(parent, GenericTerminalInputBox, GenericTerminalOutputBox)
@@ -81,6 +83,10 @@ class Terminal(GenericTerminal, Configable):
             return
         self.output_term.set_timer_interval(interval)
     # ===============================================================
+
+    def error(self, arg):
+        super().error(arg)
+        self.shake.emit()
 
     def show(self):
         super().show()

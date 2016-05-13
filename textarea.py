@@ -56,6 +56,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.register_setting('Vertical Scrollbar', self.set_vscrollbar_visibility)
         self.register_setting('max Page Width', self.set_maximum_width)
         self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
+        self.register_setting('Miscellaneous Animations', self.set_animations_active)
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -72,6 +73,50 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.highlighter = None
         self.file_path = ''
         self.show_wordcount = False
+        self.animations_active = False
+
+        # Scrollbar fadeout
+        self.hidescrollbartimer = QtCore.QTimer(self)
+        self.hidescrollbartimer.setInterval(1000)
+        self.hidescrollbartimer.setSingleShot(True)
+        self.hidescrollbartimer.timeout.connect(self.hide_scrollbar)
+        self.verticalScrollBar().valueChanged.connect(self.scrollbar_moved)
+        self.hidescrollbareffect = QtGui.QGraphicsOpacityEffect(self.verticalScrollBar())
+        self.verticalScrollBar().setGraphicsEffect(self.hidescrollbareffect)
+        a = QtCore.QPropertyAnimation(self.hidescrollbareffect, 'opacity')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutQuint)
+        a.setDuration(500)
+        a.setStartValue(1)
+        a.setEndValue(0)
+        self.hidescrollbaranim = a
+        self.scrollbar_moved()
+
+    def shake(self):
+        if not self.animations_active:
+            return
+        a = QtCore.QPropertyAnimation(self, 'pos')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
+        a.setDuration(500)
+        a.setKeyValueAt(0, self.pos())
+        a.setKeyValueAt(0.2, self.pos() + QtCore.QPoint(40,0))
+        a.setKeyValueAt(0.4, self.pos() - QtCore.QPoint(80,0))
+        a.setKeyValueAt(0.6, self.pos() + QtCore.QPoint(40,0))
+        a.setKeyValueAt(0.8, self.pos() - QtCore.QPoint(80,0))
+        a.setKeyValueAt(1, self.pos())
+        a.start(QtCore.QPropertyAnimation.DeleteWhenStopped)
+        self.shakeanim = a
+
+    def scrollbar_moved(self):
+        if not self.animations_active:
+            return
+        self.hidescrollbaranim.stop()
+        self.hidescrollbareffect.setOpacity(1)
+        self.hidescrollbartimer.start()
+
+    def hide_scrollbar(self):
+        if not self.animations_active:
+            return
+        self.hidescrollbaranim.start()
 
     # Override
     def wheelEvent(self, event):
@@ -107,6 +152,15 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     def set_show_wordcount(self, value):
         self.show_wordcount = value
         self.wordcount_changed.emit(self.get_wordcount())
+
+    def set_animations_active(self, value):
+        if not value:
+            self.hidescrollbaranim.stop()
+            self.hidescrollbartimer.stop()
+            self.hidescrollbareffect.setOpacity(1)
+        elif value and not self.animations_active:
+            self.hidescrollbartimer.start()
+        self.animations_active = value
     # ===============================================================
 
     def get_wordcount(self):
