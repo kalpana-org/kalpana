@@ -56,6 +56,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.register_setting('Vertical Scrollbar', self.set_vscrollbar_visibility)
         self.register_setting('max Page Width', self.set_maximum_width)
         self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
+        self.register_setting('Miscellaneous Animations', self.set_animations_active)
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -72,6 +73,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.highlighter = None
         self.file_path = ''
         self.show_wordcount = False
+        self.animations_active = False
 
         # Scrollbar fadeout
         self.hidescrollbartimer = QtCore.QTimer(self)
@@ -90,6 +92,8 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.scrollbar_moved()
 
     def shake(self):
+        if not self.animations_active:
+            return
         a = QtCore.QPropertyAnimation(self, 'pos')
         a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
         a.setDuration(500)
@@ -103,11 +107,15 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.shakeanim = a
 
     def scrollbar_moved(self):
+        if not self.animations_active:
+            return
         self.hidescrollbaranim.stop()
         self.hidescrollbareffect.setOpacity(1)
         self.hidescrollbartimer.start()
 
     def hide_scrollbar(self):
+        if not self.animations_active:
+            return
         self.hidescrollbaranim.start()
 
     # Override
@@ -144,6 +152,15 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     def set_show_wordcount(self, value):
         self.show_wordcount = value
         self.wordcount_changed.emit(self.get_wordcount())
+
+    def set_animations_active(self, value):
+        if not value:
+            self.hidescrollbaranim.stop()
+            self.hidescrollbartimer.stop()
+            self.hidescrollbareffect.setOpacity(1)
+        elif value and not self.animations_active:
+            self.hidescrollbartimer.start()
+        self.animations_active = value
     # ===============================================================
 
     def get_wordcount(self):
