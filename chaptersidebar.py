@@ -41,6 +41,8 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         self.clear()
         prologuename = self.get_setting('prologue chapter name')
         chapter_strings = self.get_setting('chapter strings')
+        completeflags = self.get_setting('complete flags')
+        completemarker = self.get_setting('complete marker')
         if not chapter_strings:
             self.current_error = 'no settings'
             return
@@ -51,14 +53,15 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
             return
         lines = self.get_text().splitlines()
         try:
-            self.linenumbers, items = get_chapters_data(lines, prologuename, chapter_strings)
+            self.linenumbers, items = get_chapters_data(lines, prologuename, chapter_strings, completeflags, completemarker)
         except ChapterError as e:
             self.current_error = str(e)
         else:
-            self.addItems(items)
+            self.addItems([name for name, complete in items])
             self.mod_items_fonts(bold=True)
             self.setFixedWidth(self.sizeHintForColumn(0)+5)
             self.mod_items_fonts(bold=False)
+            self.set_not_complete_items(complete for name, complete in items)
             self.update_active_chapter(self.get_text_cursor().blockNumber(), force=True)
             self.current_error = None
 
@@ -74,7 +77,7 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         for n, ch in list(enumerate(self.linenumbers))[::-1]:
             if pos >= ch:
                 i = self.item(n)
-                i.setFont(mod_font(i, True))
+                i.setFont(mod_font(i, bold=True))
                 break
 
     def goto_line_or_chapter(self, arg):
@@ -112,12 +115,20 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
     def mod_items_fonts(self, bold):
         for item_nr in range(self.count()):
             i = self.item(item_nr)
-            i.setFont(mod_font(i, bold))
+            i.setFont(mod_font(i, bold=bold))
+
+    def set_not_complete_items(self, completelist):
+        for item_nr, complete in zip(range(self.count()), completelist):
+            i = self.item(item_nr)
+            i.setFont(mod_font(i, italic=complete))
 
 
-def mod_font(item, bold):
+def mod_font(item, bold=None, italic=None):
     font = item.font()
-    font.setBold(bold)
+    if bold is not None:
+        font.setBold(bold)
+    if italic is not None:
+        font.setItalic(italic)
     return font
 
 def get_chapter_text(chapter, lines, linenumbers):
@@ -150,11 +161,13 @@ def validate_chapter_strings(chapter_strings):
         except KeyError:
             raise AssertionError()
 
-def get_chapters_data(lines, prologuename, chapter_strings):
+def get_chapters_data(lines, prologuename, chapter_strings, completeflags, completemarker):
     """
     Return two lists:
         linenumbers - the numbers of the lines where each chapter begins
-        items - string with name and wordcount to add to the sidebar widget.
+        items - a pair with string with name and wordcount to add to the
+                sidebar widget and a bool set to true if the chapter is
+                complete.
     """
     if not lines:
         raise ChapterError('no chapters')
@@ -164,19 +177,29 @@ def get_chapters_data(lines, prologuename, chapter_strings):
     for rx_str, template in chapter_strings: # all combinations
         rx = re.compile(rx_str)
         for n, line in enumerate(lines, 1): # all lines
+            # Remove potential complete flag from the end of the string
+            if completeflags:
+                complete = False
+                for flag in completeflags:
+                    if line.endswith(flag):
+                        complete = True
+                        line = line[:-len(flag)].lstrip()
+                        break
+            else:
+                complete = True
             if rx.match(line):
                 matchdict = rx.match(line).groupdict()
                 # This happens if not all groups in the regex are matched
                 if None in matchdict.values():
                     raise ChapterError('broken settings')
-                out[n] = template.format(**matchdict).strip()
+                out[n] = (template.format(**matchdict).strip(), complete)
     if not out:
         raise ChapterError('no chapters')
-    out[0] = prologuename
+    out[0] = (prologuename, False)
     linenumbers, chapterlist = zip(*sorted(out.items(), key=itemgetter(0)))
     chapter_lengths = get_chapter_wordcounts(linenumbers, lines)
-    items = ['{}\n   {}'.format(x,y)
-             for x,y in zip(chapterlist, chapter_lengths)]
+    items = [('{}\n   {} {}'.format(name, length, completemarker if complete else ''), complete)
+             for (name, complete), length in zip(chapterlist, chapter_lengths)]
     return list(linenumbers), items
 
 def get_chapter_wordcounts(real_chapter_lines, lines):

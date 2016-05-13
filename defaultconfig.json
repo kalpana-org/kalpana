@@ -24,6 +24,8 @@
         ">> +CHAPTER (?P<num>\\d+)\\s*$",
         "{num}"
       ]
-    ]
+    ],
+    "complete flags": [],
+    "complete marker": "✓"
   }
 }
