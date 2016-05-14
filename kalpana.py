@@ -183,6 +183,7 @@ def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal
         (terminal.print_filename, textarea.print_filename),
         (terminal.spellcheck, textarea.spellcheck),
         (terminal.set_stylefile, settingsmanager.set_stylefile),
+        (textarea.update_recent_files, terminal.update_recent_files),
 
         # Settings manager
         (settingsmanager.switch_focus_to_terminal, terminal.show)

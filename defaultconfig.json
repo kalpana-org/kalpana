@@ -16,6 +16,7 @@
     "default spellcheck language": "en_US",
     "chapter sidebar hotkey": "Ctrl+R",
     "prologue chapter name": "[prologue]",
+    "recent file list length": 10,
     "chapter strings": [
       [
         ">> +CHAPTER (?P<num>\\d+) ?[:-] (?P<name>.+)",

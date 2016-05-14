@@ -29,7 +29,7 @@ else:
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import pyqtSignal
 
-from libsyntyche.common import write_file
+from libsyntyche.common import read_file, write_file
 from libsyntyche.filehandling import FileHandler
 from linewidget import LineTextWidget
 from common import Configable, SettingsError
@@ -43,6 +43,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     cursor_position_changed = pyqtSignal(int)
     wordcount_changed = pyqtSignal(int)
     modification_changed = pyqtSignal(bool)
+    update_recent_files = pyqtSignal()
     filename_changed = pyqtSignal(str)
     file_created = pyqtSignal()
     file_opened = pyqtSignal()
@@ -202,6 +203,19 @@ class TextArea(LineTextWidget, FileHandler, Configable):
             indent = re.match(r'[\t ]*', prevblock.text()).group(0)
             cursor.insertText(indent)
         self.blocks = blocks
+
+
+    def add_to_recent_files(self, filename):
+        listfname = self.get_path('recentfiles')
+        length = self.get_setting('recent file list length')
+        absfname = os.path.abspath(filename)
+        recentfiles = [absfname]
+        if os.path.exists(listfname):
+            oldrecentfiles = read_file(listfname).splitlines()
+            recentfiles += [x for x in oldrecentfiles if x != absfname][:length-1]
+        write_file(listfname, '\n'.join(recentfiles))
+        self.update_recent_files.emit()
+
 
     ## ==== Spellcheck ==================================================== ##
 
@@ -439,6 +453,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
                 if self.show_wordcount:
                     self.wordcount_changed.emit(self.get_wordcount())
                 self.moveCursor(QtGui.QTextCursor.Start)
+                self.add_to_recent_files(filename)
                 self.file_opened.emit()
                 return True
         return False
@@ -451,6 +466,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
             self.wordcount_changed.emit(self.get_wordcount())
         self.set_filename(filename)
         self.document().setModified(False)
+        self.add_to_recent_files(filename)
         self.file_saved.emit()
 
 

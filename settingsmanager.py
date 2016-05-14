@@ -389,6 +389,7 @@ def get_paths(custom_config_dir):
         'style':        path('style.conf'),
         'loadorder':    path('loadorder.conf'),
         'plugins':      path('plugins'),
-        'spellcheck-pwl': path('spellcheck-pwl')
+        'spellcheck-pwl': path('spellcheck-pwl'),
+        'recentfiles': path('recentfiles')
     }
 

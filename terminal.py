@@ -20,9 +20,10 @@ import os.path
 import re
 
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal, QEvent, Qt
 
 from libsyntyche.terminal import GenericTerminalInputBox, GenericTerminalOutputBox, GenericTerminal
+from libsyntyche.common import read_file
 from common import Configable
 
 
@@ -52,6 +53,10 @@ class Terminal(GenericTerminal, Configable):
         self.get_configpath = lambda: settingsmanager.paths['config_dir']
         self.get_filepath = get_filepath
 
+        self.recent_files = []
+        self.recent_files_index = 0
+        self.update_recent_files()
+
         self.commands = {
             'o': (self.cmd_open, 'Open [file]'),
             'n': (self.cmd_new, 'Open new file'),
@@ -69,6 +74,16 @@ class Terminal(GenericTerminal, Configable):
         }
 
         self.hide()
+
+    def event(self, ev):
+        if ev.type() == QEvent.KeyPress:
+            if ev.key() == Qt.Key_Backtab and ev.modifiers() == Qt.ShiftModifier | Qt.ControlModifier:
+                self.iterate_recent_files()
+                return True
+            elif ev.key() == Qt.Key_Tab and ev.modifiers() == Qt.ControlModifier:
+                self.iterate_recent_files(reverse=True)
+                return True
+        return super().event(ev)
 
     def update_commands(self, plugin_commands):
         self.commands.update(plugin_commands)
@@ -146,7 +161,27 @@ class Terminal(GenericTerminal, Configable):
             return [p + (os.path.sep*os.path.isdir(p)) for p in suggestions]
 
 
+    def update_recent_files(self):
+        listfname = self.get_path('recentfiles')
+        if not os.path.exists(listfname):
+            return
+        self.recent_files = read_file(listfname).splitlines()
+        self.recent_files_index = 0
 
+
+    def iterate_recent_files(self, reverse=False):
+        if not self.recent_files:
+            return
+        text = self.input_term.text()
+        rx = re.match(r'([nos]!?)\s*(.*)', text)
+        if not rx:
+            return
+        cmdprefix, fname = rx.groups(1)
+        if fname == self.recent_files[self.recent_files_index]:
+            self.recent_files_index += -1 if reverse else 1
+            self.recent_files_index %= len(self.recent_files)
+        newtext = '{} {}'.format(cmdprefix, self.recent_files[self.recent_files_index])
+        self.input_term.setText(newtext)
 
 
     # ==== Commands ============================== #
