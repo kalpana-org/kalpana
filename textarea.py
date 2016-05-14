@@ -409,12 +409,15 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         """ Return True if the file is empty and unsaved. """
         return self.get_setting('open in New Window') and (self.document().isModified() or self.file_path)
 
-    def post_new(self):
+    def post_new(self, filename=''):
         self.document().clear()
         # Not sure if this is needed but explicit is better than implicit
         self.document().setModified(True)
         self.blocks = 1
-        self.set_filename(new=True)
+        if not filename:
+            self.set_filename(new=True)
+        else:
+            self.set_filename(filename)
         self.file_created.emit()
 
     def open_file(self, filename):

@@ -27,7 +27,7 @@ from common import Configable
 
 
 class Terminal(GenericTerminal, Configable):
-    request_new_file = pyqtSignal(bool)
+    request_new_file = pyqtSignal(bool, str)
     request_open_file = pyqtSignal(str, bool)
     request_save_file = pyqtSignal(str, bool)
     request_quit = pyqtSignal(bool)
@@ -107,13 +107,13 @@ class Terminal(GenericTerminal, Configable):
         Is called whenever tab is pressed.
         """
         text = self.input_term.text()
-        rx = re.match(r'([os]!?|g)\s*(.*)', text)
+        rx = re.match(r'([nos]!?|g)\s*(.*)', text)
         if not rx:
             return
         cmdprefix, ac_text = rx.groups()
 
         if not ac_text:
-            if cmdprefix[0] in 'os':
+            if cmdprefix[0] in 'nos':
                 # Autocomplete with the working directory if the line is empty
                 wd = os.path.abspath(self.get_filepath())
                 if not os.path.isdir(wd):
@@ -156,7 +156,8 @@ class Terminal(GenericTerminal, Configable):
         self.request_open_file.emit(fname, arg.startswith('!'))
 
     def cmd_new(self, arg):
-        self.request_new_file.emit(arg.startswith('!'))
+        fname = arg.lstrip('!').lstrip()
+        self.request_new_file.emit(arg.startswith('!'), fname)
 
     def cmd_save(self, arg):
         fname = arg.lstrip('!').lstrip()
