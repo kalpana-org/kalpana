@@ -39,14 +39,14 @@ class Kalpana(QtGui.QApplication):
     print_ = pyqtSignal(str)
     error = pyqtSignal(str)
 
-    def __init__(self, configdir, file_to_open=None):
+    def __init__(self, configdir, file_to_open=None, silentmode=False):
         super().__init__(['kalpana'])
         self.objects = create_objects(configdir)
         self.objects['mainwindow'].create_ui(self.objects['chaptersidebar'],
                                              self.objects['textarea'],
                                              self.objects['terminal'])
         # Plugins
-        self.pluginmanager = PluginManager(self.objects.copy())
+        self.pluginmanager = PluginManager(self.objects.copy(), silentmode)
         self.objects['terminal'].update_commands(self.pluginmanager.plugin_commands)
         # Signals
         connect_others_signals(*self.objects.values())
@@ -204,15 +204,20 @@ def main():
         parser.error('Directory does not exist: {}'.format(dirname))
 
     parser.add_argument('-c', '--config-directory', type=valid_dir)
+    parser.add_argument('-s', '--silent-mode', action='store_true',
+                        help="hide non-error messages in the OS's terminal")
     parser.add_argument('files', nargs='*')
     args = parser.parse_args()
 
     if not args.files:
-        app = Kalpana(args.config_directory)
+        app = Kalpana(args.config_directory, silentmode=args.silent_mode)
     else:
-        app = Kalpana(args.config_directory, file_to_open=args.files[0])
+        app = Kalpana(args.config_directory, file_to_open=args.files[0], silentmode=args.silent_mode)
         for f in args.files[1:]:
-            subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
+            if args.silent_mode:
+                subprocess.Popen([sys.executable, sys.argv[0], '-s', f.encode('utf-8')])
+            else:
+                subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
 
     sys.exit(app.exec_())
 

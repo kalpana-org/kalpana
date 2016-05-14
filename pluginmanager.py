@@ -25,9 +25,10 @@ from PyQt4 import QtCore
 from libsyntyche import common
 
 class PluginManager(QtCore.QObject):
-    def __init__(self, objects):
+    def __init__(self, objects, silentmode):
         super().__init__()
-        self.plugins, self.plugin_commands = init_plugins(objects)
+        self.silentmode = silentmode
+        self.plugins, self.plugin_commands = init_plugins(objects, silentmode)
 
     def get_compiled_hotkeys(self):
         hotkeys = {}
@@ -36,7 +37,7 @@ class PluginManager(QtCore.QObject):
         return hotkeys
 
 
-def init_plugins(objects):
+def init_plugins(objects, silentmode):
     """
     Initiate all plugins and return the plugins and the commands they use.
 
@@ -50,7 +51,7 @@ def init_plugins(objects):
     settingsmanager = objects['settingsmanager']
     terminal = objects['terminal']
     paths = settingsmanager.paths
-    for name, path, module in get_plugins(paths['plugins'], paths['loadorder']):
+    for name, path, module in get_plugins(paths['plugins'], paths['loadorder'], silentmode):
         try:
             plugin_constructor = module.UserPlugin
         except AttributeError:
@@ -68,7 +69,7 @@ def init_plugins(objects):
     return plugins, plugin_commands
 
 
-def get_plugins(plugin_root_path, loadorder_path):
+def get_plugins(plugin_root_path, loadorder_path, silentmode):
     # Create the loadorder file if it doesn't exist
     if not os.path.exists(loadorder_path):
         open(loadorder_path, 'w').close()
@@ -87,6 +88,7 @@ def get_plugins(plugin_root_path, loadorder_path):
             print("Plugin {} could not be imported. Most likely because it's "
                   "not a valid plugin.".format(plugin_name))
         else:
-            print("Plugin {} loaded.".format(plugin_name))
+            if not silentmode:
+                print("Plugin {} loaded.".format(plugin_name))
             out.append((plugin_name, plugin_path, loaded_plugin))
     return out
