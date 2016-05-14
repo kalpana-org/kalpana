@@ -411,7 +411,8 @@ class TextArea(LineTextWidget, FileHandler, Configable):
 
     def post_new(self):
         self.document().clear()
-        self.document().setModified(False)
+        # Not sure if this is needed but explicit is better than implicit
+        self.document().setModified(True)
         self.blocks = 1
         self.set_filename(new=True)
         self.file_created.emit()

@@ -71,6 +71,7 @@ class Kalpana(QtGui.QApplication):
                 self.objects['textarea'].set_filename(file_to_open)
         else:
             self.objects['textarea'].set_filename(new=True)
+            self.objects['textarea'].document().setModified(True)
         # FIN
         self.objects['mainwindow'].show()
 
