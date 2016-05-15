@@ -31,11 +31,12 @@ from PyQt4.QtCore import pyqtSignal
 
 from libsyntyche.common import read_file, write_file
 from libsyntyche.filehandling import FileHandler
+from libsyntyche.texteditor import SearchAndReplaceable
 from linewidget import LineTextWidget
 from common import Configable, SettingsError
 
 
-class TextArea(LineTextWidget, FileHandler, Configable):
+class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
     print_sig = pyqtSignal(str)
     error_sig = pyqtSignal(str)
     hide_terminal = pyqtSignal()
@@ -52,6 +53,7 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     def __init__(self, parent, settingsmanager):
         super().__init__(parent)
         self.init_settings_functions(settingsmanager)
+        self.initialize_search_and_replace(self.error, self.print_)
         # This function is actually in linewidget.py
         self.register_setting('Line Numbers', self.set_number_bar_visibility)
         self.register_setting('Vertical Scrollbar', self.set_vscrollbar_visibility)
@@ -70,7 +72,6 @@ class TextArea(LineTextWidget, FileHandler, Configable):
         self.cursorPositionChanged.connect(new_cursor_position)
 
         self.blocks = 0
-        self.search_buffer = None
         self.highlighter = None
         self.file_path = ''
         self.show_wordcount = False
@@ -285,120 +286,6 @@ class TextArea(LineTextWidget, FileHandler, Configable):
             self.print_('Language set to {}'.format(lang))
         else:
             self.error('Language {} does not exist!'.format(lang))
-
-
-    ## ==== Search & replace ================================================ ##
-
-    def search_and_replace(self, arg):
-        def generate_flags(flagstr):
-            self.search_flags = QtGui.QTextDocument.FindFlags()
-            if 'b' in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindBackward
-            if 'i' not in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindCaseSensitively
-            if 'w' in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindWholeWords
-
-        search_rx = re.compile(r'([^/]|\\/)+$')
-        search_flags_rx = re.compile(r'([^/]|\\/)*?([^\\]/[biw]*)$')
-        replace_rx = re.compile(r"""
-            (?P<search>([^/]|\\/)*?[^\\])
-            /
-            (?P<replace>(([^/]|\\/)*[^\\])?)
-            /
-            (?P<flags>[abiw]*)
-            $
-        """, re.VERBOSE)
-
-        if search_rx.match(arg):
-            self.search_buffer = search_rx.match(arg).group(0)
-            self.search_flags = QtGui.QTextDocument.FindCaseSensitively
-            self.search_next()
-
-        elif search_flags_rx.match(arg):
-            self.search_buffer, flags = search_flags_rx.match(arg).group(0).rsplit('/', 1)
-            generate_flags(flags)
-            self.search_next()
-
-        elif replace_rx.match(arg):
-            match = replace_rx.match(arg)
-            self.search_buffer = match.group('search')
-            generate_flags(match.group('flags'))
-            if 'a' in match.group('flags'):
-                self.replace_all(match.group('replace'))
-            else:
-                self.replace_next(match.group('replace'))
-
-        else:
-            self.error('Malformed search/replace expression')
-
-    def searching_backwards(self):
-        return QtGui.QTextDocument.FindBackward & self.search_flags
-
-    def search_next(self):
-        if self.search_buffer is None:
-            self.error('No previous searches')
-            return
-        temp_cursor = self.textCursor()
-        found = self.find(self.search_buffer, self.search_flags)
-        if not found:
-            if not self.textCursor().atStart() \
-                        or (self.searching_backwards() and not self.textCursor().atEnd()):
-                if self.searching_backwards():
-                    self.moveCursor(QtGui.QTextCursor.End)
-                else:
-                    self.moveCursor(QtGui.QTextCursor.Start)
-                found = self.find(self.search_buffer, self.search_flags)
-                if not found:
-                    self.setTextCursor(temp_cursor)
-                    self.error('Text not found')
-            else:
-                self.setTextCursor(temp_cursor)
-                self.error('Text not found')
-
-
-    def replace_next(self, replace_buffer):
-        temp_cursor = self.textCursor()
-        found = self.find(self.search_buffer, self.search_flags)
-        if not found:
-            if not self.textCursor().atStart() \
-                        or (self.searching_backwards() and not self.textCursor().atEnd()):
-                if self.searching_backwards():
-                    self.moveCursor(QtGui.QTextCursor.End)
-                else:
-                    self.moveCursor(QtGui.QTextCursor.Start)
-                found = self.find(self.search_buffer, self.search_flags)
-                if not found:
-                    self.setTextCursor(temp_cursor)
-        if found:
-            t = self.textCursor()
-            t.insertText(replace_buffer)
-            l = len(replace_buffer)
-            t.setPosition(t.position() - l)
-            t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
-            self.setTextCursor(t)
-            self.print_('Replaced on line {}, pos {}'
-                             ''.format(t.blockNumber(), t.positionInBlock()))
-        else:
-            self.error('Text not found')
-
-
-    def replace_all(self, replace_buffer):
-        temp_cursor = self.textCursor()
-        times = 0
-        self.moveCursor(QtGui.QTextCursor.Start)
-        while True:
-            found = self.find(self.search_buffer, self.search_flags)
-            if found:
-                self.textCursor().insertText(replace_buffer)
-                times += 1
-            else:
-                break
-        if times:
-            self.print_('{0} instance{1} replaced'.format(times, 's'*(times>0)))
-        else:
-            self.error('Text not found')
-        self.setTextCursor(temp_cursor)
 
 
     ## ==== File ops help functions ======================================= ##
