@@ -208,11 +208,12 @@ class TextArea(LineTextWidget, FileHandler, Configable):
     def add_to_recent_files(self, filename):
         listfname = self.get_path('recentfiles')
         length = self.get_setting('recent file list length')
-        absfname = os.path.abspath(filename)
-        recentfiles = [absfname]
+        # This fixes both symlinks and relative paths
+        realfname = os.path.realpath(filename)
+        recentfiles = [realfname]
         if os.path.exists(listfname):
             oldrecentfiles = read_file(listfname).splitlines()
-            recentfiles += [x for x in oldrecentfiles if x != absfname][:length-1]
+            recentfiles += [x for x in oldrecentfiles if x != realfname][:length-1]
         write_file(listfname, '\n'.join(recentfiles))
         self.update_recent_files.emit()
 
