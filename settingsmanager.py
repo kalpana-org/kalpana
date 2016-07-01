@@ -64,6 +64,9 @@ class SettingsManager(QObject):
 
     def get_config_directory(self):
         return self.paths['config_dir']
+
+    def get_style_setting(self, key):
+        return self.current_style[key]
     # ===================================
 
     def register_setting(self, settingname, callback):
