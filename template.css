@@ -42,7 +42,8 @@ ChapterSidebar {{
 
 ChapterSidebar::item {{
     background: {sidebar background};
-    color: {sidebar text color};
+    /* this is set manually in the chaptersidebar's code*/
+    /*color: {sidebar text color};*/
 }}
 
 /* VERTICAL SCROLLBAR */

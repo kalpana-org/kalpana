@@ -135,9 +135,15 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
             i.setFont(mod_font(i, bold=bold))
 
     def set_not_complete_items(self, completelist):
+        completetextalpha = self.get_setting('complete item alpha')
+        incompletecolor = QtGui.QColor(self.get_style_setting('sidebar text color'))
+        completecolor = QtGui.QColor(incompletecolor)
+        completecolor.setAlphaF(completetextalpha)
+        textcolors = [incompletecolor, completecolor]
         for item_nr, complete in zip(range(self.count()), completelist):
             i = self.item(item_nr)
             i.setFont(mod_font(i, italic=complete))
+            i.setTextColor(textcolors[complete])
 
 
 def mod_font(item, bold=None, italic=None):

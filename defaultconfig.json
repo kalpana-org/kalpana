@@ -30,6 +30,7 @@
     "complete flags": [
       "[DONE]"
     ],
-    "complete marker": "✓"
+    "complete marker": "✓",
+    "complete item alpha": 0.5
   }
 }
