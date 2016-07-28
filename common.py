@@ -25,3 +25,52 @@ class Configable():
 
 class SettingsError(Exception):
     pass
+
+
+
+keywordpatterns = {
+    'chapter': r'(>> )?CHAPTER\s+(?P<num>\d+)(\s+-\s+(?P<name>.+?))?',
+    'section': r'SECTION\s+-\s+(?P<name>.+)',
+    'description': r'\[\[\s*(?P<desc>.+?)\s*(\]\])?',
+    'tags': r'#[^,]+(,\s*#[^,]+)*',
+    'time': r'TIME\s+-\s+(?P<time>.+)'
+}
+
+
+def strip_metadata(lines, impliedchapter=False):
+    """
+    Take a list of strings and return a list with only the strings that
+    aren't metadata (chapter, section, tags, etc)
+
+    impliedchapter is whether to assume the lines was prepended
+    by a chapter line.
+    """
+    import re
+    def match(name, line):
+        return re.fullmatch(keywordpatterns[name], line)
+    out = []
+    if impliedchapter:
+        itemsleft = ['description', 'tags', 'time']
+        eatlines = True
+    else:
+        itemsleft = []
+        eatlines = False
+    for line in lines:
+        if eatlines:
+            for name in itemsleft:
+                if match(name, line):
+                    itemsleft.remove(name)
+                    break
+            else:
+                # No match was found
+                eatlines = False
+        if not eatlines:
+            if match('chapter', line):
+                itemsleft = ['description', 'tags', 'time']
+                eatlines = True
+            elif match('section', line):
+                itemsleft = ['description']
+                eatlines = True
+            else:
+                out.append(line)
+    return out

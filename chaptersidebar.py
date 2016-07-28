@@ -20,7 +20,7 @@ import re
 
 from PyQt4 import QtCore, QtGui
 
-from common import Configable
+from common import Configable, strip_metadata
 
 class ChapterError(Exception):
     pass
@@ -116,14 +116,14 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         else:
             self.error.emit('Invalid line or chapter number')
 
-    def get_chapter_text(self, chapter):
+    def get_chapter_text(self, chapter, stripmetadata=True):
         self.update_list()
         if self.current_error:
             self.error.emit(self.error_reasons[self.current_error])
             return
         lines = self.get_text().splitlines()
         try:
-            text = get_chapter_text(chapter, lines, self.linenumbers)
+            text = get_chapter_text(chapter, lines, self.linenumbers, stripmetadata)
         except ChapterError as e:
             self.error.emit(str(e))
         else:
@@ -154,12 +154,15 @@ def mod_font(item, bold=None, italic=None):
         font.setItalic(italic)
     return font
 
-def get_chapter_text(chapter, lines, linenumbers):
+def get_chapter_text(chapter, lines, linenumbers, stripmetadata=True):
     """ Return the text inside the specified chapter. """
     if chapter not in range(len(linenumbers)):
         raise ChapterError('Invalid chapter number')
     ln = linenumbers + [len(lines)+1]
-    text = '\n'.join(lines[ln[chapter]:ln[chapter+1]-1]).strip('\n\t ')
+    chapterlines = lines[ln[chapter]:ln[chapter+1]-1]
+    if stripmetadata:
+        chapterlines = strip_metadata(chapterlines, impliedchapter=True)
+    text = '\n'.join(chapterlines).strip('\n\t ')
     if not text:
         raise ChapterError('Chapter is only whitespace, ignoring')
     else:
