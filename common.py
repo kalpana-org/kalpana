@@ -29,10 +29,10 @@ class SettingsError(Exception):
 
 
 keywordpatterns = {
-    'chapter': r'(>> )?CHAPTER\s+(?P<num>\d+)(\s+-\s+(?P<name>.+?))?',
-    'section': r'SECTION\s+-\s+(?P<name>.+)',
+    'chapter': r'(?:>> )?CHAPTER\s+(?P<num>\d+)(\s+-\s+(?P<name>.+?))?',
+    'section': r'<<\s*(?P<payload>.+?)\s*>>',
     'description': r'\[\[\s*(?P<desc>.+?)\s*(\]\])?',
-    'tags': r'#[^,]+(,\s*#[^,]+)*',
+    'tags': r'#[^,]+(,\s*#[^,]+)*,?\s*',
     'time': r'TIME\s+-\s+(?P<time>.+)'
 }
 
@@ -69,8 +69,7 @@ def strip_metadata(lines, impliedchapter=False):
                 itemsleft = ['description', 'tags', 'time']
                 eatlines = True
             elif match('section', line):
-                itemsleft = ['description']
-                eatlines = True
+                continue
             else:
                 out.append(line)
     return out
