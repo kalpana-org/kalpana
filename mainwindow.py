@@ -55,19 +55,49 @@ class MainWindow(QtGui.QFrame, Configable):
         self.update_title()
     # =======================================================
 
-    def create_ui(self, chaptersidebar, textarea, terminal):
+    def create_ui(self, chaptersidebar, textarea, terminal, overview):
         self.textarea = textarea
         self.outer_v_layout = QtGui.QVBoxLayout(self)
         common.kill_theming(self.outer_v_layout)
 
+        self.stack = QtGui.QStackedWidget()
+        self.stack.setMaximumWidth(1000)
+        #self.outer_v_layout.addLayout(self.stack)
+        self.stack.addWidget(textarea)
+        self.stack.addWidget(overview)
+        self.stack.setCurrentIndex(0)
+
         self.inner_h_layout = QtGui.QHBoxLayout()
-        common.kill_theming(self.inner_h_layout)
         self.outer_v_layout.addLayout(self.inner_h_layout)
+        common.kill_theming(self.inner_h_layout)
+        #self.inner_h_layout.setStyleSheet('text-align: center;')
+
         self.inner_h_layout.addStretch()
-        self.inner_h_layout.addWidget(textarea, stretch=1)
+        self.inner_h_layout.addWidget(self.stack, stretch=1)
         self.inner_h_layout.addStretch()
         self.inner_h_layout.addWidget(chaptersidebar)
         self.outer_v_layout.addWidget(terminal)
+
+        #common.kill_theming(self.outer_v_layout)
+
+        #self.inner_h_layout = QtGui.QHBoxLayout()
+        #common.kill_theming(self.inner_h_layout)
+        #self.stack.addLayout(self.inner_h_layout)
+        #self.outer_v_layout.addLayout(self.stack)
+        ##self.outer_v_layout.addLayout(self.inner_h_layout)
+        #self.inner_h_layout.addStretch()
+        ##self.inner_h_layout.addWidget(self.stack, stretch=1)
+        #self.inner_h_layout.addWidget(textarea, stretch=1)
+        #self.inner_h_layout.addStretch()
+        #self.inner_h_layout.addWidget(chaptersidebar)
+        #self.outer_v_layout.addWidget(terminal)
+
+
+    def switch_stack_focus(self):
+        self.stack.setCurrentIndex(abs(self.stack.currentIndex()-1))
+        self.stack.currentWidget().setFocus()
+        if self.stack.currentWidget() != self.textarea:
+            self.stack.currentWidget().set_data(self.textarea.toPlainText())
 
 
     # Override
@@ -103,7 +133,7 @@ class MainWindow(QtGui.QFrame, Configable):
 
     # Override
     def wheelEvent(self, event):
-        self.textarea.wheelEvent(event)
+        self.stack.currentWidget().wheelEvent(event)
 
     def update_filename(self, filename):
         self.filename = filename

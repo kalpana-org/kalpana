@@ -27,6 +27,7 @@ from PyQt4.QtCore import pyqtSignal, Qt
 from libsyntyche import common
 from chaptersidebar import ChapterSidebar
 from mainwindow import MainWindow
+from overview import Overview
 from pluginmanager import PluginManager
 from settingsmanager import SettingsManager
 from terminal import Terminal
@@ -44,7 +45,8 @@ class Kalpana(QtGui.QApplication):
         self.objects = create_objects(configdir)
         self.objects['mainwindow'].create_ui(self.objects['chaptersidebar'],
                                              self.objects['textarea'],
-                                             self.objects['terminal'])
+                                             self.objects['terminal'],
+                                             self.objects['overview'])
         # Plugins
         self.pluginmanager = PluginManager(self.objects.copy(), silentmode)
         self.objects['terminal'].update_commands(self.pluginmanager.plugin_commands)
@@ -73,6 +75,8 @@ class Kalpana(QtGui.QApplication):
             self.objects['textarea'].set_filename(new=True)
             self.objects['textarea'].document().setModified(True)
         # FIN
+        self.objects['overview'].set_data(self.objects['textarea'].toPlainText())
+
         self.objects['mainwindow'].show()
 
     def install_event_filter(self):
@@ -86,6 +90,8 @@ class Kalpana(QtGui.QApplication):
         self.event_filter = AppEventFilter()
         def refresh_config():
             self.objects['settingsmanager'].load_settings(refresh_only=True)
+            #TODO: this is only temporary
+            self.objects['overview'].refresh_stuff()
         self.event_filter.activation_event.connect(refresh_config)
         self.installEventFilter(self.event_filter)
 
@@ -125,6 +131,7 @@ def create_objects(configdir):
     smgr = SettingsManager(configdir)
     mw = MainWindow(smgr)
     txta = TextArea(mw, smgr)
+    overview = Overview(mw, smgr)
     chsb = ChapterSidebar(smgr, txta.toPlainText, txta.textCursor)
     term = Terminal(mw, smgr, lambda: txta.file_path)
     # Ugly shit
@@ -133,7 +140,8 @@ def create_objects(configdir):
                         ('mainwindow', mw),
                         ('settingsmanager', smgr),
                         ('terminal', term),
-                        ('textarea', txta)))
+                        ('textarea', txta),
+                        ('overview', overview)))
 
 def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
     hotkeys = {
@@ -142,12 +150,13 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         'Ctrl+S': textarea.request_save_file,
         'Ctrl+Shift+S': lambda:terminal.prompt('s '),
         'F3': textarea.search_next,
+        'F9': mainwindow.switch_stack_focus,
     }
     hotkeys.update(plugin_hotkeys)
     for key, function in hotkeys.items():
         common.set_hotkey(key, mainwindow, function)
 
-def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal, textarea):
+def connect_others_signals(chaptersidebar, mainwindow, settingsmanager, terminal, textarea, overview):
     connect = (
         # (SIGNAL, SLOT)
         (textarea.wordcount_changed, mainwindow.update_wordcount),
