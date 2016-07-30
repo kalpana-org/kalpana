@@ -55,7 +55,7 @@ class Kalpana(QtGui.QApplication):
         self.connect_own_signals()
         # Hotkeys
         set_key_shortcuts(self.objects['mainwindow'], self.objects['textarea'],
-                          self.objects['terminal'],
+                          self.objects['terminal'], self.objects['chaptersidebar'],
                           self.pluginmanager.get_compiled_hotkeys())
         self.init_hotkeys()
         # Load settings and get it oooon
@@ -143,7 +143,7 @@ def create_objects(configdir):
                         ('textarea', txta),
                         ('overview', overview)))
 
-def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
+def set_key_shortcuts(mainwindow, textarea, terminal, chaptersidebar, plugin_hotkeys):
     hotkeys = {
         'Ctrl+N': textarea.request_new_file,
         'Ctrl+O': lambda:terminal.prompt('o '),
@@ -151,6 +151,8 @@ def set_key_shortcuts(mainwindow, textarea, terminal, plugin_hotkeys):
         'Ctrl+Shift+S': lambda:terminal.prompt('s '),
         'F3': textarea.search_next,
         'F9': mainwindow.switch_stack_focus,
+        'Ctrl+PgUp': chaptersidebar.goto_prev_chapter,
+        'Ctrl+PgDown': chaptersidebar.goto_next_chapter,
     }
     hotkeys.update(plugin_hotkeys)
     for key, function in hotkeys.items():

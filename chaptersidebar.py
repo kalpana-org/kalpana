@@ -42,6 +42,7 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         }
         self.current_error = None
         self.linenumbers = []
+        self.pos = 1
         self.hide()
 
     def toggle(self):
@@ -89,13 +90,32 @@ class ChapterSidebar(QtGui.QListWidget, Configable):
         """
         if not force and (not self.count() or not self.isVisible()):
             return
-        pos = blocknumber+1
+        self.pos = blocknumber+1
         self.mod_items_fonts(bold=False)
         for n, ch in list(enumerate(self.linenumbers))[::-1]:
-            if pos >= ch:
+            if self.pos >= ch:
                 i = self.item(n)
                 i.setFont(mod_font(i, bold=True))
                 break
+
+    def goto_next_chapter(self):
+        self.update_list()
+        for n, linenum in enumerate(self.linenumbers):
+            if n == len(self.linenumbers)-1:
+                return
+            if self.pos >= linenum and self.pos < self.linenumbers[n+1]:
+                self.goto_line.emit(self.linenumbers[n+1])
+                return
+
+    def goto_prev_chapter(self):
+        self.update_list()
+        for n, linenum in enumerate(self.linenumbers):
+            if n == len(self.linenumbers)-1 or (self.pos >= linenum and self.pos < self.linenumbers[n+1]):
+                if n == 0:
+                    return
+                self.goto_line.emit(self.linenumbers[n-1])
+                return
+
 
     def goto_line_or_chapter(self, arg):
         """ Scroll to the specified line or chapter. """
