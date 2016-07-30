@@ -8,7 +8,8 @@
     "Terminal Animation Interval": 5,
     "max Page Width": 1000,
     "Miscellaneous Animations": false,
-    "Show WordCount in titlebar": false
+    "Show WordCount in titlebar": false,
+    "Show Formatting": false
   },
   "manual": {
     "start in terminal": false,

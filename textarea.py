@@ -33,7 +33,7 @@ from libsyntyche.common import read_file, write_file
 from libsyntyche.filehandling import FileHandler
 from libsyntyche.texteditor import SearchAndReplaceable
 from linewidget import LineTextWidget
-from common import Configable, SettingsError
+from common import Configable, SettingsError, keywordpatterns
 
 
 class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
@@ -60,6 +60,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
         self.register_setting('max Page Width', self.set_maximum_width)
         self.register_setting('Show WordCount in titlebar', self.set_show_wordcount)
         self.register_setting('Miscellaneous Animations', self.set_animations_active)
+        self.register_setting('Show Formatting', self.set_formatting_active)
 
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setTabStopWidth(30)
@@ -67,12 +68,15 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
 
         self.blockCountChanged.connect(self.new_line)
         def new_cursor_position():
+            if self.highlighter:
+                block = self.textCursor().block()
+                self.highlighter.cursor_position_changed(block)
             blocknumber = self.textCursor().blockNumber()
             self.cursor_position_changed.emit(blocknumber)
         self.cursorPositionChanged.connect(new_cursor_position)
 
         self.blocks = 0
-        self.highlighter = None
+        self.highlighter = self.Highlighter(self, self.document(), self.get_style_setting)
         self.file_path = ''
         self.show_wordcount = False
         self.animations_active = False
@@ -134,6 +138,32 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
         sb.setValue(sb.value() + sb.singleStep()*steps*multiplier)
         event.accept()
 
+    def paintEvent(self, ev):
+        super().paintEvent(ev)
+        pagebottom = self.viewport().height()
+        block = self.firstVisibleBlock()
+        linenum = block.blockNumber()
+        viewport_offset = self.contentOffset()
+        painter = QtGui.QPainter(self.viewport())
+        fg = QtGui.QColor(self.get_style_setting('document text color'))
+        fg.setAlphaF(0.4)
+        bg = QtGui.QColor(self.get_style_setting('document background'))
+        painter.setPen(QtGui.QPen(QtGui.QBrush(fg), 2))
+        hrmargin = 0.3
+        while block.isValid():
+            linenum += 1
+            rect = self.blockBoundingGeometry(block).translated(viewport_offset)
+            if rect.y() > pagebottom:
+                break
+            if block in self.highlighter.hrblocks and block != self.textCursor().block():
+                painter.fillRect(rect, bg)
+                x1 = rect.x() + rect.width()*hrmargin
+                x2 = rect.x() + rect.width()*(1-hrmargin)
+                y = rect.y() + rect.height()*0.5
+                painter.drawLine(x1,y, x2,y)
+            block = block.next()
+        painter.end()
+
     def print_(self, arg):
         self.print_sig.emit(arg)
 
@@ -163,6 +193,10 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
         elif value and not self.animations_active:
             self.hidescrollbartimer.start()
         self.animations_active = value
+
+    def set_formatting_active(self, value):
+        self.highlighter.formatting_active = value
+        self.highlighter.rehighlight()
     # ===============================================================
 
     def get_wordcount(self):
@@ -222,21 +256,151 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
     ## ==== Spellcheck ==================================================== ##
 
     class Highlighter(QtGui.QSyntaxHighlighter):
-        def __init__(self, *args):
-            super().__init__(*args)
+        def __init__(self, parent, document, get_style_setting):
+            super().__init__(document)
             self.dict = None
+            self.get_style_setting = get_style_setting
+            self.spellcheck_active = False
+            self.formatting_active = False
+            self.activeblock = None
+            self.lastblock = None
+            self.parent = parent
+            self.hrblocks = []
+
+        def cursor_position_changed(self, block):
+            self.lastblock = self.activeblock
+            self.activeblock = block
+            for b in [self.lastblock, self.activeblock]:
+                if not b:
+                    continue
+                self.rehighlightBlock(b)
+                if b in self.hrblocks:
+                    self.document().markContentsDirty(b.position(), b.length())
+
+        def previousBlockState(self):
+            return max(0, super().previousBlockState())
 
         def highlightBlock(self, text):
-            if not self.dict:
+            # block states
+            defaultstate = -1
+            chapterstate = 0b00001
+            sectionstate = 0b00010
+            linesfound = {
+                'description': 0b00100,
+                'tags': 0b01000,
+                'time': 0b10000,
+            }
+            boldstate = 0b100000
+            italicstate = 0b1000000
+            try:
+                fgname = self.get_style_setting('document text color')
+            except:
+                fgname = '#000'
+            fg = QtGui.QColor(fgname)
+            # hide the metadata lines a bit
+            charformat = QtGui.QTextCharFormat()
+            if self.formatting_active:
+                if re.fullmatch(keywordpatterns['chapter'], text):
+                    self.setCurrentBlockState(chapterstate)
+                    charformat.setFontWeight(QtGui.QFont.Bold)
+                    self.setFormat(0, len(text), charformat)
+                    return
+                if re.fullmatch(keywordpatterns['section'], text):
+                    #self.setCurrentBlockState(sectionstate)
+                    if not self.activeblock or self.currentBlock() != self.activeblock:
+                        fg.setAlphaF(0.5)
+                        charformat.setForeground(QtGui.QBrush(fg))
+                    charformat.setFontWeight(QtGui.QFont.Bold)
+                    self.setFormat(0, len(text), charformat)
+                    return
+                state = self.previousBlockState()
+                fg.setAlphaF(0.3)
+                if state & chapterstate:
+                    for line in linesfound.keys():
+                        if re.fullmatch(keywordpatterns[line], text) \
+                                    and not linesfound[line] & state:
+                            self.setCurrentBlockState(state | linesfound[line])
+                            if not self.activeblock or self.currentBlock() != self.activeblock:
+                                charformat.setForeground(QtGui.QBrush(fg))
+                                self.setFormat(0, len(text), charformat)
+                            return
+                # Bold text
+            #    f = QtGui.QTextCharFormat()
+            #    f.setFontWeight(QtGui.QFont.Bold)
+            #    for chunk in re.finditer(r'\*.+?\*', text):
+            #        self.setFormat(chunk.start(), chunk.end() - chunk.start(), f)
+            #    # TODO
+            #    todoformat = QtGui.QTextCharFormat()
+            #    todoformat.setFontWeight(QtGui.QFont.Bold)
+            #    todoformat.setForeground(QtCore.Qt.red)
+            #    for todo in re.finditer(r'(?i)#todo:?', text):
+            #        self.setFormat(todo.start(), todo.end() - todo.start(), todoformat)
+            #if self.spellcheck_active:
+            #    charformat.setUnderlineColor(QtCore.Qt.red)
+            #    charformat.setUnderlineStyle(QtGui.QTextCharFormat.SpellCheckUnderline)
+            #    for word in re.finditer(r'(?i)[\w\']+', text):
+            #        if not self.dict.check(word.group().strip("'")):
+            #            self.setFormat(word.start(), word.end() - word.start(), charformat)
+            #    charformat.setUnderlineColor(QtCore.Qt.blue)
+            if re.fullmatch(r'(\s*\*\s*){3}', text):
+                f = QtGui.QTextCharFormat()
+                fg.setAlphaF(0.3)
+                f.setForeground(fg)
+                f.setFontPointSize(40)
+                if self.currentBlock() not in self.hrblocks:
+                    self.hrblocks.append(self.currentBlock())
+                self.setFormat(0, len(text), f)
+                self.setCurrentBlockState(self.previousBlockState())
                 return
+            else:
+                if self.currentBlock() in self.hrblocks:
+                    self.hrblocks.remove(self.currentBlock())
+            laststate = self.previousBlockState()
+            bold = laststate & boldstate
+            italic = laststate & italicstate
+            fg.setAlphaF(0.5)
+            for chunk in re.finditer(r'([^\s*/]+|//|/|\*\*|\*)', text):
+                f = QtGui.QTextCharFormat()
+                if self.formatting_active:
+                    if chunk.group() == '*':
+                        bold = not bold
+                        f.setForeground(fg)
+                        self.setFormat(chunk.start(), 1, f)
+                        continue
+                    if chunk.group() == '/':
+                        italic = not italic
+                        f.setForeground(fg)
+                        self.setFormat(chunk.start(), 1, f)
+                        continue
+                    if bold:
+                        f.setFontWeight(QtGui.QFont.Bold)
+                    if italic:
+                        f.setFontItalic(True)
+                    if bold or italic:
+                        self.setFormat(chunk.start(), chunk.end()-chunk.start(), f)
+                    todo = re.search(r'(?i)#todo:?', chunk.group())
+                    if todo:
+                        f.setForeground(QtCore.Qt.red)
+                        f.setFontWeight(QtGui.QFont.Bold)
+                        self.setFormat(chunk.start()+todo.start(), todo.end()-todo.start(), f)
+                if self.spellcheck_active:
+                    f.setUnderlineColor(QtCore.Qt.red)
+                    f.setUnderlineStyle(QtGui.QTextCharFormat.SpellCheckUnderline)
+                    word = re.search(r'[\w\']+', chunk.group())
+                    if word and not self.dict.check(word.group().strip("'")):
+                        self.setFormat(chunk.start()+word.start(), word.end()-word.start(), f)
 
-            format = QtGui.QTextCharFormat()
-            format.setUnderlineColor(QtCore.Qt.red)
-            format.setUnderlineStyle(QtGui.QTextCharFormat.SpellCheckUnderline)
+            currentstate = self.currentBlockState()
+            if bold:
+                currentstate |= boldstate
+            else:
+                currentstate &= ~boldstate
+            if italic:
+                currentstate |= italicstate
+            else:
+                currentstate &= ~italicstate
+            self.setCurrentBlockState(currentstate)
 
-            for word in re.finditer(r'(?i)[\w\']+', text):
-                if not self.dict.check(word.group().strip("'")):
-                    self.setFormat(word.start(), word.end() - word.start(), format)
 
     def spellcheck(self, arg):
         def get_word():
@@ -247,8 +411,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
         if not enchant_present:
             self.error('PyEnchant spell check dependency not installed!')
             return
-        if self.highlighter is None:
-            self.highlighter = self.Highlighter(self)
+        if self.highlighter.dict is None:
             self.set_spellcheck_language(self.get_setting('default spellcheck language'))
         if arg == '?':
             self.print_('&: toggle, &en_US: set language, &=: check word, &+: add word')
@@ -267,12 +430,11 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
             self.highlighter.rehighlight()
             self.print_('Added to {} dictionary: {}'.format(lang, arg[1:]))
         elif not arg:
-            if self.highlighter.document() is None:
-                self.highlighter.setDocument(self.document())
+            self.highlighter.spellcheck_active = not self.highlighter.spellcheck_active
+            if self.highlighter.spellcheck_active:
                 lang = self.highlighter.dict.tag
                 self.print_('Spell check is now on ({})'.format(lang))
             else:
-                self.highlighter.setDocument(None)
                 self.print_('Spell check is now off')
         else:
             self.set_spellcheck_language(arg)
@@ -282,7 +444,8 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
             pwlpath = self.get_path('spellcheck-pwl')
             pwl = os.path.join(pwlpath, lang+'.pwl')
             self.highlighter.dict = enchant.DictWithPWL(lang, pwl=pwl)
-            self.highlighter.rehighlight()
+            if self.highlighter.spellcheck_active:
+                self.highlighter.rehighlight()
             self.print_('Language set to {}'.format(lang))
         else:
             self.error('Language {} does not exist!'.format(lang))
