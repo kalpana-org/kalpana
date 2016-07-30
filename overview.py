@@ -24,6 +24,9 @@ class ChapterEntryList():
         tags_rx = keywordpatterns['tags']
         time_rx = keywordpatterns['time']
         chapters = re.split(r'\n(?=(?:>>\s+)?CHAPTER\s+\d+)', data)
+        if len(chapters) == 1:
+            print('no chapters found')
+            return ''
         chapterlines = [c.count('\n')+1 for c in chapters]
         chapterlines[0] -= 1
         self.entries = {}
