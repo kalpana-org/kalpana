@@ -33,7 +33,7 @@ keywordpatterns = {
     'section': r'<<\s*(?P<payload>.+?)\s*>>',
     'description': r'\[\[\s*(?P<desc>.+?)\s*(\]\])?',
     'tags': r'#[^,]+(,\s*#[^,]+)*,?\s*',
-    'time': r'TIME\s+-\s+(?P<time>.+)'
+    'time': r'🕑\s+(?P<time>.+)'
 }
 
 

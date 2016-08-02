@@ -17,7 +17,7 @@ class ChapterEntryList():
 
     def load_data(self, data):
         #completeflag = self.get_setting('complete flags')[0]
-        completeflag = '[#done]'
+        completeflag = '✓'
         ch_rx = keywordpatterns['chapter'] + r'(?P<complete>\s*{}\s*)?'.format(re.escape(completeflag))
         sec_rx = keywordpatterns['section']
         desc_rx = keywordpatterns['description']

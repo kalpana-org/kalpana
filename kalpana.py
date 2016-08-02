@@ -150,6 +150,8 @@ def set_key_shortcuts(mainwindow, textarea, terminal, chaptersidebar, plugin_hot
         'Ctrl+S': textarea.request_save_file,
         'Ctrl+Shift+S': lambda:terminal.prompt('s '),
         'F3': textarea.search_next,
+        'F7': lambda:textarea.insertPlainText('✓'),
+        'F8': lambda:textarea.insertPlainText('🕑'),
         'F9': mainwindow.switch_stack_focus,
         'Ctrl+PgUp': chaptersidebar.goto_prev_chapter,
         'Ctrl+PgDown': chaptersidebar.goto_next_chapter,

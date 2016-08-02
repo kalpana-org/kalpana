@@ -281,6 +281,9 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
             return max(0, super().previousBlockState())
 
         def highlightBlock(self, text):
+            def set_line_format(charformat):
+                l = sum(2 if ord(x)>65535 else 1 for x in text)
+                self.setFormat(0, l, charformat)
             # block states
             defaultstate = -1
             chapterstate = 0b00001
@@ -303,7 +306,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                 if re.fullmatch(keywordpatterns['chapter'], text):
                     self.setCurrentBlockState(chapterstate)
                     charformat.setFontWeight(QtGui.QFont.Bold)
-                    self.setFormat(0, len(text), charformat)
+                    set_line_format(charformat)
                     return
                 if re.fullmatch(keywordpatterns['section'], text):
                     #self.setCurrentBlockState(sectionstate)
@@ -311,7 +314,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                         fg.setAlphaF(0.5)
                         charformat.setForeground(QtGui.QBrush(fg))
                     charformat.setFontWeight(QtGui.QFont.Bold)
-                    self.setFormat(0, len(text), charformat)
+                    set_line_format(charformat)
                     return
                 state = self.previousBlockState()
                 fg.setAlphaF(0.3)
@@ -322,7 +325,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                             self.setCurrentBlockState(state | linesfound[line])
                             if not self.activeblock or self.currentBlock() != self.activeblock:
                                 charformat.setForeground(QtGui.QBrush(fg))
-                                self.setFormat(0, len(text), charformat)
+                                set_line_format(charformat)
                             return
                 # Bold text
             #    f = QtGui.QTextCharFormat()
@@ -349,7 +352,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                 f.setFontPointSize(40)
                 if self.currentBlock() not in self.hrblocks:
                     self.hrblocks.append(self.currentBlock())
-                self.setFormat(0, len(text), f)
+                set_line_format(f)
                 self.setCurrentBlockState(self.previousBlockState())
                 return
             else:
