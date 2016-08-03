@@ -306,6 +306,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
             if self.formatting_active:
                 if re.fullmatch(keywordpatterns['chapter'], text):
                     self.setCurrentBlockState(chapterstate)
+                    charformat.setFontPointSize(16)
                     charformat.setFontWeight(QtGui.QFont.Bold)
                     set_line_format(charformat)
                     return
