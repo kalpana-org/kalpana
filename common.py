@@ -33,7 +33,8 @@ keywordpatterns = {
     'section': r'<<\s*(?P<payload>.+?)\s*>>',
     'description': r'\[\[\s*(?P<desc>.+?)\s*(\]\])?',
     'tags': r'#[^,]+(,\s*#[^,]+)*,?\s*',
-    'time': r'🕑\s+(?P<time>.+)'
+    'time': r'🕑\s+(?P<time>.+)',
+    'meta': r'%%.+',
 }
 
 
@@ -68,7 +69,7 @@ def strip_metadata(lines, impliedchapter=False):
             if match('chapter', line):
                 itemsleft = ['description', 'tags', 'time']
                 eatlines = True
-            elif match('section', line):
+            elif match('section', line) or match('meta', line):
                 continue
             else:
                 out.append(line)

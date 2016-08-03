@@ -316,6 +316,13 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                     charformat.setFontWeight(QtGui.QFont.Bold)
                     set_line_format(charformat)
                     return
+                if re.fullmatch(keywordpatterns['meta'], text):
+                    if not self.activeblock or self.currentBlock() != self.activeblock:
+                        fg.setAlphaF(0.1)
+                        charformat.setForeground(QtGui.QBrush(fg))
+                        charformat.setFontItalic(True)
+                    set_line_format(charformat)
+                    return
                 state = self.previousBlockState()
                 fg.setAlphaF(0.3)
                 if state & chapterstate:

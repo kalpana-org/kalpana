@@ -23,6 +23,7 @@ class ChapterEntryList():
         desc_rx = keywordpatterns['description']
         tags_rx = keywordpatterns['tags']
         time_rx = keywordpatterns['time']
+        meta_rx = keywordpatterns['meta']
         chapters = re.split(r'\n(?=(?:>>\s+)?CHAPTER\s+\d+)', data)
         if len(chapters) == 1:
             print('no chapters found')
@@ -31,7 +32,11 @@ class ChapterEntryList():
         chapterlines[0] -= 1
         self.entries = {}
         for n, c in enumerate(chapters):
+            # Skip empty chapters and the first chapter
             if not c.strip():
+                continue
+            if n == 0:
+                self.meta = re.findall('(?m)^'+meta_rx+'$', c)
                 continue
             lines = c.splitlines()
             header = re.fullmatch(ch_rx, lines[0])
