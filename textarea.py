@@ -195,6 +195,7 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
         self.animations_active = value
 
     def set_formatting_active(self, value):
+        self.highlighter.hrblocks = []
         self.highlighter.formatting_active = value
         self.highlighter.rehighlight()
     # ===============================================================
@@ -334,6 +335,20 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
                                 charformat.setForeground(QtGui.QBrush(fg))
                                 set_line_format(charformat)
                             return
+                # Horizontal ruler
+                if re.fullmatch(r'(\s*\*\s*){3}', text):
+                    f = QtGui.QTextCharFormat()
+                    fg.setAlphaF(0.3)
+                    f.setForeground(fg)
+                    f.setFontPointSize(40)
+                    if self.currentBlock() not in self.hrblocks:
+                        self.hrblocks.append(self.currentBlock())
+                    set_line_format(f)
+                    self.setCurrentBlockState(self.previousBlockState())
+                    return
+                else:
+                    if self.currentBlock() in self.hrblocks:
+                        self.hrblocks.remove(self.currentBlock())
                 # Bold text
             #    f = QtGui.QTextCharFormat()
             #    f.setFontWeight(QtGui.QFont.Bold)
@@ -352,19 +367,6 @@ class TextArea(LineTextWidget, FileHandler, Configable, SearchAndReplaceable):
             #        if not self.dict.check(word.group().strip("'")):
             #            self.setFormat(word.start(), word.end() - word.start(), charformat)
             #    charformat.setUnderlineColor(QtCore.Qt.blue)
-            if re.fullmatch(r'(\s*\*\s*){3}', text):
-                f = QtGui.QTextCharFormat()
-                fg.setAlphaF(0.3)
-                f.setForeground(fg)
-                f.setFontPointSize(40)
-                if self.currentBlock() not in self.hrblocks:
-                    self.hrblocks.append(self.currentBlock())
-                set_line_format(f)
-                self.setCurrentBlockState(self.previousBlockState())
-                return
-            else:
-                if self.currentBlock() in self.hrblocks:
-                    self.hrblocks.remove(self.currentBlock())
             laststate = self.previousBlockState()
             bold = laststate & boldstate
             italic = laststate & italicstate
