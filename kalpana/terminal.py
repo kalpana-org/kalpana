@@ -18,6 +18,8 @@
 
 
 from collections import defaultdict
+from enum import IntEnum
+from operator import itemgetter
 import re
 
 from PyQt4 import QtCore, QtGui
@@ -63,6 +65,19 @@ class Terminal(QtGui.QWidget):
         self.completer.widget.update()
 
 
+class SuggestionType(IntEnum):
+    exact = 2
+    fuzzy = 1
+    rest = 0
+
+    def color(self):
+        return {
+            'exact': '#7754ab',
+            'fuzzy': '#349e48',
+            'rest': '#99b5b3'
+        }[self.name]
+
+
 class Completer():
 
     def __init__(self, parent, input_field):
@@ -82,7 +97,21 @@ class Completer():
         self.input_field = input_field
         self.suggestions = []
         # self.autocompleted_history = defaultdict
-        self.run_history = []
+        self.run_history = {
+            'c': {
+                'word count': 10,
+                'go to chapter': 2
+            },
+            'g': {
+                'go to line': 2,
+                'go to chapter': 4,
+                'set style': 9
+            },
+            ':': {
+                'go to line': 13,
+                'go to chapter': 1
+            }
+        }
 
         # Simple list of how many time a certain command has been run
 
@@ -101,13 +130,17 @@ class Completer():
         ]
 
         self.command_frequency = {cmd: 0 for cmd in self.commands}
+        self.command_frequency['word count'] = 9
+        self.command_frequency['toggle spellcheck'] = 14
 
         self.widget = CompletionList(parent, input_field)
+        self.selection = None
         self.watch_terminal()
 
     def watch_terminal(self):
         class EventFilter(QtCore.QObject):
             tab_pressed = pyqtSignal(bool)
+            up_down_pressed = pyqtSignal(bool)
 
             def eventFilter(self_, obj, ev):
                 if ev.type() == QEvent.KeyPress:
@@ -117,7 +150,12 @@ class Completer():
                     elif ev.key() == Qt.Key_Tab and ev.modifiers() == Qt.NoModifier:
                         self_.tab_pressed.emit(False)
                         return True
-                    # elif ev.key() ==
+                    elif ev.key() == Qt.Key_Up:
+                        self_.up_down_pressed.emit(False)
+                        return True
+                    elif ev.key() == Qt.Key_Down:
+                        self_.up_down_pressed.emit(True)
+                        return True
                 elif ev.type() == QEvent.Paint:
                     self.widget.update()
                 return False
@@ -127,18 +165,34 @@ class Completer():
         self.term_event_filter.tab_pressed.connect(self.tab_pressed)
         self.input_field.returnPressed.connect(self.return_pressed)
         self.input_field.textChanged.connect(self.text_edited)
+        self.term_event_filter.up_down_pressed.connect(self.up_down_pressed)
 
     def text_edited(self, new_text):
         self.suggestions = []
-        for command in self.commands:
-            if re.search('.*'.join(map(re.escape, new_text)), command):
-                self.suggestions.append(command)
-        self.suggestions.sort(key=lambda cmd: (self.command_frequency[cmd], cmd))
+        raw_top = self.run_history.get(new_text, {})
+        for cmd in self.commands:
+            if cmd in raw_top:
+                self.suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
+            elif new_text and re.search('.*'.join(map(re.escape, new_text)), cmd):
+                self.suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
+            else:
+                self.suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
+        self.suggestions = [(cmd, type_) for cmd, num, type_
+                            in sorted(self.suggestions, key=itemgetter(2, 1, 0))]
+        self.selection = len(self.suggestions) - 1
         self.widget.set_suggestions(self.suggestions, new_text)
+        self.widget.set_selection(self.selection)
+
+    def up_down_pressed(self, down):
+        if down:
+            self.selection = min(self.selection+1, len(self.suggestions)-1)
+        else:
+            self.selection = max(self.selection-1, 0)
+        self.widget.set_selection(self.selection)
 
     def tab_pressed(self, backwards):
         if self.suggestions:
-            self.input_field.setText(self.suggestions[-1])
+            self.input_field.setText(self.suggestions[-1][0])
         # text = self.input_field.text()
         # matches = []
         # for command in self.commands:
@@ -164,59 +218,103 @@ class Completer():
         self.widget.reset_suggestions()
 
 
-class CompletionList(QtGui.QLabel):
+class CompletionList(QtGui.QWidget):
 
     def __init__(self, parent, input_field):
         super().__init__(parent)
         self.mainwindow = parent
         self.input_field = input_field
+        self.suggestions = []
+        self.selection = None
+        self.offset = None
         self.setFont(QtGui.QFont('monospace'))
-        self.setWordWrap(False)
-        self.setAutoFillBackground(True)
-        self.setStyleSheet('CompletionList {border: 1px solid black; background-color:gray}')
-        self.line_height = QtGui.QFontMetricsF(self.font()).height()
+        font_metrics = QtGui.QFontMetricsF(self.font())
+        self.char_width = font_metrics.widthChar('x')
+        self.line_height = font_metrics.height() + 4
+        self.visible_lines = 6
         self.hide()
-
-        # print(parent.height())
-        # self.move(0,-15)
 
     def update(self, *args):
         super().update(*args)
-        pos = QtCore.QPoint(0, -self.sizeHint().height())
+        pos = QtCore.QPoint(0, -self.height())
         global_pos = self.input_field.mapTo(self.mainwindow, pos)
-        self.setGeometry(QtCore.QRect(global_pos, self.sizeHint()))
+        self.setGeometry(QtCore.QRect(global_pos, self.size()))
 
-    # def paintEvent(self, ev):
-    #     super().paintEvent(ev)
-    #     text_align = QtGui.QTextOption(QtCore.Qt.AlignTop)
-    #     painter = QtGui.QPainter(self)
-    #     painter.setPen(QtGui.QColor(Qt.black))
-    #     painter.setBrush(QtGui.QBrush(Qt.lightGray))
-    #     painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
-    #     for n, text in enumerate(self.suggestions):
-    #         rect = QtCore.QRectF(0, n*self.line_height, self.width(), self.line_height)
-    #         painter.drawText(rect, text, text_align)
-    #     painter.end()
+    def calculate_scrollbar(self, scrollbar_width):
+        scrollbar_height = int(self.height()/4)
+        percent = (self.offset-self.visible_lines)/(len(self.suggestions)-self.visible_lines)
+        x = self.width() - scrollbar_width - 1
+        y = int((self.height()-scrollbar_height-2) * percent) + 1
+        return QtCore.QRect(x, y, scrollbar_width, scrollbar_height)
 
-
+    def paintEvent(self, ev):
+        super().paintEvent(ev)
+        painter = QtGui.QPainter(self)
+        painter.setPen(QtGui.QColor(Qt.black))
+        painter.setBrush(QtGui.QBrush(Qt.darkGray))
+        painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
+        scrollbar_width = 5
+        no_wrap = QtGui.QTextOption()
+        no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
+        y = 0
+        numbered_suggestions = list(enumerate(self.suggestions))
+        end = self.offset
+        start = max(end - self.visible_lines, 0)
+        for n, (text, status) in numbered_suggestions[start:end]:
+            if n == self.selection:
+                painter.setPen(QtGui.QColor(Qt.white))
+                painter.setBrush(QtGui.QBrush(QtGui.QColor('#165578')))
+            else:
+                painter.setPen(QtGui.QColor(Qt.black))
+                painter.setBrush(QtGui.QBrush(Qt.lightGray))
+            painter.fillRect(1, y*self.line_height+1,
+                             self.width()-2-scrollbar_width, self.line_height,
+                             QtGui.QColor(status.color()))
+            if n != self.selection:
+                painter.setOpacity(0.3)
+            painter.fillRect(1+5, y*self.line_height+1,
+                             self.width()-2-5-scrollbar_width, self.line_height,
+                             painter.brush())
+            painter.setOpacity(1)
+            st = QtGui.QStaticText(text)
+            st.setTextOption(no_wrap)
+            painter.drawStaticText(5+5, y*self.line_height+2, st)
+            y += 1
+        painter.fillRect(self.calculate_scrollbar(scrollbar_width), Qt.black)
+        painter.end()
 
     def format_suggestions(self, suggestions, text_fragment):
-        for command in suggestions:
+        for command, status in suggestions:
+            if status != SuggestionType.fuzzy:
+                yield (command, status)
+                continue
             formatted_text = ''
             for char in text_fragment:
                 pos = command.find(char)
-                formatted_text += command[:pos] + '<b>' + char + '</b>'
+                fixed_char = '&nbsp;' if char == ' ' else char
+                formatted_text += command[:pos] + '<b>' + fixed_char + '</b>'
                 command = command[pos+1:]
-            yield formatted_text + command
+            yield (formatted_text + command, status)
 
     def set_suggestions(self, suggestions, text_fragment):
         self.text_fragment = text_fragment
-        if not suggestions:
-            self.hide()
-        else:
-            self.setText('<br>'.join(self.format_suggestions(suggestions, text_fragment)))
-            self.show()
+        self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
+        width = max(len(cmd) for cmd, status in suggestions) * self.char_width + 20
+        height = self.visible_lines * self.line_height + 2
+        self.setFixedSize(width, height)
+        self.offset = len(self.suggestions)
+        self.show()
+
+    def set_selection(self, selection):
+        self.selection = selection
+        # selection too far up
+        if self.selection < self.offset - self.visible_lines:
+            self.offset = self.selection + self.visible_lines
+        # selection too far down
+        elif self.selection >= self.offset:
+            self.offset = self.selection + 1
+        self.update()
 
     def reset_suggestions(self):
-        self.clear()
+        # self.clear()
         self.hide()
