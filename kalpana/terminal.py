@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-
+from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
@@ -27,7 +27,7 @@ from PyQt4.QtGui import QColor
 
 
 class Terminal(QtGui.QWidget):
-    run_command = pyqtSignal(str)
+    run_command = pyqtSignal(str, str)
 
     def __init__(self, parent: QtGui.QWidget) -> None:
         super().__init__(parent)
@@ -40,7 +40,7 @@ class Terminal(QtGui.QWidget):
         layout.addWidget(self.input_field)
         layout.addWidget(self.output_field)
         # Autocompletion test
-        self.completer = Completer(parent, self.input_field)
+        self.completer = Completer(parent, self.run_command, self.input_field)
         # ['arst', 'aoop', 'aruh'], self)
         # self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
         # self.input_field.setCompleter(self.completer)
@@ -80,58 +80,49 @@ class SuggestionType(IntEnum):
 
 class Completer():
 
-    def __init__(self, parent, input_field):
-        """
-        {
-            'a': {
-                'abolish': 12,
-                'django': 1,
-                'arst': 4
-            },
-            'hj': {
-                'hack jaw': 9,
-                'thjack': 3
-            }
-        }
-        """
+    def __init__(self, parent, run_command, input_field):
         self.input_field = input_field
+        self.run_command = run_command
         self.suggestions = []
+        self.last_autocompletion = None
         # self.autocompleted_history = defaultdict
-        self.run_history = {
-            'c': {
-                'word count': 10,
-                'go to chapter': 2
-            },
-            'g': {
-                'go to line': 2,
-                'go to chapter': 4,
-                'set style': 9
-            },
-            ':': {
-                'go to line': 13,
-                'go to chapter': 1
-            }
-        }
+        # self.run_history = {
+        #     'c': {
+        #         'word-count': 10,
+        #         'go-to-chapter': 2
+        #     },
+        #     'g': {
+        #         'go-to-line': 2,
+        #         'go-to-chapter': 4,
+        #         'set-style': 9
+        #     },
+        #     ':': {
+        #         'go-to-line': 13,
+        #         'go-to-chapter': 1
+        #     }
+        # }
+        self.run_history = defaultdict(lambda: defaultdict(int))
 
         # Simple list of how many time a certain command has been run
 
-        self.commands = [
-            'word count',
-            'go to line',
-            'go to chapter',
-            'toggle spellcheck',
-            'add word',
-            'check word',
-            'new file',
-            'save file',
-            'open file',
-            'list plugins',
-            'set style'
-        ]
+        self.commands = {
+            'word-count-total': '',
+            'word-count-chapter': '',
+            'go-to-line': '',
+            'go-to-chapter': '',
+            'toggle-spellcheck': '',
+            'add-word': 'Add a word to the spellcheck database.',
+            'check-word': '',
+            'new-file': '',
+            'save-file': '',
+            'open-file': '',
+            'list-plugins': '',
+            'set-style': ''
+        }
 
         self.command_frequency = {cmd: 0 for cmd in self.commands}
-        self.command_frequency['word count'] = 9
-        self.command_frequency['toggle spellcheck'] = 14
+        self.command_frequency['word-count'] = 9
+        self.command_frequency['toggle-spellcheck'] = 14
 
         self.widget = CompletionList(parent, input_field)
         self.selection = None
@@ -168,20 +159,23 @@ class Completer():
         self.term_event_filter.up_down_pressed.connect(self.up_down_pressed)
 
     def text_edited(self, new_text):
-        self.suggestions = []
-        raw_top = self.run_history.get(new_text, {})
+        partial_cmd = new_text.split()[0] if new_text else ''
+        suggestions = []
+        raw_top = self.run_history.get(partial_cmd, {})
         for cmd in self.commands:
             if cmd in raw_top:
-                self.suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
-            elif new_text and re.search('.*'.join(map(re.escape, new_text)), cmd):
-                self.suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
+                suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
+            elif partial_cmd and re.search('.*'.join(map(re.escape, partial_cmd)), cmd):
+                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
             else:
-                self.suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
-        self.suggestions = [(cmd, type_) for cmd, num, type_
-                            in sorted(self.suggestions, key=itemgetter(2, 1, 0))]
-        self.selection = len(self.suggestions) - 1
-        self.widget.set_suggestions(self.suggestions, new_text)
-        self.widget.set_selection(self.selection)
+                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
+        suggestions = [(cmd, type_) for cmd, num, type_
+                       in sorted(suggestions, key=itemgetter(2, 1, 0))]
+        if suggestions != self.suggestions:
+            self.suggestions = suggestions
+            self.selection = len(self.suggestions) - 1
+            self.widget.set_suggestions(self.suggestions, partial_cmd)
+            self.widget.set_selection(self.selection)
 
     def up_down_pressed(self, down):
         if down:
@@ -191,31 +185,32 @@ class Completer():
         self.widget.set_selection(self.selection)
 
     def tab_pressed(self, backwards):
-        if self.suggestions:
-            self.input_field.setText(self.suggestions[-1][0])
-        # text = self.input_field.text()
-        # matches = []
-        # for command in self.commands:
-        #     if re.search('.*'.join(map(re.escape, text)), command):
-        #         matches.append(command)
-        # print('MATCHES')
-        # print(*matches, sep='\n')
-        # print('')
+        new_text = self.suggestions[self.selection][0] + ' '
+        old_text = self.input_field.text().split(None, 1)
+        if old_text:
+            self.last_autocompletion = old_text[0]
+        if len(old_text) == 2:
+            new_text += old_text[1]
+        self.input_field.setText(new_text)
 
     def return_pressed(self):
         text = self.input_field.text()
-        cmd = None
-        for command in self.commands:
-            if text.startswith(command):
-                cmd = command
-                break
-        if cmd:
-            self.command_frequency[cmd] += 1
-            print('command:', cmd)
+        if not text:
+            return
+        chunks = text.split(None, 1)
+        raw_cmd = chunks[0]
+        arg = chunks[1] if len(chunks) == 2 else ''
+        if raw_cmd not in self.commands:
+            self.last_autocompletion = raw_cmd
+            cmd = self.suggestions[self.selection][0]
         else:
-            print('invalid command')
+            cmd = raw_cmd
+        self.command_frequency[cmd] += 1
+        if self.last_autocompletion != cmd:
+            self.run_history[self.last_autocompletion][cmd] += 1
         self.input_field.clear()
         self.widget.reset_suggestions()
+        self.run_command.emit(cmd, arg)
 
 
 class CompletionList(QtGui.QWidget):
