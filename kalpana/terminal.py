@@ -17,7 +17,6 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 
-from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
@@ -237,6 +236,7 @@ class CompletionList(QtGui.QWidget):
         self.hide()
 
     def update(self, *args):
+        """Match its position with the terminal's position."""
         super().update(*args)
         pos = QtCore.QPoint(0, -self.height())
         global_pos = self.input_field.mapTo(self.mainwindow, pos)
@@ -287,7 +287,14 @@ class CompletionList(QtGui.QWidget):
                          color['scrollbar'])
         painter.end()
 
-    def format_suggestions(self, suggestions, text_fragment):
+    def format_suggestions(self, suggestions, text_fragment: str):
+        """
+        Highlight relevant letters in the suggestions.
+
+        All characters matching a character in the text fragment should
+        get a bold html tag wrapped around it. Note that this only affects
+        fuzzy matches.
+        """
         for command, status in suggestions:
             if status != SuggestionType.fuzzy:
                 yield (command, status)
@@ -301,6 +308,7 @@ class CompletionList(QtGui.QWidget):
             yield (formatted_text + command, status)
 
     def set_suggestions(self, suggestions, text_fragment):
+        """Set the list of suggestions."""
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
         width = max(len(cmd) for cmd, status in suggestions) * self.char_width + 20
@@ -310,6 +318,7 @@ class CompletionList(QtGui.QWidget):
         self.show()
 
     def set_selection(self, selection):
+        """Update the selection position and make sure it's visible."""
         self.selection = selection
         # selection too far up
         if self.selection < self.offset - self.visible_lines:
