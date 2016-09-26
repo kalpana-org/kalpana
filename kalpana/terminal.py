@@ -23,7 +23,8 @@ from operator import itemgetter
 import re
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QEvent, pyqtSignal
+from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal
+from PyQt4.QtGui import QColor
 
 
 class Terminal(QtGui.QWidget):
@@ -72,9 +73,9 @@ class SuggestionType(IntEnum):
 
     def color(self):
         return {
-            'exact': '#7754ab',
-            'fuzzy': '#349e48',
-            'rest': '#99b5b3'
+            'exact': QColor('#61009d'),
+            'fuzzy': QColor('#1d6629'),
+            'rest': QColor('#6a6a6a')
         }[self.name]
 
 
@@ -232,55 +233,58 @@ class CompletionList(QtGui.QWidget):
         self.char_width = font_metrics.widthChar('x')
         self.line_height = font_metrics.height() + 4
         self.visible_lines = 6
+        self.border_width = 1
         self.hide()
 
     def update(self, *args):
         super().update(*args)
         pos = QtCore.QPoint(0, -self.height())
         global_pos = self.input_field.mapTo(self.mainwindow, pos)
-        self.setGeometry(QtCore.QRect(global_pos, self.size()))
+        self.setGeometry(QRect(global_pos, self.size()))
 
-    def calculate_scrollbar(self, scrollbar_width):
+    def calculate_scrollbar(self, scrollbar_width: int) -> QRect:
+        """Return a QRect where the scrollbar should be drawn."""
         scrollbar_height = int(self.height()/4)
         percent = (self.offset-self.visible_lines)/(len(self.suggestions)-self.visible_lines)
-        x = self.width() - scrollbar_width - 1
-        y = int((self.height()-scrollbar_height-2) * percent) + 1
-        return QtCore.QRect(x, y, scrollbar_width, scrollbar_height)
+        x = self.width() - scrollbar_width - self.border_width
+        y = int((self.height()-scrollbar_height-self.border_width*2) * percent) + self.border_width
+        return QRect(x, y, scrollbar_width, scrollbar_height)
 
     def paintEvent(self, ev):
         super().paintEvent(ev)
+        color = {
+            'border': QColor('#111'),
+            'scrollbar': QColor('#555'),
+            'bg': QColor('#181818'),
+            'text': QColor('#ccc'),
+            'sel': QColor(255, 255, 255, 48)
+        }
         painter = QtGui.QPainter(self)
-        painter.setPen(QtGui.QColor(Qt.black))
-        painter.setBrush(QtGui.QBrush(Qt.darkGray))
+        painter.setPen(color['border'])
+        painter.setBrush(color['bg'])
         painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
+        painter.setPen(color['text'])
         scrollbar_width = 5
         no_wrap = QtGui.QTextOption()
         no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
-        y = 0
         numbered_suggestions = list(enumerate(self.suggestions))
         end = self.offset
         start = max(end - self.visible_lines, 0)
+        item_rect = QRect(self.border_width, self.border_width,
+                          self.width()-self.border_width*2-scrollbar_width,
+                          self.line_height)
+        # QRect(1, 1, self.width()-2-scrollbar_width, self.line_height)
         for n, (text, status) in numbered_suggestions[start:end]:
+            painter.fillRect(item_rect, status.color())
+            painter.fillRect(item_rect.adjusted(5, 0, 0, 0), status.color().darker(300))
             if n == self.selection:
-                painter.setPen(QtGui.QColor(Qt.white))
-                painter.setBrush(QtGui.QBrush(QtGui.QColor('#165578')))
-            else:
-                painter.setPen(QtGui.QColor(Qt.black))
-                painter.setBrush(QtGui.QBrush(Qt.lightGray))
-            painter.fillRect(1, y*self.line_height+1,
-                             self.width()-2-scrollbar_width, self.line_height,
-                             QtGui.QColor(status.color()))
-            if n != self.selection:
-                painter.setOpacity(0.3)
-            painter.fillRect(1+5, y*self.line_height+1,
-                             self.width()-2-5-scrollbar_width, self.line_height,
-                             painter.brush())
-            painter.setOpacity(1)
+                painter.fillRect(item_rect, color['sel'])
             st = QtGui.QStaticText(text)
             st.setTextOption(no_wrap)
-            painter.drawStaticText(5+5, y*self.line_height+2, st)
-            y += 1
-        painter.fillRect(self.calculate_scrollbar(scrollbar_width), Qt.black)
+            painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
+            item_rect.translate(0, self.line_height)
+        painter.fillRect(self.calculate_scrollbar(scrollbar_width),
+                         color['scrollbar'])
         painter.end()
 
     def format_suggestions(self, suggestions, text_fragment):
@@ -300,7 +304,7 @@ class CompletionList(QtGui.QWidget):
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
         width = max(len(cmd) for cmd, status in suggestions) * self.char_width + 20
-        height = self.visible_lines * self.line_height + 2
+        height = self.visible_lines * self.line_height + self.border_width*2
         self.setFixedSize(width, height)
         self.offset = len(self.suggestions)
         self.show()
