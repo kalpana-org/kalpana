@@ -239,10 +239,16 @@ class CompletionList(QtGui.QWidget):
 
     def calculate_scrollbar(self, scrollbar_width: int) -> QRect:
         """Return a QRect where the scrollbar should be drawn."""
-        scrollbar_height = int(self.height()/4)
-        percent = (self.offset-self.visible_lines)/(len(self.suggestions)-self.visible_lines)
+        total_height = self.height() - self.border_width*2
+        total_lines = len(self.suggestions)
         x = self.width() - scrollbar_width - self.border_width
-        y = int((self.height()-scrollbar_height-self.border_width*2) * percent) + self.border_width
+        if total_lines <= self.visible_lines:
+            scrollbar_height = total_height
+            y = self.border_width
+        else:
+            scrollbar_height = max(self.visible_lines / total_lines, 0.2) * total_height
+            pos_percent = (self.offset-self.visible_lines) / (total_lines-self.visible_lines)
+            y = int((total_height-scrollbar_height) * pos_percent) + self.border_width
         return QRect(x, y, scrollbar_width, scrollbar_height)
 
     def paintEvent(self, ev):
