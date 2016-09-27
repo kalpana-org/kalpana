@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import re
+
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt, QEvent, pyqtSignal
 
@@ -83,4 +85,21 @@ class Controller:
     def run_command(self, cmd, arg):
         if cmd == 'open-file':
             self.load_file(arg)
-        # self.terminal.error('invalid command')
+        elif cmd == 'word-count-total':
+            self.count_words('total', arg)
+        elif cmd == 'word-count-chapter':
+            self.count_words('chapter', arg)
+        elif cmd == 'word-count-selection':
+            self.count_words('selection', arg)
+
+    def count_words(self, mode, arg):
+        if mode == 'total':
+            if arg:
+                self.terminal.error('Too many arguments!')
+                return
+            words = len(re.findall(r'\S+', self.textarea.document().toPlainText()))
+            self.terminal.print_('Total words: {}'.format(words))
+        elif mode == 'chapter':
+            self.terminal.error('No chapters detected!')
+        elif mode == 'selection':
+            self.terminal.error('Not implented yet!')
