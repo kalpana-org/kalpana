@@ -47,3 +47,12 @@ class MainWindow(QtGui.QWidget):
             self.stack.currentWidget().layout().itemAt(1).widget().setFocus()
         else:
             super().setFocus()
+
+    def shake_screen(self):
+        a = QtCore.QPropertyAnimation(self.stack, 'pos')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
+        a.setDuration(500)
+        for step, offset in enumerate([0, 1, -2, 2, -1, 0]):
+            a.setKeyValueAt(step*0.2, self.stack.pos() + QtCore.QPoint(offset*40, 0))
+        a.start(QtCore.QPropertyAnimation.DeleteWhenStopped)
+        self.shakeanim = a

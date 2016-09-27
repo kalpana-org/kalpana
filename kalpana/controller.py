@@ -49,6 +49,7 @@ class Controller:
     def connect_signals(self):
         pairs = (
             (self.terminal.run_command, self.run_command),
+            (self.terminal.error_triggered, self.mainwindow.shake_screen),
         )
         for signal, slot in pairs:
             signal.connect(slot)

@@ -27,6 +27,7 @@ from PyQt4.QtGui import QColor
 
 
 class Terminal(QtGui.QWidget):
+    error_triggered = pyqtSignal()
     run_command = pyqtSignal(str, str)
 
     def __init__(self, parent: QtGui.QWidget) -> None:
@@ -53,6 +54,7 @@ class Terminal(QtGui.QWidget):
 
     def error(self, msg: str) -> None:
         self.output_field.setText('Error: ' + msg)
+        self.error_triggered.emit()
 
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
