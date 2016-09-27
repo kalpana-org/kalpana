@@ -122,7 +122,8 @@ class Completer():
             'save-file': '',
             'open-file': '',
             'list-plugins': '',
-            'set-style': ''
+            'set-style': '',
+            'set-textarea-max-width': ''
         }
 
         self.command_frequency = {cmd: 0 for cmd in self.commands}

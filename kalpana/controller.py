@@ -98,6 +98,9 @@ class Controller:
             self.go_to_position('line', arg)
         elif cmd == 'go-to-chapter':
             self.go_to_position('chapter', arg)
+        # Set textarea max width
+        elif cmd == 'set-textarea-max-width':
+            self.set_textarea_max_width(arg)
 
     def count_words(self, mode, arg):
         if mode == 'total':
@@ -124,3 +127,13 @@ class Controller:
             self.textarea.centerCursor()
         elif mode == 'chapter':
             self.terminal.error('Not implented yet!')
+
+    def set_textarea_max_width(self, arg):
+        if not arg.isdecimal():
+            self.terminal.error('Argument has to be a number!')
+            return
+        elif int(arg) < 1:
+            self.terminal.error('Width has to be at least 1!')
+            return
+        self.textarea.setMaximumWidth(int(arg))
+        self.terminal.print_('Max textarea width set to {} px'.format(arg))

@@ -22,7 +22,6 @@ from PyQt4 import QtCore, QtGui
 class TextArea(QtGui.QPlainTextEdit):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setMinimumWidth(500)
         self.line_number_bar = LineNumberBar(self)
 
     def paintEvent(self, ev):

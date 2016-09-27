@@ -24,23 +24,26 @@ class MainWindow(QtGui.QWidget):
         super().__init__(*args, **kwargs)
         self.layout = QtGui.QVBoxLayout(self)
         self.stack = QtGui.QStackedWidget(self)
-        self.layout.addWidget(self.stack)#, stretch=10, alignment=QtCore.Qt.AlignCenter)
-        #self.layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.layout.addWidget(self.stack)
         self.terminal = None
         self.show()
 
     def set_terminal(self, terminal):
-        assert self.terminal == None
+        assert self.terminal is None
         self.terminal = terminal
         self.layout.addWidget(terminal)
 
     def add_stack_widgets(self, widgets):
         for widget in widgets:
-            self.stack.addWidget(widget)
-        #self.stack.layout().setAlignment(QtCore.Qt.AlignHCenter)
+            wrapper = QtGui.QWidget(self)
+            layout = QtGui.QHBoxLayout(wrapper)
+            layout.addStretch()
+            layout.addWidget(widget, stretch=1)
+            layout.addStretch()
+            self.stack.addWidget(wrapper)
 
     def setFocus(self):
         if self.stack.count() > 0:
-            self.stack.currentWidget().setFocus()
+            self.stack.currentWidget().layout().itemAt(1).widget().setFocus()
         else:
             super().setFocus()
