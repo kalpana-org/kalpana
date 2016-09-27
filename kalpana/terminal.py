@@ -41,6 +41,7 @@ class Terminal(QtGui.QWidget):
         layout.addWidget(self.output_field)
         # Autocompletion test
         self.completer = Completer(parent, self.run_command, self.input_field)
+        self.completer_popup = self.completer.popup_list
         # ['arst', 'aoop', 'aruh'], self)
         # self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
         # self.input_field.setCompleter(self.completer)
@@ -62,7 +63,7 @@ class Terminal(QtGui.QWidget):
             return
         self.input_field.setText('')
         self.run_command.emit(text)
-        self.completer.widget.update()
+        self.completer.popup_list.update()
 
 
 class SuggestionType(IntEnum):
@@ -124,7 +125,7 @@ class Completer():
         self.command_frequency['word-count'] = 9
         self.command_frequency['toggle-spellcheck'] = 14
 
-        self.widget = CompletionList(parent, input_field)
+        self.popup_list = CompletionList(parent, input_field)
         self.selection = None
         self.watch_terminal()
 
@@ -148,7 +149,7 @@ class Completer():
                         self_.up_down_pressed.emit(True)
                         return True
                 elif ev.type() == QEvent.Paint:
-                    self.widget.update()
+                    self.popup_list.update()
                 return False
 
         self.term_event_filter = EventFilter()
@@ -174,15 +175,15 @@ class Completer():
         if suggestions != self.suggestions:
             self.suggestions = suggestions
             self.selection = len(self.suggestions) - 1
-            self.widget.set_suggestions(self.suggestions, partial_cmd)
-            self.widget.set_selection(self.selection)
+            self.popup_list.set_suggestions(self.suggestions, partial_cmd)
+            self.popup_list.set_selection(self.selection)
 
     def up_down_pressed(self, down):
         if down:
             self.selection = min(self.selection+1, len(self.suggestions)-1)
         else:
             self.selection = max(self.selection-1, 0)
-        self.widget.set_selection(self.selection)
+        self.popup_list.set_selection(self.selection)
 
     def tab_pressed(self, backwards):
         new_text = self.suggestions[self.selection][0] + ' '
@@ -209,7 +210,7 @@ class Completer():
         if self.last_autocompletion != cmd:
             self.run_history[self.last_autocompletion][cmd] += 1
         self.input_field.clear()
-        self.widget.reset_suggestions()
+        self.popup_list.reset_suggestions()
         self.run_command.emit(cmd, arg)
 
 
