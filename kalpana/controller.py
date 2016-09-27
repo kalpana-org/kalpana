@@ -83,14 +83,21 @@ class Controller:
         self.terminal.input_field.installEventFilter(self.term_event_filter)
 
     def run_command(self, cmd, arg):
+        # File handling
         if cmd == 'open-file':
             self.load_file(arg)
+        # Word count
         elif cmd == 'word-count-total':
             self.count_words('total', arg)
         elif cmd == 'word-count-chapter':
             self.count_words('chapter', arg)
         elif cmd == 'word-count-selection':
             self.count_words('selection', arg)
+        # Go to position
+        elif cmd == 'go-to-line':
+            self.go_to_position('line', arg)
+        elif cmd == 'go-to-chapter':
+            self.go_to_position('chapter', arg)
 
     def count_words(self, mode, arg):
         if mode == 'total':
@@ -102,4 +109,18 @@ class Controller:
         elif mode == 'chapter':
             self.terminal.error('No chapters detected!')
         elif mode == 'selection':
+            self.terminal.error('Not implented yet!')
+
+    def go_to_position(self, mode, arg):
+        if not arg.isdecimal():
+            # TODO: add negative numbers for last chapter etc
+            self.terminal.error('Argument has to be a number!')
+            return
+        if mode == 'line':
+            line_num = min(int(arg), self.textarea.document().blockCount())
+            block = self.textarea.document().findBlockByNumber(line_num - 1)
+            new_cursor = QtGui.QTextCursor(block)
+            self.textarea.setTextCursor(new_cursor)
+            self.textarea.centerCursor()
+        elif mode == 'chapter':
             self.terminal.error('Not implented yet!')
