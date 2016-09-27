@@ -26,7 +26,7 @@ from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal
 from PyQt4.QtGui import QColor
 
 
-class Terminal(QtGui.QWidget):
+class Terminal(QtGui.QFrame):
     error_triggered = pyqtSignal()
     run_command = pyqtSignal(str, str)
 
@@ -34,10 +34,14 @@ class Terminal(QtGui.QWidget):
         super().__init__(parent)
         # Create the objects
         self.input_field = QtGui.QLineEdit(self)
+        self.input_field.setObjectName('terminal_input')
         self.output_field = QtGui.QLineEdit(self)
+        self.output_field.setObjectName('terminal_output')
         self.output_field.setDisabled(True)
         # Set the layout
         layout = QtGui.QVBoxLayout(self)
+        layout.setMargin(0)
+        layout.setSpacing(0)
         layout.addWidget(self.input_field)
         layout.addWidget(self.output_field)
         # Autocompletion test
@@ -239,7 +243,7 @@ class Completer():
         self.run_command.emit(cmd, arg)
 
 
-class CompletionList(QtGui.QWidget):
+class CompletionList(QtGui.QFrame):
 
     def __init__(self, parent, input_field):
         super().__init__(parent)

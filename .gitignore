@@ -32,11 +32,3 @@ pip-log.txt
 # vim
 *.swp
 *.swo
-
-# Kalpana specific
-kalpana.json
-*.conf
-encodingtests
-plugins/
-crap/
-stylesheet.css

@@ -37,25 +37,30 @@ class TextArea(QtGui.QPlainTextEdit):
 
 
 
-class LineNumberBar(QtGui.QWidget):
+class LineNumberBar(QtGui.QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.textarea = parent
         self.text_margin = 2
 
     def update(self, *args):
+        left_margin, _, right_margin, _ = self.getContentsMargins()
         total_lines = self.textarea.blockCount()
         font = self.font()
         font.setBold(True)
         font_metrics = QtGui.QFontMetricsF(font)
-        max_width = font_metrics.width(str(total_lines)) + 2*self.text_margin
+        max_width = left_margin + right_margin + font_metrics.width(str(total_lines)) + 2*self.text_margin
         self.setFixedWidth(max_width)
-        self.textarea.setViewportMargins(max_width,0,0,0)
+        self.textarea.setViewportMargins(max_width, 0, 0, 0)
         super().update(*args)
 
     def paintEvent(self, ev):
         super().paintEvent(ev)
+        main_rect = self.contentsRect()
+        main_rect.setTop(self.rect().top())
+        main_rect.setHeight(self.rect().height())
         painter = QtGui.QPainter(self)
+        painter.fillRect(main_rect, painter.background())
         viewport_offset = self.textarea.contentOffset()
         page_bottom = self.textarea.viewport().height()
         current_block = self.textarea.textCursor().block()
@@ -64,7 +69,8 @@ class LineNumberBar(QtGui.QWidget):
         font = painter.font()
         while block.isValid():
             rect = self.textarea.blockBoundingGeometry(block).translated(viewport_offset)
-            rect.setWidth(self.width())
+            rect.setLeft(main_rect.left())
+            rect.setWidth(main_rect.width())
             if rect.y() > page_bottom:
                 break
             if block == current_block:

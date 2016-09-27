@@ -1,0 +1,49 @@
+/*
+  $main_background: #181818
+  $main_foreground: #ddd
+  $darker_background: #111
+  $scrollbar_thickness: 15px
+  $scrollbar_min_length: 20px
+*/
+
+* {
+  background: #181818;
+  color: #ddd;
+  border: none;
+  font-size: 15px;
+  selection-background-color: #ddd;
+  selection-color: #181818;
+}
+LineNumberBar {
+  color: rgba(255, 255, 255, 40%);
+}
+QLineEdit {
+  background: #111;
+  selection-color: #111;
+}
+
+/* Scrollbars */
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+  background: #111;
+}
+QScrollBar:vertical {
+  width: 15px;
+}
+QScrollBar:horizontal {
+  height: 15px;
+}
+QScrollBar::handle:vertical {
+  min-height: 20px;
+}
+QScrollBar::handle:horizontal {
+  min-width: 20px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  height: 0px;
+  width: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+  background: none;
+}

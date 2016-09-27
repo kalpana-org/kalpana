@@ -16,6 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import os.path
+import sys
+
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt, QEvent
 
@@ -42,13 +45,17 @@ class Kalpana(QtGui.QApplication):
         # layout.addWidget(self.terminal)
         # # Misc
         # self.watch_terminal()
-        # self.termkey = QtGui.QShortcut(QtGui.QKeySequence('Escape'), self, self.toggle_terminal)
+        self.reloadkey = QtGui.QShortcut(QtGui.QKeySequence('F5'), self.mainwindow, self.reload_style)
+
+        self.reload_style()
 
         if file_to_open:
             self.controller.load_file(file_to_open)
 
-    def toggle_terminal(self):
-        pass
+    def reload_style(self):
+        with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:
+            css = f.read()
+        self.setStyleSheet(css)
 
 
 def main():

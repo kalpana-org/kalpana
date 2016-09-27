@@ -19,10 +19,12 @@
 from PyQt4 import QtCore, QtGui
 
 
-class MainWindow(QtGui.QWidget):
+class MainWindow(QtGui.QFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layout = QtGui.QVBoxLayout(self)
+        self.layout.setMargin(0)
+        self.layout.setSpacing(0)
         self.stack = QtGui.QStackedWidget(self)
         self.layout.addWidget(self.stack)
         self.terminal = None
@@ -35,8 +37,9 @@ class MainWindow(QtGui.QWidget):
 
     def add_stack_widgets(self, widgets):
         for widget in widgets:
-            wrapper = QtGui.QWidget(self)
+            wrapper = QtGui.QFrame(self)
             layout = QtGui.QHBoxLayout(wrapper)
+            layout.setMargin(0)
             layout.addStretch()
             layout.addWidget(widget, stretch=1)
             layout.addStretch()
