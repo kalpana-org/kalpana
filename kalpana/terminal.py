@@ -112,6 +112,7 @@ class Completer():
         self.commands = {
             'word-count-total': '',
             'word-count-chapter': '',
+            'word-count-selection': '',
             'go-to-line': '',
             'go-to-chapter': '',
             'toggle-spellcheck': '',
