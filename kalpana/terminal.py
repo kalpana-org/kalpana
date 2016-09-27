@@ -160,6 +160,11 @@ class Completer():
         self.term_event_filter.up_down_pressed.connect(self.up_down_pressed)
 
     def text_edited(self, new_text):
+        if not new_text.strip():
+            if self.popup_list.isVisible():
+                self.popup_list.hide()
+            self.suggestions = []
+            return
         partial_cmd = new_text.split()[0] if new_text else ''
         suggestions = []
         raw_top = self.run_history.get(partial_cmd, {})
@@ -179,6 +184,8 @@ class Completer():
             self.popup_list.set_selection(self.selection)
 
     def up_down_pressed(self, down):
+        if not self.popup_list.isVisible():
+            return
         if down:
             self.selection = min(self.selection+1, len(self.suggestions)-1)
         else:
@@ -186,6 +193,10 @@ class Completer():
         self.popup_list.set_selection(self.selection)
 
     def tab_pressed(self, backwards):
+        if not self.popup_list.isVisible():
+            if self.suggestions:
+                self.popup_list.show()
+            return
         new_text = self.suggestions[self.selection][0] + ' '
         old_text = self.input_field.text().split(None, 1)
         if old_text:
@@ -196,7 +207,7 @@ class Completer():
 
     def return_pressed(self):
         text = self.input_field.text()
-        if not text:
+        if not text.strip():
             return
         chunks = text.split(None, 1)
         raw_cmd = chunks[0]
@@ -305,8 +316,7 @@ class CompletionList(QtGui.QWidget):
             formatted_text = ''
             for char in text_fragment:
                 pos = command.find(char)
-                fixed_char = '&nbsp;' if char == ' ' else char
-                formatted_text += command[:pos] + '<b>' + fixed_char + '</b>'
+                formatted_text += command[:pos] + '<b>' + char + '</b>'
                 command = command[pos+1:]
             yield (formatted_text + command, status)
 
