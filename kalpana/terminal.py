@@ -67,12 +67,14 @@ class Terminal(QtGui.QWidget):
 
 
 class SuggestionType(IntEnum):
-    exact = 2
-    fuzzy = 1
     rest = 0
+    fuzzy = 1
+    exact = 2
+    history = 10
 
     def color(self):
         return {
+            'history': QColor('#3f5d6a'),
             'exact': QColor('#61009d'),
             'fuzzy': QColor('#1d6629'),
             'rest': QColor('#6a6a6a')
@@ -86,6 +88,7 @@ class Completer():
         self.run_command = run_command
         self.suggestions = []
         self.last_autocompletion = None
+        self.history = []
         # self.autocompleted_history = defaultdict
         # self.run_history = {
         #     'c': {
@@ -185,6 +188,12 @@ class Completer():
 
     def up_down_pressed(self, down):
         if not self.popup_list.isVisible():
+            if down or not self.history:
+                return
+            self.suggestions = [(x, SuggestionType.history) for x in self.history]
+            self.selection = len(self.suggestions) - 1
+            self.popup_list.set_suggestions(self.suggestions, '')
+            self.popup_list.set_selection(self.selection)
             return
         if down:
             self.selection = min(self.selection+1, len(self.suggestions)-1)
@@ -220,6 +229,7 @@ class Completer():
         self.command_frequency[cmd] += 1
         if self.last_autocompletion != cmd:
             self.run_history[self.last_autocompletion][cmd] += 1
+        self.history.append(cmd + ((' ' + arg) if arg else ''))
         self.input_field.clear()
         self.popup_list.reset_suggestions()
         self.run_command.emit(cmd, arg)
