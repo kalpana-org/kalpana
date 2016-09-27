@@ -53,7 +53,10 @@ class Controller:
 
     def toggle_terminal(self):
         if self.terminal.input_field.hasFocus():
-            self.mainwindow.setFocus()
+            if self.terminal.completer_popup.isVisible():
+                self.terminal.completer_popup.hide()
+            else:
+                self.mainwindow.setFocus()
         else:
             self.terminal.input_field.setFocus()
 
