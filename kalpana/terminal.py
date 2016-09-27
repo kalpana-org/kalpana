@@ -226,7 +226,8 @@ class CompletionList(QtGui.QWidget):
         font_metrics = QtGui.QFontMetricsF(self.font())
         self.char_width = font_metrics.widthChar('x')
         self.line_height = font_metrics.height() + 4
-        self.visible_lines = 6
+        self.max_visible_lines = 6
+        self.visible_lines = self.max_visible_lines
         self.border_width = 1
         self.hide()
 
@@ -312,6 +313,7 @@ class CompletionList(QtGui.QWidget):
         """Set the list of suggestions."""
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
+        self.visible_lines = min(len(suggestions), self.max_visible_lines)
         width = max(len(cmd) for cmd, status in suggestions) * self.char_width + 20
         height = self.visible_lines * self.line_height + self.border_width*2
         self.setFixedSize(width, height)
