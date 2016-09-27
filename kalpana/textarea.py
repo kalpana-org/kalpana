@@ -76,6 +76,6 @@ class LineNumberBar(QtGui.QWidget):
                 painter.setFont(font)
             tm = self.text_margin
             painter.drawText(rect.adjusted(tm,tm/2, -tm,-tm/2),
-                             str(block.blockNumber()), option=text_align)
+                             str(block.blockNumber()+1), option=text_align)
             block = block.next()
         painter.end()
