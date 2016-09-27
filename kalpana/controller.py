@@ -81,6 +81,6 @@ class Controller:
         self.terminal.input_field.installEventFilter(self.term_event_filter)
 
     def run_command(self, cmd, arg):
-        print('COMMAND:', cmd)
-        print('ARG:', arg)
+        if cmd == 'open-file':
+            self.load_file(arg)
         # self.terminal.error('invalid command')
