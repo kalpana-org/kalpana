@@ -22,7 +22,7 @@ from operator import itemgetter
 import re
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal
+from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
 from PyQt4.QtGui import QColor
 
 
@@ -252,35 +252,51 @@ class CompletionList(QtGui.QFrame):
         self.suggestions = []
         self.selection = None
         self.offset = None
-        self.setFont(QtGui.QFont('monospace'))
-        font_metrics = QtGui.QFontMetricsF(self.font())
-        self.char_width = font_metrics.widthChar('x')
-        self.line_height = font_metrics.height() + 4
-        self.max_visible_lines = 6
-        self.visible_lines = self.max_visible_lines
-        self.border_width = 1
+        self.line_height = None
+        self.visible_lines = self.max_visible_lines = 6
+        self._scrollbar_width = 5
         self.hide()
+
+    @pyqtProperty(str)
+    def scrollbar_width(self):
+        return str(self._scrollbar_width)
+
+    @scrollbar_width.setter
+    def scrollbar_width(self, value):
+        print(repr(value))
+        match = re.fullmatch(r'(?i)(\d+)\s*(px)?', value.strip())
+        if match:
+            self._scrollbar_width = int(match.group(1))
 
     def update(self, *args):
         """Match its position with the terminal's position."""
         super().update(*args)
+        font_metrics = QtGui.QFontMetricsF(self.font())
+        if not self.suggestions:
+            width = 1
+        else:
+            width = max(font_metrics.width(re.sub(r'</?b>', '', text))
+                        for text, _ in self.suggestions) + self._scrollbar_width + 20
+        self.line_height = font_metrics.height() + 4
+        height = self.visible_lines * self.line_height + self.frameWidth()*2
+        self.setFixedSize(width, height)
         pos = QtCore.QPoint(0, -self.height())
         global_pos = self.input_field.mapTo(self.mainwindow, pos)
         self.setGeometry(QRect(global_pos, self.size()))
 
-    def calculate_scrollbar(self, scrollbar_width: int) -> QRect:
+    def calculate_scrollbar(self) -> QRect:
         """Return a QRect where the scrollbar should be drawn."""
-        total_height = self.height() - self.border_width*2
+        total_height = self.height() - self.frameWidth()*2
         total_lines = len(self.suggestions)
-        x = self.width() - scrollbar_width - self.border_width
+        x = self.width() - self._scrollbar_width - self.frameWidth()
         if total_lines <= self.visible_lines:
             scrollbar_height = total_height
-            y = self.border_width
+            y = self.frameWidth()
         else:
             scrollbar_height = max(self.visible_lines / total_lines, 0.2) * total_height
             pos_percent = (self.offset-self.visible_lines) / (total_lines-self.visible_lines)
-            y = int((total_height-scrollbar_height) * pos_percent) + self.border_width
-        return QRect(x, y, scrollbar_width, scrollbar_height)
+            y = int((total_height-scrollbar_height) * pos_percent) + self.frameWidth()
+        return QRect(x, y, self._scrollbar_width, scrollbar_height)
 
     def paintEvent(self, ev):
         super().paintEvent(ev)
@@ -294,16 +310,15 @@ class CompletionList(QtGui.QFrame):
         painter = QtGui.QPainter(self)
         painter.setPen(color['border'])
         painter.setBrush(color['bg'])
-        painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
+        # painter.drawRect(self.rect().adjusted(0, 0, -1, -1))
         painter.setPen(color['text'])
-        scrollbar_width = 5
         no_wrap = QtGui.QTextOption()
         no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
         numbered_suggestions = list(enumerate(self.suggestions))
         end = self.offset
         start = max(end - self.visible_lines, 0)
-        item_rect = QRect(self.border_width, self.border_width,
-                          self.width()-self.border_width*2-scrollbar_width,
+        item_rect = QRect(self.frameWidth(), self.frameWidth(),
+                          self.width()-self.frameWidth()*2-self._scrollbar_width,
                           self.line_height)
         # QRect(1, 1, self.width()-2-scrollbar_width, self.line_height)
         for n, (text, status) in numbered_suggestions[start:end]:
@@ -315,8 +330,7 @@ class CompletionList(QtGui.QFrame):
             st.setTextOption(no_wrap)
             painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
             item_rect.translate(0, self.line_height)
-        painter.fillRect(self.calculate_scrollbar(scrollbar_width),
-                         color['scrollbar'])
+        painter.fillRect(self.calculate_scrollbar(), color['scrollbar'])
         painter.end()
 
     def format_suggestions(self, suggestions, text_fragment: str):
@@ -343,9 +357,6 @@ class CompletionList(QtGui.QFrame):
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
         self.visible_lines = min(len(suggestions), self.max_visible_lines)
-        width = max(len(cmd) for cmd, status in suggestions) * self.char_width + 20
-        height = self.visible_lines * self.line_height + self.border_width*2
-        self.setFixedSize(width, height)
         self.offset = len(self.suggestions)
         self.show()
 
