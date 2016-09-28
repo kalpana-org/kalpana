@@ -60,7 +60,6 @@ class LineNumberBar(QtGui.QFrame):
         main_rect.setTop(self.rect().top())
         main_rect.setHeight(self.rect().height())
         painter = QtGui.QPainter(self)
-        painter.fillRect(main_rect, painter.background())
         viewport_offset = self.textarea.contentOffset()
         page_bottom = self.textarea.viewport().height()
         current_block = self.textarea.textCursor().block()
