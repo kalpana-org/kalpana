@@ -17,16 +17,23 @@
 LineNumberBar {
   color: rgba(255, 255, 255, 40%);
 }
+
 QLineEdit {
   background: #111;
   selection-color: #111;
-  /*border: 3px solid blue;*/
 }
 CompletionList {
-  border: 2px solid #333;
-  qproperty-scrollbar_width: " 20px ";
+  border: 2px solid black;
+  qproperty-history_color: #3f5d6a;
+  qproperty-exact_color: #61009d;
+  qproperty-fuzzy_color: #1d6629;
+  qproperty-rest_color: #6a6a6a;
+  qproperty-selection_color: rgba(255, 255, 255, 48);
 }
-
+/* the completion list's horizontal scrollbar should always be hidden */
+CompletionList QScrollBar:horizontal {
+  height: 0px;
+}
 
 /* Scrollbars */
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
