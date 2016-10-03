@@ -254,7 +254,6 @@ class CompletionList(QtGui.QScrollArea):
         self.input_field = input_field
         self.mainwindow = parent
         self.suggestions = []
-        self.selection = 0
         self.line_height = 0
         self.visible_lines = self.max_visible_lines = 6
         # CSS properties
@@ -307,7 +306,7 @@ class CompletionList(QtGui.QScrollArea):
         global_pos = self.input_field.mapTo(self.mainwindow, pos)
         self.setGeometry(QRect(global_pos, size))
         # Scroll correctly
-        top = self.canvas.contentsRect().y() + self.line_height * self.selection
+        top = self.canvas.contentsRect().y() + self.line_height * self.canvas.selection
         bottom = top + self.line_height
         self.ensureVisible(0, top, xMargin=0, yMargin=0)
         self.ensureVisible(0, bottom, xMargin=0, yMargin=0)
@@ -341,14 +340,7 @@ class CompletionList(QtGui.QScrollArea):
         self.show()
 
     def set_selection(self, selection):
-        """Update the selection position and make sure it's visible."""
-        self.selection = selection
-        # selection too far up
-        if self.selection < self.offset - self.visible_lines:
-            self.offset = self.selection + self.visible_lines
-        # selection too far down
-        elif self.selection >= self.offset:
-            self.offset = self.selection + 1
+        """Update the selection position."""
         self.canvas.selection = selection
         self.update()
 
@@ -365,6 +357,7 @@ class CompletionListCanvas(QtGui.QFrame):
         self.get_suggestions = get_suggestions
         self.get_color = get_color
         self.get_selection_color = get_selection_color
+        self.selection = 0
 
     def paintEvent(self, ev):
         super().paintEvent(ev)
