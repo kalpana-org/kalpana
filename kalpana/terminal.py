@@ -180,10 +180,10 @@ class Completer():
                 suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
         suggestions = [(cmd, type_) for cmd, num, type_
                        in sorted(suggestions, key=itemgetter(2, 1, 0))]
+        self.popup_list.set_suggestions(suggestions, partial_cmd)
         if suggestions != self.suggestions:
             self.suggestions = suggestions
             self.selection = len(self.suggestions) - 1
-            self.popup_list.set_suggestions(self.suggestions, partial_cmd)
             self.popup_list.set_selection(self.selection)
 
     def up_down_pressed(self, down):
