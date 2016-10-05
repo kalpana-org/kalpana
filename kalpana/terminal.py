@@ -21,15 +21,15 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
-from PyQt4.QtGui import QColor
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
+from PyQt5.QtGui import QColor
 
 from kalpana.autocompletion import SuggestionList
 
-class Terminal(QtGui.QFrame):
+class Terminal(QtWidgets.QFrame):
 
-    class InputField(QtGui.QLineEdit):
+    class InputField(QtWidgets.QLineEdit):
         @property
         def text(self):
             return super().text()
@@ -49,17 +49,17 @@ class Terminal(QtGui.QFrame):
     error_triggered = pyqtSignal()
     run_command = pyqtSignal(str, str)
 
-    def __init__(self, parent: QtGui.QWidget) -> None:
+    def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
         # Create the objects
         self.input_field = self.InputField(self)
         self.input_field.setObjectName('terminal_input')
-        self.output_field = QtGui.QLineEdit(self)
+        self.output_field = QtWidgets.QLineEdit(self)
         self.output_field.setObjectName('terminal_output')
         self.output_field.setDisabled(True)
         # Set the layout
-        layout = QtGui.QVBoxLayout(self)
-        layout.setMargin(0)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self.input_field)
         layout.addWidget(self.output_field)
@@ -178,9 +178,9 @@ def autocomplete_file_path(name, text):
                   for p in raw_paths)
 
 
-class CompletionListWidget(QtGui.QScrollArea):
+class CompletionListWidget(QtWidgets.QScrollArea):
 
-    class CompletionListCanvas(QtGui.QFrame):
+    class CompletionListCanvas(QtWidgets.QFrame):
 
         def __init__(self, parent, get_line_height, get_suggestions, get_color, get_selection_color):
             super().__init__(parent)

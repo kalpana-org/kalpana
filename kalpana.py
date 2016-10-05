@@ -19,8 +19,8 @@
 import os.path
 import sys
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QEvent
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QEvent
 
 from kalpana.textarea import TextArea
 from kalpana.terminal import Terminal
@@ -28,7 +28,7 @@ from kalpana.controller import Controller
 from kalpana.mainwindow import MainWindow
 
 
-class Kalpana(QtGui.QApplication):
+class Kalpana(QtWidgets.QApplication):
 
     def __init__(self, config_dir, silent_mode=False, file_to_open=None):
         super().__init__(['kalpana2'])
@@ -45,7 +45,7 @@ class Kalpana(QtGui.QApplication):
         # layout.addWidget(self.terminal)
         # # Misc
         # self.watch_terminal()
-        self.reloadkey = QtGui.QShortcut(QtGui.QKeySequence('F5'), self.mainwindow, self.reload_style)
+        self.reloadkey = QtWidgets.QShortcut(QtGui.QKeySequence('F5'), self.mainwindow, self.reload_style)
 
         self.reload_style()
 

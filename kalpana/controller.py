@@ -18,8 +18,8 @@
 
 import re
 
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt, QEvent, pyqtSignal
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 
 from kalpana.filehandler import FileHandler, FileError
 from kalpana.chapters import ChapterIndex
@@ -36,10 +36,10 @@ class Controller:
         self.connect_signals()
 
     def set_hotkeys(self):
-        self.termkey = QtGui.QShortcut(QtGui.QKeySequence('Escape'),
-                                       self.mainwindow, self.toggle_terminal)
-        self.termkey = QtGui.QShortcut(QtGui.QKeySequence('F9'),
-                                       self.mainwindow, self.test)
+        self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('Escape'),
+                                           self.mainwindow, self.toggle_terminal)
+        self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('F9'),
+                                           self.mainwindow, self.test)
 
     def update_style(self):
         pass

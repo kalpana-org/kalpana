@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class TextArea(QtGui.QPlainTextEdit):
+class TextArea(QtWidgets.QPlainTextEdit):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.line_number_bar = LineNumberBar(self)
@@ -37,7 +37,7 @@ class TextArea(QtGui.QPlainTextEdit):
 
 
 
-class LineNumberBar(QtGui.QFrame):
+class LineNumberBar(QtWidgets.QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.textarea = parent

@@ -16,16 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtWidgets
 
 
-class MainWindow(QtGui.QFrame):
+class MainWindow(QtWidgets.QFrame):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.layout = QtGui.QVBoxLayout(self)
-        self.layout.setMargin(0)
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
-        self.stack = QtGui.QStackedWidget(self)
+        self.stack = QtWidgets.QStackedWidget(self)
         self.layout.addWidget(self.stack)
         self.terminal = None
         self.show()
@@ -37,9 +37,9 @@ class MainWindow(QtGui.QFrame):
 
     def add_stack_widgets(self, widgets):
         for widget in widgets:
-            wrapper = QtGui.QFrame(self)
-            layout = QtGui.QHBoxLayout(wrapper)
-            layout.setMargin(0)
+            wrapper = QtWidgets.QFrame(self)
+            layout = QtWidgets.QHBoxLayout(wrapper)
+            layout.setContentsMargins(0, 0, 0, 0)
             layout.addStretch()
             layout.addWidget(widget, stretch=1)
             layout.addStretch()
