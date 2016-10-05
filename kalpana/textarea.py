@@ -20,41 +20,41 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class TextArea(QtWidgets.QPlainTextEdit):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.line_number_bar = LineNumberBar(self)
 
-    def paintEvent(self, ev):
+    def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         super().paintEvent(ev)
         painter = QtGui.QPainter(self.viewport())
         #painter.fillRect(0,0,400,400, QtCore.Qt.red)
         painter.end()
         self.line_number_bar.update()
 
-    def resizeEvent(self, ev):
+    def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
         self.line_number_bar.setFixedHeight(self.height())
 
 
 
 class LineNumberBar(QtWidgets.QFrame):
-    def __init__(self, parent):
+    def __init__(self, parent: TextArea) -> None:
         super().__init__(parent)
         self.textarea = parent
         self.text_margin = 2
 
-    def update(self, *args):
+    def update(self, *args) -> None:
         left_margin, _, right_margin, _ = self.getContentsMargins()
         total_lines = self.textarea.blockCount()
         font = self.font()
         font.setBold(True)
         font_metrics = QtGui.QFontMetricsF(font)
-        max_width = left_margin + right_margin + font_metrics.width(str(total_lines)) + 2*self.text_margin
+        max_width = int(left_margin + right_margin + font_metrics.width(str(total_lines)) + 2*self.text_margin)
         self.setFixedWidth(max_width)
         self.textarea.setViewportMargins(max_width, 0, 0, 0)
         super().update(*args)
 
-    def paintEvent(self, ev):
+    def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         super().paintEvent(ev)
         main_rect = self.contentsRect()
         main_rect.setTop(self.rect().top())

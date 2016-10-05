@@ -16,26 +16,27 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Iterable
+
 from PyQt5 import QtCore, QtWidgets
 
 
 class MainWindow(QtWidgets.QFrame):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         self.stack = QtWidgets.QStackedWidget(self)
-        self.layout.addWidget(self.stack)
-        self.terminal = None
+        layout.addWidget(self.stack)
+        self.terminal = None  # type: QtWidgets.QFrame
         self.show()
 
-    def set_terminal(self, terminal):
-        assert self.terminal is None
+    def set_terminal(self, terminal: QtWidgets.QFrame) -> None:
         self.terminal = terminal
-        self.layout.addWidget(terminal)
+        self.layout().addWidget(terminal)
 
-    def add_stack_widgets(self, widgets):
+    def add_stack_widgets(self, widgets: Iterable[QtWidgets.QFrame]) -> None:
         for widget in widgets:
             wrapper = QtWidgets.QFrame(self)
             layout = QtWidgets.QHBoxLayout(wrapper)
@@ -45,13 +46,13 @@ class MainWindow(QtWidgets.QFrame):
             layout.addStretch()
             self.stack.addWidget(wrapper)
 
-    def setFocus(self):
+    def setFocus(self) -> None:
         if self.stack.count() > 0:
             self.stack.currentWidget().layout().itemAt(1).widget().setFocus()
         else:
             super().setFocus()
 
-    def shake_screen(self):
+    def shake_screen(self) -> None:
         a = QtCore.QPropertyAnimation(self.stack, 'pos')
         a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
         a.setDuration(500)

@@ -20,7 +20,7 @@ from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
-from typing import DefaultDict
+from typing import DefaultDict, Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
@@ -28,29 +28,38 @@ from PyQt5.QtGui import QColor
 
 from kalpana.autocompletion import SuggestionList
 
+SuggestionListAlias = List[Tuple[str, int]]
+
+class SuggestionType(IntEnum):
+    rest = 0
+    fuzzy = 1
+    exact = 2
+    history = 10
+
+
 class Terminal(QtWidgets.QFrame):
 
     class InputField(QtWidgets.QLineEdit):
         @property
-        def text(self):
+        def text(self) -> str:
             return super().text()
 
         @text.setter
-        def text(self, text):
+        def text(self, text: str) -> None:
             self.setText(text)
 
         @property
-        def cursor_position(self):
+        def cursor_position(self) -> int:
             return self.cursorPosition()
 
         @cursor_position.setter
-        def cursor_position(self, pos):
+        def cursor_position(self, pos: int) -> None:
             self.setCursorPosition(pos)
 
     error_triggered = pyqtSignal()
     run_command = pyqtSignal(str, str)
 
-    def __init__(self, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, parent: QtWidgets.QFrame) -> None:
         super().__init__(parent)
         # Create the objects
         self.input_field = Terminal.InputField(self)
@@ -111,9 +120,9 @@ class Terminal(QtWidgets.QFrame):
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
 
-    def command_suggestions(self, name, text):
+    def command_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         suggestions = []
-        raw_top = self.run_history.get(text, {})
+        raw_top = self.run_history.get(text, {})  # type: ignore
         for cmd in self.commands:
             if cmd in raw_top:
                 suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
@@ -122,9 +131,9 @@ class Terminal(QtWidgets.QFrame):
             else:
                 suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
         return [(cmd, type_) for cmd, num, type_
-                in sorted(suggestions, key=itemgetter(2, 1, 0))]
+                in sorted(suggestions, key=itemgetter(*[2, 1, 0]))]
 
-    def watch_terminal(self):
+    def watch_terminal(self) -> None:
         class EventFilter(QtCore.QObject):
             backtab_pressed = pyqtSignal()
             tab_pressed = pyqtSignal()
@@ -157,14 +166,8 @@ class Terminal(QtWidgets.QFrame):
         self.input_field.cursorPositionChanged.connect(self.suggestion_list.update)
 
 
-class SuggestionType(IntEnum):
-    rest = 0
-    fuzzy = 1
-    exact = 2
-    history = 10
 
-
-def autocomplete_file_path(name, text):
+def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
     import os
     import os.path
     full_path = os.path.abspath(os.path.expanduser(text))
@@ -183,7 +186,8 @@ class CompletionListWidget(QtWidgets.QScrollArea):
 
     class CompletionListCanvas(QtWidgets.QFrame):
 
-        def __init__(self, parent, get_line_height, get_suggestions, get_color, get_selection_color):
+        def __init__(self, parent, get_line_height, get_suggestions, get_color,
+                     get_selection_color) -> None:
             super().__init__(parent)
             self.get_line_height = get_line_height
             self.get_suggestions = get_suggestions
@@ -191,7 +195,7 @@ class CompletionListWidget(QtWidgets.QScrollArea):
             self.get_selection_color = get_selection_color
             self.selection = 0
 
-        def paintEvent(self, ev):
+        def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
             super().paintEvent(ev)
             painter = QtGui.QPainter(self)
             no_wrap = QtGui.QTextOption()
@@ -222,12 +226,13 @@ class CompletionListWidget(QtWidgets.QScrollArea):
     rest_color = css_property('rest')
     selection_color = css_property('selection')
 
-    def __init__(self, mainwindow, input_field):
+    def __init__(self, mainwindow: QtWidgets.QFrame,
+                 input_field: QtWidgets.QLineEdit) -> None:
         super().__init__(mainwindow)
         # Variables
         self.input_field = input_field
         self.mainwindow = mainwindow
-        self.suggestions = []
+        self.suggestions = []  # type: SuggestionListAlias
         self.line_height = 0
         self.visible_lines = self.max_visible_lines = 6
         # CSS properties
@@ -242,20 +247,22 @@ class CompletionListWidget(QtWidgets.QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
-        self.canvas = self.CompletionListCanvas(self,
-                                                lambda: self.line_height,
-                                                lambda: self.suggestions,
-                                                self.status_colors.get,
-                                                lambda: self._selection_color)
+        self.canvas = CompletionListWidget.CompletionListCanvas(
+                        self,
+                        lambda: self.line_height,
+                        lambda: self.suggestions,
+                        self.status_colors.get,
+                        lambda: self._selection_color
+        )
         self.setWidget(self.canvas)
         self.hide()
 
     @property
-    def visible(self):
+    def visible(self) -> bool:
         return self.isVisible()
 
     @visible.setter
-    def visible(self, value):
+    def visible(self, value: bool) -> None:
         self.setVisible(value)
 
     def set_status_color(self, status_name, color):
@@ -264,10 +271,10 @@ class CompletionListWidget(QtWidgets.QScrollArea):
         else:
             self.status_colors[SuggestionType[status_name]] = color  # type: ignore
 
-    def update(self, *args):
+    def update(self, *args) -> None:
         """Match its position with the terminal's position."""
         super().update(*args)
-        font_metrics = QtGui.QFontMetricsF(self.font())
+        font_metrics = QtGui.QFontMetrics(self.font())
         self.line_height = font_metrics.height() + 4
         # Canvas size
         left, top, right, bottom = self.canvas.getContentsMargins()
@@ -294,7 +301,8 @@ class CompletionListWidget(QtWidgets.QScrollArea):
         self.ensureVisible(0, top, xMargin=0, yMargin=0)
         self.ensureVisible(0, bottom, xMargin=0, yMargin=0)
 
-    def format_suggestions(self, suggestions, text_fragment: str):
+    def format_suggestions(self, suggestions: SuggestionListAlias,
+                           text_fragment: str) -> Iterable[Tuple[str, int]]:
         """
         Highlight relevant letters in the suggestions.
 
@@ -313,21 +321,22 @@ class CompletionListWidget(QtWidgets.QScrollArea):
                 command = command[pos+1:]
             yield (formatted_text + command, status)
 
-    def set_suggestions(self, suggestions, selection, text_fragment):
+    def set_suggestions(self, suggestions: SuggestionListAlias,
+                        selection: int, text_fragment: str) -> None:
         """Set the list of suggestions."""
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
         self.visible_lines = min(len(suggestions), self.max_visible_lines)
         self.offset = len(self.suggestions)
-        self.canvas.suggestions = suggestions
+        # self.canvas.suggestions = suggestions
         self.canvas.selection = selection
         self.show()
 
-    def set_selection(self, selection):
+    def set_selection(self, selection: int) -> None:
         """Update the selection position."""
         self.canvas.selection = selection
         self.update()
 
-    def reset_suggestions(self):
+    def reset_suggestions(self) -> None:
         # self.clear()
         self.hide()

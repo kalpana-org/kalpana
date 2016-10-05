@@ -16,17 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Callable, List, Tuple
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 
-from kalpana.filehandler import FileHandler, FileError
 from kalpana.chapters import ChapterIndex
+from kalpana.filehandler import FileHandler, FileError
+from kalpana.mainwindow import MainWindow
+from kalpana.terminal import Terminal
+from kalpana.textarea import TextArea
 
 
 class Controller:
-    def __init__(self, mainwindow, textarea, terminal):
+    def __init__(self, mainwindow: MainWindow, textarea: TextArea, terminal: Terminal) -> None:
         self.mainwindow = mainwindow
         self.textarea = textarea
         self.terminal = terminal
@@ -35,13 +39,13 @@ class Controller:
         self.set_hotkeys()
         self.connect_signals()
 
-    def set_hotkeys(self):
+    def set_hotkeys(self) -> None:
         self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('Escape'),
                                            self.mainwindow, self.toggle_terminal)
         self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('F9'),
                                            self.mainwindow, self.test)
 
-    def update_style(self):
+    def update_style(self) -> None:
         pass
 
     def test(self):
@@ -51,15 +55,15 @@ class Controller:
         sp = self.textarea.sizePolicy()
         print('ta sizepolicy', sp.controlType(), sp.horizontalPolicy())
 
-    def connect_signals(self):
-        pairs = (
+    def connect_signals(self) -> None:
+        pairs = [
             (self.terminal.run_command, self.run_command),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
-        )
+        ]  # type: List[Tuple[pyqtSignal, Callable]]
         for signal, slot in pairs:
             signal.connect(slot)
 
-    def toggle_terminal(self):
+    def toggle_terminal(self) -> None:
         if self.terminal.input_field.hasFocus():
             if self.terminal.completer_popup.isVisible():
                 self.terminal.completer_popup.hide()
@@ -68,7 +72,7 @@ class Controller:
         else:
             self.terminal.input_field.setFocus()
 
-    def load_file(self, filepath):
+    def load_file(self, filepath: str) -> None:
         try:
             data = self.filehandler.open_file(filepath)
         except FileError as e:
@@ -86,11 +90,12 @@ class Controller:
             # print(x == self.chapter_index)
             # print(*[c.title for c in self.chapter_index.chapters], sep='\n')
 
-    def update_text_format(self, pos, removed, added):
+    def update_text_format(self, pos: int, removed: int, added: int) -> None:
         print(self.textarea.toPlainText()[pos:pos+added])
 
-    def set_text_block_formats(self):
-        def make_format(alpha=1, bold=False, size=None):
+    def set_text_block_formats(self) -> None:
+        def make_format(alpha: float = 1, bold: bool = False,
+                        size: float = None) -> QtGui.QTextCharFormat:
             char_format = QtGui.QTextCharFormat()
             if bold:
                 char_format.setFontWeight(QtGui.QFont.Bold)
@@ -101,7 +106,7 @@ class Controller:
                 col.setAlphaF(alpha)
                 char_format.setForeground(QtGui.QBrush(col))
             return char_format
-        def set_line_format(line_number, format_):
+        def set_line_format(line_number: int, format_: QtGui.QTextCharFormat) -> None:
             block = QtGui.QTextCursor(self.textarea.document().findBlockByNumber(line_number))
             block.select(QtGui.QTextCursor.BlockUnderCursor)
             block.setCharFormat(format_)
@@ -124,19 +129,7 @@ class Controller:
                 pos += section.line_count
         self.textarea.setUndoRedoEnabled(True)
 
-    def watch_terminal(self):
-        class EventFilter(QtCore.QObject):
-            def eventFilter(self_, obj, ev):
-                if ev.type() == QEvent.KeyPress:
-                    if ev.key() == Qt.Key_Backtab and ev.modifiers() == Qt.ShiftModifier:
-                        return True
-                    elif ev.key() == Qt.Key_Tab and ev.modifiers() == Qt.NoModifier:
-                        return True
-                return False
-        self.term_event_filter = EventFilter()
-        self.terminal.input_field.installEventFilter(self.term_event_filter)
-
-    def run_command(self, cmd, arg):
+    def run_command(self, cmd: str, arg: str) -> None:
         # File handling
         if cmd == 'open-file':
             self.load_file(arg)
@@ -156,7 +149,7 @@ class Controller:
         elif cmd == 'set-textarea-max-width':
             self.set_textarea_max_width(arg)
 
-    def count_words(self, mode, arg):
+    def count_words(self, mode: str, arg: str) -> None:
         if mode == 'total':
             if arg:
                 self.terminal.error('Too many arguments!')
@@ -168,7 +161,7 @@ class Controller:
         elif mode == 'selection':
             self.terminal.error('Not implented yet!')
 
-    def go_to_position(self, mode, arg):
+    def go_to_position(self, mode: str, arg: str) -> None:
         if not arg.isdecimal():
             # TODO: add negative numbers for last chapter etc
             self.terminal.error('Argument has to be a number!')
@@ -182,7 +175,7 @@ class Controller:
         elif mode == 'chapter':
             self.terminal.error('Not implented yet!')
 
-    def set_textarea_max_width(self, arg):
+    def set_textarea_max_width(self, arg: str) -> None:
         if not arg.isdecimal():
             self.terminal.error('Argument has to be a number!')
             return

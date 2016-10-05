@@ -26,9 +26,9 @@ class FileError(Exception):
 
 class FileHandler(QtCore.QObject):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.filepath = None
+        self.filepath = None  # type: str
 
     def open_file(self, filepath: str) -> str:
         if not os.path.isfile(filepath):

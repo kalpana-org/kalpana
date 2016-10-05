@@ -17,6 +17,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import os.path
+from typing import Optional
 import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -30,7 +31,9 @@ from kalpana.mainwindow import MainWindow
 
 class Kalpana(QtWidgets.QApplication):
 
-    def __init__(self, config_dir, silent_mode=False, file_to_open=None):
+    def __init__(self, config_dir: str,
+                 silent_mode: bool = False,
+                 file_to_open: Optional[str] = None) -> None:
         super().__init__(['kalpana2'])
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
@@ -52,14 +55,14 @@ class Kalpana(QtWidgets.QApplication):
         if file_to_open:
             self.controller.load_file(file_to_open)
 
-    def reload_style(self):
+    def reload_style(self) -> None:
         with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:
             css = f.read()
         self.setStyleSheet(css)
         self.controller.update_style()
 
 
-def main():
+def main() -> None:
     import argparse
     import subprocess
     import sys

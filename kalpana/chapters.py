@@ -1,14 +1,14 @@
 
+from typing import List, Optional, Set
 
 
+class Section:
 
-class Section():
-
-    def __init__(self, desc=None):
+    def __init__(self, desc: Optional[str] = None) -> None:
         self.line_count = 0
         self.desc = desc
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         try:
             return self.line_count == other.line_count and\
                    self.desc == other.desc
@@ -16,22 +16,22 @@ class Section():
             return False
 
 
-class Chapter():
+class Chapter:
 
-    def __init__(self, title='', complete=False):
+    def __init__(self, title: str = '', complete: bool = False) -> None:
         self.title = title
         self.complete = complete
         self.line_count = 0
         self.metadata_line_count = 0
-        self.desc = None
-        self.time = None
-        self.tags = None
-        self.sections = [Section()]
+        self.desc = None  # type: str
+        self.time = None  # type: str
+        self.tags = None  # type: Set[str]
+        self.sections = [Section()]  # type: List[Section]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<Chapter: title:{!r}>'.format(self.title)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         try:
             return self.title == other.title and\
                    self.complete == other.complete and\
@@ -47,18 +47,18 @@ class Chapter():
 
 class ChapterIndex():
 
-    def __init__(self):
-        self.chapters = []
+    def __init__(self) -> None:
+        self.chapters = []  # type: List[Chapter]
         self.chapter_keyword = 'CHAPTER'
 
-    def get_chapter_line(self, num):
+    def get_chapter_line(self, num: int) -> int:
         line = 0
         for chapter in self.chapters[:num]:
             line += chapter.metadata_line_count
             line += sum(x.line_count for x in chapter.sections)
         return line
 
-    def parse_document(self, text):
+    def parse_document(self, text: str) -> None:
         start_chars = self.chapter_keyword[0] + '[#🕑<'
         total_line_count = text.count('\n')
         lines = ((n, l) for n, l in enumerate(text.split('\n'))
