@@ -28,6 +28,9 @@ class Chapter():
         self.tags = None
         self.sections = [Section()]
 
+    def __repr__(self):
+        return '<Chapter: title:{!r}>'.format(self.title)
+
     def __eq__(self, other):
         try:
             return self.title == other.title and\
@@ -48,6 +51,13 @@ class ChapterIndex():
         self.chapters = []
         self.chapter_keyword = 'CHAPTER'
 
+    def get_chapter_line(self, num):
+        line = 0
+        for chapter in self.chapters[:num]:
+            line += chapter.metadata_line_count
+            line += sum(x.line_count for x in chapter.sections)
+        return line
+
     def parse_document(self, text):
         start_chars = self.chapter_keyword[0] + '[#🕑<'
         total_line_count = text.count('\n')
@@ -59,6 +69,7 @@ class ChapterIndex():
         last_n = 0
         for n, line in lines:
             if consume_metadata:
+                last_n += 1
                 if last_n == n:
                     if chapters[-1].desc is None and line.startswith('[[')\
                                             and line.rstrip().endswith(']]'):
