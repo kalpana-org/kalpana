@@ -22,7 +22,7 @@ QLineEdit {
   background: #111;
   selection-color: #111;
 }
-CompletionList {
+CompletionListWidget {
   border: 2px solid black;
   qproperty-history_color: #3f5d6a;
   qproperty-exact_color: #61009d;
@@ -31,7 +31,7 @@ CompletionList {
   qproperty-selection_color: rgba(255, 255, 255, 48);
 }
 /* the completion list's horizontal scrollbar should always be hidden */
-CompletionList QScrollBar:horizontal {
+CompletionListWidget QScrollBar:horizontal {
   height: 0px;
 }
 
