@@ -25,15 +25,34 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
 from PyQt4.QtGui import QColor
 
+from kalpana.autocompletion import SuggestionList
 
 class Terminal(QtGui.QFrame):
+
+    class InputField(QtGui.QLineEdit):
+        @property
+        def text(self):
+            return super().text()
+
+        @text.setter
+        def text(self, text):
+            self.setText(text)
+
+        @property
+        def cursor_position(self):
+            return self.cursorPosition()
+
+        @cursor_position.setter
+        def cursor_position(self, pos):
+            self.setCursorPosition(pos)
+
     error_triggered = pyqtSignal()
     run_command = pyqtSignal(str, str)
 
     def __init__(self, parent: QtGui.QWidget) -> None:
         super().__init__(parent)
         # Create the objects
-        self.input_field = QtGui.QLineEdit(self)
+        self.input_field = self.InputField(self)
         self.input_field.setObjectName('terminal_input')
         self.output_field = QtGui.QLineEdit(self)
         self.output_field.setObjectName('terminal_output')
@@ -44,69 +63,7 @@ class Terminal(QtGui.QFrame):
         layout.setSpacing(0)
         layout.addWidget(self.input_field)
         layout.addWidget(self.output_field)
-        # Autocompletion test
-        self.completer = Completer(parent, self.run_command, self.input_field)
-        self.completer_popup = self.completer.popup_list
-        # ['arst', 'aoop', 'aruh'], self)
-        # self.completer.setCompletionMode(QtGui.QCompleter.InlineCompletion)
-        # self.input_field.setCompleter(self.completer)
-        # Signals
-        # self.input_field.returnPressed.connect(self.parse_command)
-
-    def print_(self, msg: str) -> None:
-        self.output_field.setText(msg)
-
-    def error(self, msg: str) -> None:
-        self.output_field.setText('Error: ' + msg)
-        self.error_triggered.emit()
-
-    def prompt(self, msg: str) -> None:
-        self.input_field.setText(msg)
-
-    def parse_command(self) -> None:
-        text = self.input_field.text().strip()
-        if not text:
-            return
-        self.input_field.setText('')
-        self.run_command.emit(text)
-        self.completer.popup_list.update()
-
-
-class SuggestionType(IntEnum):
-    rest = 0
-    fuzzy = 1
-    exact = 2
-    history = 10
-
-
-class Completer():
-
-    def __init__(self, parent, run_command, input_field):
-        self.input_field = input_field
-        self.run_command = run_command
-        self.suggestions = []
-        self.last_autocompletion = None
-        self.history = []
-        # self.autocompleted_history = defaultdict
-        # self.run_history = {
-        #     'c': {
-        #         'word-count': 10,
-        #         'go-to-chapter': 2
-        #     },
-        #     'g': {
-        #         'go-to-line': 2,
-        #         'go-to-chapter': 4,
-        #         'set-style': 9
-        #     },
-        #     ':': {
-        #         'go-to-line': 13,
-        #         'go-to-chapter': 1
-        #     }
-        # }
-        self.run_history = defaultdict(lambda: defaultdict(int))
-
-        # Simple list of how many time a certain command has been run
-
+        # Misc
         self.commands = {
             'word-count-total': '',
             'word-count-chapter': '',
@@ -123,119 +80,135 @@ class Completer():
             'set-style': '',
             'set-textarea-max-width': ''
         }
-
+        self.run_history = defaultdict(lambda: defaultdict(int))
         self.command_frequency = {cmd: 0 for cmd in self.commands}
-        self.command_frequency['word-count'] = 9
-        self.command_frequency['toggle-spellcheck'] = 14
-
-        self.popup_list = CompletionList(parent, input_field)
-        self.selection = None
+        self.completer_popup = CompletionListWidget(parent, self.input_field)
+        self.suggestion_list = SuggestionList(
+                self.completer_popup,
+                self.input_field
+        )
+        self.suggestion_list.add_autocompletion_pattern(
+                name='command',
+                end=r'( |$)',
+                illegal_chars=' \t',
+                get_suggestion_list=self.command_suggestions
+        )
+        self.suggestion_list.add_autocompletion_pattern(
+                name='open-file',
+                prefix=r'open-file\s+',
+                get_suggestion_list=autocomplete_file_path
+        )
         self.watch_terminal()
+
+    def print_(self, msg: str) -> None:
+        self.output_field.setText(msg)
+
+    def error(self, msg: str) -> None:
+        self.output_field.setText('Error: ' + msg)
+        self.error_triggered.emit()
+
+    def prompt(self, msg: str) -> None:
+        self.input_field.setText(msg)
+
+    def command_suggestions(self, name, text):
+        suggestions = []
+        raw_top = self.run_history.get(text, {})
+        for cmd in self.commands:
+            if cmd in raw_top:
+                suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
+            elif text and re.search('.*'.join(map(re.escape, text)), cmd):
+                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
+            else:
+                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
+        return [(cmd, type_) for cmd, num, type_
+                in sorted(suggestions, key=itemgetter(2, 1, 0))]
 
     def watch_terminal(self):
         class EventFilter(QtCore.QObject):
-            tab_pressed = pyqtSignal(bool)
-            up_down_pressed = pyqtSignal(bool)
+            backtab_pressed = pyqtSignal()
+            tab_pressed = pyqtSignal()
+            up_pressed = pyqtSignal()
+            down_pressed = pyqtSignal()
 
             def eventFilter(self_, obj, ev):
+                catch_keys = [
+                    (Qt.Key_Backtab, Qt.ShiftModifier, self_.backtab_pressed),
+                    (Qt.Key_Tab, Qt.NoModifier, self_.tab_pressed),
+                    (Qt.Key_Up, Qt.NoModifier, self_.up_pressed),
+                    (Qt.Key_Down, Qt.NoModifier, self_.down_pressed),
+                ]
                 if ev.type() == QEvent.KeyPress:
-                    if ev.key() == Qt.Key_Backtab and ev.modifiers() == Qt.ShiftModifier:
-                        self_.tab_pressed.emit(True)
-                        return True
-                    elif ev.key() == Qt.Key_Tab and ev.modifiers() == Qt.NoModifier:
-                        self_.tab_pressed.emit(False)
-                        return True
-                    elif ev.key() == Qt.Key_Up:
-                        self_.up_down_pressed.emit(False)
-                        return True
-                    elif ev.key() == Qt.Key_Down:
-                        self_.up_down_pressed.emit(True)
-                        return True
+                    for key, mod, signal in catch_keys:
+                        if ev.key() == key and ev.modifiers() == mod:
+                            signal.emit()
+                            return True
                 elif ev.type() == QEvent.Paint:
-                    self.popup_list.update()
+                    self.completer_popup.update()
                 return False
 
         self.term_event_filter = EventFilter()
         self.input_field.installEventFilter(self.term_event_filter)
-        self.term_event_filter.tab_pressed.connect(self.tab_pressed)
-        self.input_field.returnPressed.connect(self.return_pressed)
-        self.input_field.textChanged.connect(self.text_edited)
-        self.term_event_filter.up_down_pressed.connect(self.up_down_pressed)
-
-    def text_edited(self, new_text):
-        if not new_text.strip():
-            if self.popup_list.isVisible():
-                self.popup_list.hide()
-            self.suggestions = []
-            return
-        partial_cmd = new_text.split()[0] if new_text else ''
-        suggestions = []
-        raw_top = self.run_history.get(partial_cmd, {})
-        for cmd in self.commands:
-            if cmd in raw_top:
-                suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
-            elif partial_cmd and re.search('.*'.join(map(re.escape, partial_cmd)), cmd):
-                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
-            else:
-                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
-        suggestions = [(cmd, type_) for cmd, num, type_
-                       in sorted(suggestions, key=itemgetter(2, 1, 0))]
-        self.popup_list.set_suggestions(suggestions, partial_cmd)
-        if suggestions != self.suggestions:
-            self.suggestions = suggestions
-            self.selection = len(self.suggestions) - 1
-            self.popup_list.set_selection(self.selection)
-
-    def up_down_pressed(self, down):
-        if not self.popup_list.isVisible():
-            if down or not self.history:
-                return
-            self.suggestions = [(x, SuggestionType.history) for x in self.history]
-            self.selection = len(self.suggestions) - 1
-            self.popup_list.set_suggestions(self.suggestions, '')
-            self.popup_list.set_selection(self.selection)
-            return
-        if down:
-            self.selection = min(self.selection+1, len(self.suggestions)-1)
-        else:
-            self.selection = max(self.selection-1, 0)
-        self.popup_list.set_selection(self.selection)
-
-    def tab_pressed(self, backwards):
-        if not self.popup_list.isVisible():
-            if self.suggestions:
-                self.popup_list.show()
-            return
-        new_text = self.suggestions[self.selection][0] + ' '
-        old_text = self.input_field.text().split(None, 1)
-        if old_text:
-            self.last_autocompletion = old_text[0]
-        if len(old_text) == 2:
-            new_text += old_text[1]
-        self.input_field.setText(new_text)
-
-    def return_pressed(self):
-        text = self.input_field.text()
-        if not text.strip():
-            return
-        chunks = text.split(None, 1)
-        raw_cmd = chunks[0]
-        arg = chunks[1] if len(chunks) == 2 else ''
-        if raw_cmd not in self.commands:
-            self.last_autocompletion = raw_cmd
-            cmd = self.suggestions[self.selection][0]
-        else:
-            cmd = raw_cmd
-        self.command_frequency[cmd] += 1
-        if self.last_autocompletion != cmd:
-            self.run_history[self.last_autocompletion][cmd] += 1
-        self.history.append(cmd + ((' ' + arg) if arg else ''))
-        self.input_field.clear()
-        self.popup_list.reset_suggestions()
-        self.run_command.emit(cmd, arg)
+        self.term_event_filter.tab_pressed.connect(self.suggestion_list.tab_pressed)
+        self.term_event_filter.up_pressed.connect(self.suggestion_list.up_pressed)
+        self.term_event_filter.down_pressed.connect(self.suggestion_list.down_pressed)
+        self.input_field.returnPressed.connect(self.suggestion_list.return_pressed)
+        self.input_field.textChanged.connect(self.suggestion_list.update)
+        self.input_field.cursorPositionChanged.connect(self.suggestion_list.update)
 
 
-class CompletionList(QtGui.QScrollArea):
+class SuggestionType(IntEnum):
+    rest = 0
+    fuzzy = 1
+    exact = 2
+    history = 10
+
+
+def autocomplete_file_path(name, text):
+    import os
+    import os.path
+    full_path = os.path.abspath(os.path.expanduser(text))
+    if text.endswith(os.path.sep):
+        dir_path, name_fragment = full_path, ''
+    else:
+        dir_path, name_fragment = os.path.split(full_path)
+    raw_paths = (os.path.join(dir_path, x)
+                 for x in os.listdir(dir_path)
+                 if x.startswith(name_fragment))
+    return sorted((p + ('/' if os.path.isdir(p) else ''), SuggestionType.rest)
+                  for p in raw_paths)
+
+
+class CompletionListWidget(QtGui.QScrollArea):
+
+    class CompletionListCanvas(QtGui.QFrame):
+
+        def __init__(self, parent, get_line_height, get_suggestions, get_color, get_selection_color):
+            super().__init__(parent)
+            self.get_line_height = get_line_height
+            self.get_suggestions = get_suggestions
+            self.get_color = get_color
+            self.get_selection_color = get_selection_color
+            self.selection = 0
+
+        def paintEvent(self, ev):
+            super().paintEvent(ev)
+            painter = QtGui.QPainter(self)
+            no_wrap = QtGui.QTextOption()
+            no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
+            item_rect = self.contentsRect()
+            item_rect.setHeight(self.get_line_height())
+            for n, (text, status) in enumerate(self.get_suggestions()):
+                painter.fillRect(item_rect, self.get_color(status))
+                painter.fillRect(item_rect.adjusted(5, 0, 0, 0),
+                                 self.get_color(status).darker(300))
+                if n == self.selection:
+                    painter.fillRect(item_rect, self.get_selection_color())
+                st = QtGui.QStaticText(text)
+                st.setTextOption(no_wrap)
+                painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
+                item_rect.translate(0, self.get_line_height())
+            painter.end()
+
 
     def css_property(name):
         def set_color(self, color):
@@ -248,11 +221,11 @@ class CompletionList(QtGui.QScrollArea):
     rest_color = css_property('rest')
     selection_color = css_property('selection')
 
-    def __init__(self, parent, input_field):
-        super().__init__(parent)
+    def __init__(self, mainwindow, input_field):
+        super().__init__(mainwindow)
         # Variables
         self.input_field = input_field
-        self.mainwindow = parent
+        self.mainwindow = mainwindow
         self.suggestions = []
         self.line_height = 0
         self.visible_lines = self.max_visible_lines = 6
@@ -268,12 +241,21 @@ class CompletionList(QtGui.QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
-        self.canvas = CompletionListCanvas(self, lambda: self.line_height,
-                                           lambda: self.suggestions,
-                                           self.status_colors.get,
-                                           lambda: self._selection_color)
+        self.canvas = self.CompletionListCanvas(self,
+                                                lambda: self.line_height,
+                                                lambda: self.suggestions,
+                                                self.status_colors.get,
+                                                lambda: self._selection_color)
         self.setWidget(self.canvas)
         self.hide()
+
+    @property
+    def visible(self):
+        return self.isVisible()
+
+    @visible.setter
+    def visible(self, value):
+        self.setVisible(value)
 
     def set_status_color(self, status_name, color):
         if status_name == 'selection':
@@ -330,13 +312,14 @@ class CompletionList(QtGui.QScrollArea):
                 command = command[pos+1:]
             yield (formatted_text + command, status)
 
-    def set_suggestions(self, suggestions, text_fragment):
+    def set_suggestions(self, suggestions, selection, text_fragment):
         """Set the list of suggestions."""
         self.text_fragment = text_fragment
         self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
         self.visible_lines = min(len(suggestions), self.max_visible_lines)
         self.offset = len(self.suggestions)
         self.canvas.suggestions = suggestions
+        self.canvas.selection = selection
         self.show()
 
     def set_selection(self, selection):
@@ -347,33 +330,3 @@ class CompletionList(QtGui.QScrollArea):
     def reset_suggestions(self):
         # self.clear()
         self.hide()
-
-
-class CompletionListCanvas(QtGui.QFrame):
-
-    def __init__(self, parent, get_line_height, get_suggestions, get_color, get_selection_color):
-        super().__init__(parent)
-        self.get_line_height = get_line_height
-        self.get_suggestions = get_suggestions
-        self.get_color = get_color
-        self.get_selection_color = get_selection_color
-        self.selection = 0
-
-    def paintEvent(self, ev):
-        super().paintEvent(ev)
-        painter = QtGui.QPainter(self)
-        no_wrap = QtGui.QTextOption()
-        no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
-        item_rect = self.contentsRect()
-        item_rect.setHeight(self.get_line_height())
-        for n, (text, status) in enumerate(self.get_suggestions()):
-            painter.fillRect(item_rect, self.get_color(status))
-            painter.fillRect(item_rect.adjusted(5, 0, 0, 0),
-                             self.get_color(status).darker(300))
-            if n == self.selection:
-                painter.fillRect(item_rect, self.get_selection_color())
-            st = QtGui.QStaticText(text)
-            st.setTextOption(no_wrap)
-            painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
-            item_rect.translate(0, self.get_line_height())
-        painter.end()
