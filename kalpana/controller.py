@@ -97,7 +97,7 @@ class Controller:
             if size:
                 char_format.setFontPointSize(size)
             if alpha < 1:
-                col = self.textarea.palette().foreground().color()
+                col = self.textarea.palette().windowText().color()
                 col.setAlphaF(alpha)
                 char_format.setForeground(QtGui.QBrush(col))
             return char_format
