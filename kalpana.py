@@ -56,6 +56,7 @@ class Kalpana(QtGui.QApplication):
         with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:
             css = f.read()
         self.setStyleSheet(css)
+        self.controller.update_style()
 
 
 def main():

@@ -22,6 +22,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt, QEvent, pyqtSignal
 
 from kalpana.filehandler import FileHandler, FileError
+from kalpana.chapters import ChapterIndex
 
 
 class Controller:
@@ -30,6 +31,7 @@ class Controller:
         self.textarea = textarea
         self.terminal = terminal
         self.filehandler = FileHandler()
+        self.chapter_index = ChapterIndex()
         self.set_hotkeys()
         self.connect_signals()
 
@@ -38,6 +40,9 @@ class Controller:
                                        self.mainwindow, self.toggle_terminal)
         self.termkey = QtGui.QShortcut(QtGui.QKeySequence('F9'),
                                        self.mainwindow, self.test)
+
+    def update_style(self):
+        pass
 
     def test(self):
         print('mw:', self.mainwindow.width())
@@ -70,6 +75,54 @@ class Controller:
             self.terminal.error(e.args[0])
         else:
             self.textarea.setPlainText(data)
+            self.chapter_index.parse_document(self.textarea.toPlainText())
+            # x = ChapterIndex()
+            # x.parse_document(self.textarea.toPlainText())
+            self.set_text_block_formats()
+            self.textarea.document().contentsChange.connect(self.update_text_format)
+
+            # print(x.chapters[0])
+            # print(self.chapter_index.chapters[0])
+            # print(x == self.chapter_index)
+            # print(*[c.title for c in self.chapter_index.chapters], sep='\n')
+
+    def update_text_format(self, pos, removed, added):
+        print(self.textarea.toPlainText()[pos:pos+added])
+
+    def set_text_block_formats(self):
+        def make_format(alpha=1, bold=False, size=None):
+            char_format = QtGui.QTextCharFormat()
+            if bold:
+                char_format.setFontWeight(QtGui.QFont.Bold)
+            if size:
+                char_format.setFontPointSize(size)
+            if alpha < 1:
+                col = self.textarea.palette().foreground().color()
+                col.setAlphaF(alpha)
+                char_format.setForeground(QtGui.QBrush(col))
+            return char_format
+        def set_line_format(line_number, format_):
+            block = QtGui.QTextCursor(self.textarea.document().findBlockByNumber(line_number))
+            block.select(QtGui.QTextCursor.BlockUnderCursor)
+            block.setCharFormat(format_)
+        chapter_format = make_format(bold=True, size=16)
+        metadata_format = make_format(alpha=0.3)
+        section_format = make_format(alpha=0.5, bold=True)
+        chapter_data = self.chapter_index.chapters
+        pos = 0
+        self.textarea.setUndoRedoEnabled(False)
+        for chapter in chapter_data:
+            if chapter.title:
+                set_line_format(pos, chapter_format)
+                pos += 1
+            for line_num in range(1, chapter.metadata_line_count):
+                set_line_format(pos, metadata_format)
+                pos += 1
+            for section in chapter.sections:
+                if section.desc:
+                    set_line_format(pos, section_format)
+                pos += section.line_count
+        self.textarea.setUndoRedoEnabled(True)
 
     def watch_terminal(self):
         class EventFilter(QtCore.QObject):
