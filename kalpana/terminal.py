@@ -20,6 +20,7 @@ from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
+from typing import DefaultDict
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
@@ -52,7 +53,7 @@ class Terminal(QtWidgets.QFrame):
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
         # Create the objects
-        self.input_field = self.InputField(self)
+        self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')
         self.output_field = QtWidgets.QLineEdit(self)
         self.output_field.setObjectName('terminal_output')
@@ -80,7 +81,7 @@ class Terminal(QtWidgets.QFrame):
             'set-style': '',
             'set-textarea-max-width': ''
         }
-        self.run_history = defaultdict(lambda: defaultdict(int))
+        self.run_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
         self.command_frequency = {cmd: 0 for cmd in self.commands}
         self.completer_popup = CompletionListWidget(parent, self.input_field)
         self.suggestion_list = SuggestionList(
@@ -261,7 +262,7 @@ class CompletionListWidget(QtWidgets.QScrollArea):
         if status_name == 'selection':
             self._selection_color = color
         else:
-            self.status_colors[SuggestionType[status_name]] = color
+            self.status_colors[SuggestionType[status_name]] = color  # type: ignore
 
     def update(self, *args):
         """Match its position with the terminal's position."""
