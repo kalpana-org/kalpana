@@ -67,6 +67,7 @@ class Controller:
                 Command('set-textarea-max-width', '', self.set_textarea_max_width),
                 Command('toggle-line-numbers', '', self.textarea.toggle_line_numbers,
                         accept_args=False),
+                Command('insert-text', '', self.textarea.insertPlainText),
         ]
         self.terminal.register_commands(commands)
 
