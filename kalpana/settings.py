@@ -3,7 +3,7 @@ from collections import ChainMap
 import os
 import os.path
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import yaml
 
@@ -24,6 +24,21 @@ def get_keycode(key_string: str) -> int:
     return QtGui.QKeySequence(key_string)[0]
 
 
+class Configurable:
+    """An interface for any objects wants to use settings."""
+
+    registered_settings = []  # type: List[str]
+
+    def setting_changed(self, name: str, new_value: Any) -> None:
+        """
+        Set the setting's corresponding variable to the new value.
+
+        This is called any time the setting is changed. Since it does nothing
+        as it is, it should be implemented by all subclasses.
+        """
+        pass
+
+
 class Settings(QtCore.QObject):
     """Loads and takes care of settings and stylesheets."""
 
@@ -36,6 +51,7 @@ class Settings(QtCore.QObject):
             self.config_dir = default_config_dir()
         else:
             self.config_dir = config_dir
+        self.registered_settings = {}  # type: Dict[str, Configurable]
         self.settings = None  # type: ChainMap
         self.key_bindings = {}  # type: Dict[int, str]
         self.terminal_key = -1
@@ -53,6 +69,18 @@ class Settings(QtCore.QObject):
         """Show an error when something goes wrong."""
         # TODO: do something more useful with this
         print('[SETTINGS ERROR]:', text)
+
+    def register_settings(self, names: Iterable[str], obj: Configurable) -> None:
+        """Register that an object is waiting for changes to a certain setting."""
+        for name in names:
+            self.registered_settings[name] = obj
+
+    def notify_settings_changes(self, new_settings: ChainMap) -> None:
+        """Send changed settings to the objects that registered them."""
+        if new_settings:
+            for setting, obj in self.registered_settings.items():
+                if not self.settings or (new_settings[setting] != self.settings[setting]):
+                    obj.setting_changed(setting, new_settings[setting])
 
     def load_settings(self, config_dir: str) -> ChainMap:
         """Read and return the settings, with default values overriden."""
@@ -72,7 +100,9 @@ class Settings(QtCore.QObject):
                 config = yaml.load(raw_config)
             except yaml.YAMLError as e:
                 self.error('Invalid yaml! ' + str(e))
-        return ChainMap(config, default_config)
+        new_settings = ChainMap(config, default_config)
+        self.notify_settings_changes(new_settings)
+        return new_settings
 
     def load_stylesheet(self, config_dir: str) -> str:
         """Read and return the stylesheet."""
