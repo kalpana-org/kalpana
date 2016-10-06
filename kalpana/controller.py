@@ -189,8 +189,8 @@ class Controller:
             line = self.chapter_index.get_chapter_line(target_chapter)
             self.textarea.center_on_line(line)
 
-    def count_total_words(self):
-        words = len(re.findall(r'\S+', self.textarea.document().toPlainText()))
+    def count_total_words(self) -> None:
+        words = len(self.textarea.toPlainText().split())
         self.terminal.print_('Total words: {}'.format(words))
 
     def set_textarea_max_width(self, arg: str) -> None:
