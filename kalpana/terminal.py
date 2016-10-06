@@ -124,6 +124,19 @@ class Terminal(QtWidgets.QFrame):
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
 
+    def exec_command(self, command_string: str) -> None:
+        """
+        Parse and run or prompt a command string from the config.
+
+        If command_string starts with a space, set the input field's text to
+        command_string (minus the leading space), otherwise run the command.
+        """
+        if command_string.startswith(' '):
+            self.input_field.text = command_string[1:]
+            self.input_field.setFocus()
+        else:
+            self.parse_command(command_string, '')
+
     def parse_command(self, text: str, unautocompleted_cmd: str) -> None:
         chunks = text.split(None, 1)
         cmd_name = chunks[0]

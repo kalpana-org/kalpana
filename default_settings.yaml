@@ -1,3 +1,7 @@
 terminal-key: escape
+
+# key-combination: command
+# (command is prompted if it starts with a space, otherwise it's run)
 key-bindings: {}
+
 show-line-numbers: false

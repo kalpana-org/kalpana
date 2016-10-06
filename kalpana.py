@@ -55,8 +55,8 @@ class Kalpana(QtWidgets.QApplication):
                     key_event = cast(QtGui.QKeyEvent, event)
                     actual_key = key_event.key() | int(cast(int, key_event.modifiers()))
                     if actual_key in self.settings.key_bindings:
-                        command = self.settings.key_bindings[actual_key]
-                        self.terminal.parse_command(command, '')
+                        command_string = self.settings.key_bindings[actual_key]
+                        self.terminal.exec_command(command_string)
                         return True
                 return False
         self.evfil = EventFilter()
