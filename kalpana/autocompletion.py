@@ -7,12 +7,15 @@ AutocompletionPattern = Dict[str, Union[str, bool, SuggestionCallback]]
 
 class SuggestionList():
 
-    def __init__(self, list_widget, input_widget) -> None:
+    def __init__(self, list_widget, input_widget,
+                 run_command: Callable[[str, str], None]) -> None:
         self.list_widget = list_widget
         self.input_widget = input_widget
+        self.run_command = run_command
         self.suggestions = []  # type: SuggestionListAlias
-        self.last_raw_text = ''
-        # self.history = []
+        self.unautocompleted_cmd = None  # type: str
+        self.history = []  # type: SuggestionListAlias
+        self.history_active = False
         self._selection = 0
         self.autocompletion_patterns = []  # type: List[AutocompletionPattern]
         self.active_pattern = None  # type: str
@@ -33,8 +36,11 @@ class SuggestionList():
         if self.list_widget.visible:
             self.selection -= 1
         else:
-            # show history
-            pass
+            if self.history:
+                self.suggestions = self.history
+                self.selection = len(self.suggestions) - 1
+                self.history_active = True
+                self.list_widget.set_suggestions(self.suggestions, self.selection, '')
 
     def down_pressed(self) -> None:
         """Should be called whenever the down key is pressed."""
@@ -50,17 +56,17 @@ class SuggestionList():
 
     def return_pressed(self) -> None:
         """Should be called whenever the return key is pressed."""
-        if not self.list_widget.visible or not self.input_widget.text:
+        if self.history_active:
+            self.input_widget.text = self.suggestions[self.selection][0]
+            self.history_active = False
+            self.list_widget.visible = False
             return
-        self._autocomplete()
-        # cmd, arg = split_input(self.text)
-        # self.command_frequency[cmd] += 1
-        # if self.last_autocompletion and self.last_autocompletion != cmd:
-        #     self.run_history[self.last_autocompletion][cmd] += 1
-        # self.last_autocompletion = None
-        # self.run_command(cmd, arg)
-        # # TODO: add to history
-        # self.text = ''
+        text = self.input_widget.text.strip()
+        if not text:
+            return
+        self.run_command(text, self.unautocompleted_cmd)
+        self.unautocompleted_cmd = None
+        self.input_widget.text = ''
 
     def update(self) -> None:
         if self.input_widget.text:
@@ -71,17 +77,24 @@ class SuggestionList():
     def _autocomplete(self) -> None:
         if not self.suggestions:
             return
+        if self.history_active:
+            self.input_widget.text = self.suggestions[self.selection][0]
+            self.history_active = False
+            self.list_widget.visible = False
+            return
         start, end = self.completable_span
-        self.last_raw_text = self.input_widget.text[start:end]
+        if self.active_pattern == 'command':
+            self.unautocompleted_cmd = self.input_widget.text[start:end]
         new_fragment = self.suggestions[self.selection][0]
         self.input_widget.text = self.input_widget.text[:start] + new_fragment + self.input_widget.text[end:]
         self.input_widget.cursor_position = start + len(new_fragment)
 
     def _update_suggestions(self, text: str) -> None:
-        suggestions, span = _generate_suggestions(self.autocompletion_patterns,
-                                                  text,
-                                                  self.input_widget.cursor_position)
+        suggestions, span, pattern_name =\
+                        _generate_suggestions(self.autocompletion_patterns,
+                                              text, self.input_widget.cursor_position)
         self.completable_span = span
+        self.active_pattern = pattern_name
         if suggestions != self.suggestions:
             self.suggestions = suggestions
             self.selection = len(suggestions) - 1
@@ -143,7 +156,7 @@ def _contains_illegal_chars(text: str, illegal_chars: str) -> bool:
 
 def _generate_suggestions(autocompletion_patterns: List[Dict],
                           rawtext: str,
-                          rawpos: int) -> Tuple[SuggestionListAlias, Tuple[int, int]]:
+                          rawpos: int) -> Tuple[SuggestionListAlias, Tuple[int, int], str]:
     for ac in autocompletion_patterns:
         prefix = re.match(ac['prefix'], rawtext)
         if prefix is None:
@@ -166,5 +179,5 @@ def _generate_suggestions(autocompletion_patterns: List[Dict],
         if _contains_illegal_chars(matchtext, ac['illegal_chars']):
             continue
         normalized_span = (start+prefix_length, end+prefix_length)
-        return ac['get_suggestions'](ac['name'], matchtext), normalized_span
-    return [], (0, len(rawtext))
+        return ac['get_suggestions'](ac['name'], matchtext), normalized_span, ac['name']
+    return [], (0, len(rawtext)), None

@@ -90,12 +90,13 @@ class Terminal(QtWidgets.QFrame):
             'set-style': '',
             'set-textarea-max-width': ''
         }
-        self.run_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
+        self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
         self.command_frequency = {cmd: 0 for cmd in self.commands}
         self.completer_popup = CompletionListWidget(parent, self.input_field)
         self.suggestion_list = SuggestionList(
                 self.completer_popup,
-                self.input_field
+                self.input_field,
+                self.parse_command
         )
         self.suggestion_list.add_autocompletion_pattern(
                 name='command',
@@ -120,9 +121,22 @@ class Terminal(QtWidgets.QFrame):
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
 
+    def parse_command(self, text, unautocompleted_cmd):
+        chunks = text.split(None, 1)
+        cmd = chunks[0]
+        arg = chunks[1] if len(chunks) == 2 else ''
+        if cmd not in self.commands:
+            self.error('Invalid command: {}'.format(cmd))
+        else:
+            if unautocompleted_cmd and cmd != unautocompleted_cmd:
+                self.autocompletion_history[unautocompleted_cmd][cmd] += 1
+            self.command_frequency[cmd] += 1
+            self.suggestion_list.history.append((text, SuggestionType.history))
+            self.run_command.emit(cmd, arg)
+
     def command_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         suggestions = []
-        raw_top = self.run_history.get(text, {})  # type: ignore
+        raw_top = self.autocompletion_history.get(text, {})  # type: ignore
         for cmd in self.commands:
             if cmd in raw_top:
                 suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
@@ -164,7 +178,6 @@ class Terminal(QtWidgets.QFrame):
         self.input_field.returnPressed.connect(self.suggestion_list.return_pressed)
         self.input_field.textChanged.connect(self.suggestion_list.update)
         self.input_field.cursorPositionChanged.connect(self.suggestion_list.update)
-
 
 
 def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
