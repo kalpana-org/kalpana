@@ -52,6 +52,11 @@ class Controller:
                 Command('open-file', '', self.load_file),
                 Command('new-file', '', self.new_file),
                 Command('go-to-line', '', self.go_to_line),
+                Command('go-to-chapter', '', self.go_to_chapter),
+                Command('go-to-next-chapter', '', self.go_to_next_chapter,
+                        accept_args=False),
+                Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
+                        accept_args=False),
                 Command('word-count-total', '', self.count_total_words,
                         accept_args=False),
                 Command('set-textarea-max-width', '', self.set_textarea_max_width),
@@ -60,6 +65,7 @@ class Controller:
 
     def connect_signals(self) -> None:
         pairs = [
+            (self.textarea.textChanged, self.update_chapter_index),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]  # type: List[Tuple[pyqtSignal, Callable]]
         for signal, slot in pairs:
@@ -73,6 +79,9 @@ class Controller:
                 self.mainwindow.setFocus()
         else:
             self.terminal.input_field.setFocus()
+
+    def update_chapter_index(self) -> None:
+        self.chapter_index.parse_document(self.textarea.toPlainText())
 
     # def update_text_format(self, pos: int, removed: int, added: int) -> None:
     #     print(self.textarea.toPlainText()[pos:pos+added])
@@ -122,10 +131,10 @@ class Controller:
             self.terminal.error(e.args[0])
         else:
             self.textarea.setPlainText(data)
-            self.chapter_index.parse_document(self.textarea.toPlainText())
+            # self.chapter_index.parse_document(self.textarea.toPlainText())
             # x = ChapterIndex()
             # x.parse_document(self.textarea.toPlainText())
-            self.set_text_block_formats()
+            # self.set_text_block_formats()
             # self.textarea.document().contentsChange.connect(self.update_text_format)
 
     def new_file(self, arg) -> None:
@@ -136,10 +145,38 @@ class Controller:
             self.terminal.error('Argument has to be a number!')
         else:
             line_num = min(int(arg), self.textarea.document().blockCount())
-            block = self.textarea.document().findBlockByNumber(line_num - 1)
-            new_cursor = QtGui.QTextCursor(block)
-            self.textarea.setTextCursor(new_cursor)
-            self.textarea.centerCursor()
+            self.textarea.center_on_line(line_num)
+
+    def go_to_chapter(self, arg: str) -> None:
+        if not self.chapter_index.chapters:
+            self.terminal.error('No chapters detected!')
+        elif not arg.isdecimal():
+            # TODO: negative values for last chapter, 2nd last, etc
+            self.terminal.error('Argument has to be a number!')
+        elif int(arg) > len(self.chapter_index.chapters):
+            self.terminal.error('Invalid chapter!')
+        else:
+            line_num = self.chapter_index.get_chapter_line(int(arg))
+            self.textarea.center_on_line(line_num)
+
+    def go_to_next_chapter(self) -> None:
+        self.go_to_chapter_incremental(1)
+
+    def go_to_prev_chapter(self) -> None:
+        self.go_to_chapter_incremental(-1)
+
+    def go_to_chapter_incremental(self, diff: int) -> None:
+        """
+        Move to a chapter a number of chapters from the current.
+
+        diff - How many chapters to move, negative to move backwards.
+        """
+        current_line = self.textarea.textCursor().blockNumber()
+        current_chapter = self.chapter_index.which_chapter(current_line)
+        target_chapter = max(0, min(len(self.chapter_index.chapters)-1, current_chapter+diff))
+        if current_chapter != target_chapter:
+            line = self.chapter_index.get_chapter_line(target_chapter)
+            self.textarea.center_on_line(line)
 
     def count_total_words(self):
         words = len(re.findall(r'\S+', self.textarea.document().toPlainText()))

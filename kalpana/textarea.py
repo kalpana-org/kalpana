@@ -31,10 +31,15 @@ class TextArea(QtWidgets.QPlainTextEdit):
         painter.end()
         self.line_number_bar.update()
 
+    def center_on_line(self, line: int) -> None:
+        block = self.document().findBlockByNumber(line)
+        new_cursor = QtGui.QTextCursor(block)
+        self.setTextCursor(new_cursor)
+        self.centerCursor()
+
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
         self.line_number_bar.setFixedHeight(self.height())
-
 
 
 class LineNumberBar(QtWidgets.QFrame):
