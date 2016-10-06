@@ -32,3 +32,12 @@ pip-log.txt
 # vim
 *.swp
 *.swo
+
+# Kalpana specific
+thoughts
+
+# pytest
+.cache
+
+# mypy
+mypy-report
