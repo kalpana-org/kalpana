@@ -25,11 +25,17 @@ class TextArea(QtWidgets.QPlainTextEdit):
         self.line_number_bar = LineNumberBar(self)
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
+        if not self.line_number_bar.isVisible():
+            self.setViewportMargins(0, 0, 0, 0)
         super().paintEvent(ev)
         painter = QtGui.QPainter(self.viewport())
         #painter.fillRect(0,0,400,400, QtCore.Qt.red)
         painter.end()
-        self.line_number_bar.update()
+        if self.line_number_bar.isVisible():
+            self.line_number_bar.update()
+
+    def toggle_line_numbers(self) -> None:
+        self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
 
     def center_on_line(self, line: int) -> None:
         block = self.document().findBlockByNumber(line)

@@ -60,6 +60,8 @@ class Controller:
                         accept_args=False),
                 Command('word-count-chapter', '', self.count_chapter_words),
                 Command('set-textarea-max-width', '', self.set_textarea_max_width),
+                Command('toggle-line-numbers', '', self.textarea.toggle_line_numbers,
+                        accept_args=False),
         ]
         self.terminal.register_commands(commands)
 
