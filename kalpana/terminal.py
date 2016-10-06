@@ -20,7 +20,7 @@ from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
-from typing import DefaultDict, Iterable, List, Tuple
+from typing import Callable, DefaultDict, Dict, Iterable, List, Tuple, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
@@ -29,12 +29,24 @@ from PyQt5.QtGui import QColor
 from kalpana.autocompletion import SuggestionList
 
 SuggestionListAlias = List[Tuple[str, int]]
+SuggestionCallback = Callable[[str, str], SuggestionListAlias]
+AutocompletionPattern = Dict[str, Union[str, bool, SuggestionCallback]]
+
 
 class SuggestionType(IntEnum):
     rest = 0
     fuzzy = 1
     exact = 2
     history = 10
+
+
+class Command:
+    def __init__(self, name: str, help_text: str, callback: Callable,
+                 accept_args: bool = True) -> None:
+        self.name = name
+        self.help_text = help_text
+        self.callback = callback
+        self.accept_args = accept_args
 
 
 class Terminal(QtWidgets.QFrame):
@@ -57,7 +69,6 @@ class Terminal(QtWidgets.QFrame):
             self.setCursorPosition(pos)
 
     error_triggered = pyqtSignal()
-    run_command = pyqtSignal(str, str)
 
     def __init__(self, parent: QtWidgets.QFrame) -> None:
         super().__init__(parent)
@@ -74,24 +85,9 @@ class Terminal(QtWidgets.QFrame):
         layout.addWidget(self.input_field)
         layout.addWidget(self.output_field)
         # Misc
-        self.commands = {
-            'word-count-total': '',
-            'word-count-chapter': '',
-            'word-count-selection': '',
-            'go-to-line': '',
-            'go-to-chapter': '',
-            'toggle-spellcheck': '',
-            'add-word': 'Add a word to the spellcheck database.',
-            'check-word': '',
-            'new-file': '',
-            'save-file': '',
-            'open-file': '',
-            'list-plugins': '',
-            'set-style': '',
-            'set-textarea-max-width': ''
-        }
+        self.commands = {}  # type: Dict[str, Command]
         self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
-        self.command_frequency = {cmd: 0 for cmd in self.commands}
+        self.command_frequency = defaultdict(int)  # type: DefaultDict[str, int]
         self.completer_popup = CompletionListWidget(parent, self.input_field)
         self.suggestion_list = SuggestionList(
                 self.completer_popup,
@@ -104,12 +100,19 @@ class Terminal(QtWidgets.QFrame):
                 illegal_chars=' \t',
                 get_suggestion_list=self.command_suggestions
         )
-        self.suggestion_list.add_autocompletion_pattern(
-                name='open-file',
-                prefix=r'open-file\s+',
-                get_suggestion_list=autocomplete_file_path
-        )
+        # self.suggestion_list.add_autocompletion_pattern(
+        #         name='open-file',
+        #         prefix=r'open-file\s+',
+        #         get_suggestion_list=autocomplete_file_path
+        # )
         self.watch_terminal()
+
+    def register_command(self, command: Command) -> None:
+        self.commands[command.name] = command
+
+    def register_commands(self, command_list: Iterable[Command]) -> None:
+        for command in command_list:
+            self.register_command(command)
 
     def print_(self, msg: str) -> None:
         self.output_field.setText(msg)
@@ -121,18 +124,25 @@ class Terminal(QtWidgets.QFrame):
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
 
-    def parse_command(self, text, unautocompleted_cmd):
+    def parse_command(self, text: str, unautocompleted_cmd: str) -> None:
         chunks = text.split(None, 1)
-        cmd = chunks[0]
+        cmd_name = chunks[0]
         arg = chunks[1] if len(chunks) == 2 else ''
-        if cmd not in self.commands:
-            self.error('Invalid command: {}'.format(cmd))
+        if cmd_name not in self.commands:
+            self.error('Invalid command: {}'.format(cmd_name))
         else:
-            if unautocompleted_cmd and cmd != unautocompleted_cmd:
-                self.autocompletion_history[unautocompleted_cmd][cmd] += 1
-            self.command_frequency[cmd] += 1
+            command = self.commands[cmd_name]
+            if arg and not command.accept_args:
+                self.error('This command does not take any arguments!')
+                return
+            if unautocompleted_cmd and cmd_name != unautocompleted_cmd:
+                self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
+            self.command_frequency[cmd_name] += 1
             self.suggestion_list.history.append((text, SuggestionType.history))
-            self.run_command.emit(cmd, arg)
+            if command.accept_args:
+                command.callback(arg)
+            else:
+                command.callback()
 
     def command_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         suggestions = []

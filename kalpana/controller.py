@@ -25,7 +25,7 @@ from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler, FileError
 from kalpana.mainwindow import MainWindow
-from kalpana.terminal import Terminal
+from kalpana.terminal import Terminal, Command, autocomplete_file_path
 from kalpana.textarea import TextArea
 
 
@@ -38,26 +38,28 @@ class Controller:
         self.chapter_index = ChapterIndex()
         self.set_hotkeys()
         self.connect_signals()
+        self.register_commands()
 
     def set_hotkeys(self) -> None:
         self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('Escape'),
                                            self.mainwindow, self.toggle_terminal)
-        self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('F9'),
-                                           self.mainwindow, self.test)
 
     def update_style(self) -> None:
         pass
 
-    def test(self):
-        print('mw:', self.mainwindow.width())
-        print('stack:', self.mainwindow.stack.width())
-        print('textarea:', self.textarea.width())
-        sp = self.textarea.sizePolicy()
-        print('ta sizepolicy', sp.controlType(), sp.horizontalPolicy())
+    def register_commands(self):
+        commands = [
+                Command('open-file', '', self.load_file),
+                Command('new-file', '', self.new_file),
+                Command('go-to-line', '', self.go_to_line),
+                Command('word-count-total', '', self.count_total_words,
+                        accept_args=False),
+                Command('set-textarea-max-width', '', self.set_textarea_max_width),
+        ]
+        self.terminal.register_commands(commands)
 
     def connect_signals(self) -> None:
         pairs = [
-            (self.terminal.run_command, self.run_command),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]  # type: List[Tuple[pyqtSignal, Callable]]
         for signal, slot in pairs:
@@ -72,26 +74,8 @@ class Controller:
         else:
             self.terminal.input_field.setFocus()
 
-    def load_file(self, filepath: str) -> None:
-        try:
-            data = self.filehandler.open_file(filepath)
-        except FileError as e:
-            self.terminal.error(e.args[0])
-        else:
-            self.textarea.setPlainText(data)
-            self.chapter_index.parse_document(self.textarea.toPlainText())
-            # x = ChapterIndex()
-            # x.parse_document(self.textarea.toPlainText())
-            self.set_text_block_formats()
-            self.textarea.document().contentsChange.connect(self.update_text_format)
-
-            # print(x.chapters[0])
-            # print(self.chapter_index.chapters[0])
-            # print(x == self.chapter_index)
-            # print(*[c.title for c in self.chapter_index.chapters], sep='\n')
-
-    def update_text_format(self, pos: int, removed: int, added: int) -> None:
-        print(self.textarea.toPlainText()[pos:pos+added])
+    # def update_text_format(self, pos: int, removed: int, added: int) -> None:
+    #     print(self.textarea.toPlainText()[pos:pos+added])
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,
@@ -129,51 +113,37 @@ class Controller:
                 pos += section.line_count
         self.textarea.setUndoRedoEnabled(True)
 
-    def run_command(self, cmd: str, arg: str) -> None:
-        # File handling
-        if cmd == 'open-file':
-            self.load_file(arg)
-        # Word count
-        elif cmd == 'word-count-total':
-            self.count_words('total', arg)
-        elif cmd == 'word-count-chapter':
-            self.count_words('chapter', arg)
-        elif cmd == 'word-count-selection':
-            self.count_words('selection', arg)
-        # Go to position
-        elif cmd == 'go-to-line':
-            self.go_to_position('line', arg)
-        elif cmd == 'go-to-chapter':
-            self.go_to_position('chapter', arg)
-        # Set textarea max width
-        elif cmd == 'set-textarea-max-width':
-            self.set_textarea_max_width(arg)
+    # =========== COMMANDS ================================
 
-    def count_words(self, mode: str, arg: str) -> None:
-        if mode == 'total':
-            if arg:
-                self.terminal.error('Too many arguments!')
-                return
-            words = len(re.findall(r'\S+', self.textarea.document().toPlainText()))
-            self.terminal.print_('Total words: {}'.format(words))
-        elif mode == 'chapter':
-            self.terminal.error('No chapters detected!')
-        elif mode == 'selection':
-            self.terminal.error('Not implented yet!')
+    def load_file(self, filepath: str) -> None:
+        try:
+            data = self.filehandler.open_file(filepath)
+        except FileError as e:
+            self.terminal.error(e.args[0])
+        else:
+            self.textarea.setPlainText(data)
+            self.chapter_index.parse_document(self.textarea.toPlainText())
+            # x = ChapterIndex()
+            # x.parse_document(self.textarea.toPlainText())
+            self.set_text_block_formats()
+            # self.textarea.document().contentsChange.connect(self.update_text_format)
 
-    def go_to_position(self, mode: str, arg: str) -> None:
+    def new_file(self, arg) -> None:
+        self.textarea.setPlainText('')
+
+    def go_to_line(self, arg: str) -> None:
         if not arg.isdecimal():
-            # TODO: add negative numbers for last chapter etc
             self.terminal.error('Argument has to be a number!')
-            return
-        if mode == 'line':
+        else:
             line_num = min(int(arg), self.textarea.document().blockCount())
             block = self.textarea.document().findBlockByNumber(line_num - 1)
             new_cursor = QtGui.QTextCursor(block)
             self.textarea.setTextCursor(new_cursor)
             self.textarea.centerCursor()
-        elif mode == 'chapter':
-            self.terminal.error('Not implented yet!')
+
+    def count_total_words(self):
+        words = len(re.findall(r'\S+', self.textarea.document().toPlainText()))
+        self.terminal.print_('Total words: {}'.format(words))
 
     def set_textarea_max_width(self, arg: str) -> None:
         if not arg.isdecimal():
