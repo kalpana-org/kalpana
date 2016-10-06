@@ -53,7 +53,7 @@ class MainWindow(QtWidgets.QFrame):
             super().setFocus()
 
     def shake_screen(self) -> None:
-        a = QtCore.QPropertyAnimation(self.stack, 'pos')
+        a = QtCore.QPropertyAnimation(self.stack, b'pos')
         a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
         a.setDuration(500)
         for step, offset in enumerate([0, 1, -2, 2, -1, 0]):
