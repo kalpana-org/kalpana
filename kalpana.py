@@ -17,7 +17,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import os.path
-from typing import cast, Optional
+from typing import Optional
 import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -35,6 +35,7 @@ class Kalpana(QtWidgets.QApplication):
                  silent_mode: bool = False,
                  file_to_open: Optional[str] = None) -> None:
         super().__init__(['kalpana2'])
+        self.settings = Settings(config_dir)
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
         self.terminal = Terminal(self.mainwindow)
@@ -42,25 +43,11 @@ class Kalpana(QtWidgets.QApplication):
         self.mainwindow.add_stack_widgets([self.textarea])
         self.controller = Controller(self.mainwindow,
                                      self.textarea,
-                                     self.terminal)
-        self.settings = Settings(config_dir)
+                                     self.terminal,
+                                     self.settings)
         self.reload_style()
-
         if file_to_open:
             self.controller.load_file(file_to_open)
-
-        class EventFilter(QtCore.QObject):
-            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-                if event.type() == QtCore.QEvent.KeyPress:
-                    key_event = cast(QtGui.QKeyEvent, event)
-                    actual_key = key_event.key() | int(cast(int, key_event.modifiers()))
-                    if actual_key in self.settings.key_bindings:
-                        command_string = self.settings.key_bindings[actual_key]
-                        self.terminal.exec_command(command_string)
-                        return True
-                return False
-        self.evfil = EventFilter()
-        self.mainwindow.installEventFilter(self.evfil)
 
     def reload_style(self) -> None:
         with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:

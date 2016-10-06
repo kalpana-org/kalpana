@@ -15,7 +15,13 @@ def default_config_dir() -> str:
 
 
 def local_path(filename: str) -> str:
+    """Return the filename joined with the directory kalpana.py is in."""
     return os.path.join(sys.path[0], filename)
+
+
+def get_keycode(key_string: str) -> int:
+    """Return the key code (including modifiers) of a key combination string."""
+    return QtGui.QKeySequence(key_string)[0]
 
 
 class Settings():
@@ -24,8 +30,9 @@ class Settings():
             self.config_dir = default_config_dir()
         else:
             self.config_dir = config_dir
-        self._settings = self.load_settings(self.config_dir)
-        self.key_bindings = self.generate_key_bindings(self._settings)
+        self.settings = self.load_settings(self.config_dir)
+        self.key_bindings = self.generate_key_bindings(self.settings)
+        self.terminal_key = get_keycode(self.settings['terminal-key'])
 
     def error(self, text: str) -> None:
         """Show an error when something goes wrong."""
@@ -54,5 +61,5 @@ class Settings():
 
     def generate_key_bindings(self, settings: Dict) -> Dict[int, str]:
         """Return a dict with keycode and the command to run."""
-        return {QtGui.QKeySequence(key)[0]: command
+        return {get_keycode(key): command
                 for key, command in settings['key-bindings'].items()}

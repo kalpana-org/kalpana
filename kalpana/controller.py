@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Callable, List, Tuple
+from typing import cast, Callable, List, Tuple
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -27,22 +27,21 @@ from kalpana.filehandler import FileHandler, FileError
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal, Command, autocomplete_file_path
 from kalpana.textarea import TextArea
+from kalpana.settings import Settings
 
 
 class Controller:
-    def __init__(self, mainwindow: MainWindow, textarea: TextArea, terminal: Terminal) -> None:
+    def __init__(self, mainwindow: MainWindow, textarea: TextArea,
+                 terminal: Terminal, settings: Settings) -> None:
         self.mainwindow = mainwindow
         self.textarea = textarea
         self.terminal = terminal
+        self.settings = settings
         self.filehandler = FileHandler()
         self.chapter_index = ChapterIndex()
-        self.set_hotkeys()
+        self.set_keybindings()
         self.connect_signals()
         self.register_commands()
-
-    def set_hotkeys(self) -> None:
-        self.termkey = QtWidgets.QShortcut(QtGui.QKeySequence('Escape'),
-                                           self.mainwindow, self.toggle_terminal)
 
     def update_style(self) -> None:
         pass
@@ -63,6 +62,23 @@ class Controller:
                 Command('set-textarea-max-width', '', self.set_textarea_max_width),
         ]
         self.terminal.register_commands(commands)
+
+    def set_keybindings(self):
+        class EventFilter(QtCore.QObject):
+            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+                if event.type() == QtCore.QEvent.KeyPress:
+                    key_event = cast(QtGui.QKeyEvent, event)
+                    actual_key = key_event.key() | int(cast(int, key_event.modifiers()))
+                    if actual_key in self.settings.key_bindings:
+                        command_string = self.settings.key_bindings[actual_key]
+                        self.terminal.exec_command(command_string)
+                        return True
+                    elif actual_key == self.settings.terminal_key:
+                        self.toggle_terminal()
+                        return True
+                return False
+        self.key_binding_event_filter = EventFilter()
+        self.mainwindow.installEventFilter(self.key_binding_event_filter)
 
     def connect_signals(self) -> None:
         pairs = [
