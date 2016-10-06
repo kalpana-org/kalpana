@@ -64,7 +64,6 @@ class ChapterIndex(Configurable):
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'chapter-keyword':
-            print(new_value)
             self.chapter_keyword = str(new_value)
 
     def get_chapter_line(self, num: int) -> int:
