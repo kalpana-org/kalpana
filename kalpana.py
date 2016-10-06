@@ -16,11 +16,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-import os.path
 from typing import Optional
-import sys
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtWidgets
 
 from kalpana.textarea import TextArea
 from kalpana.terminal import Terminal
@@ -45,15 +43,10 @@ class Kalpana(QtWidgets.QApplication):
                                      self.textarea,
                                      self.terminal,
                                      self.settings)
-        self.reload_style()
+        self.settings.css_changed.connect(self.setStyleSheet)
+        self.setStyleSheet(self.settings.css)
         if file_to_open:
             self.controller.load_file(file_to_open)
-
-    def reload_style(self) -> None:
-        with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:
-            css = f.read()
-        self.setStyleSheet(css)
-        self.controller.update_style()
 
 
 def main() -> None:
