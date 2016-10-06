@@ -44,7 +44,8 @@ class Kalpana(QtWidgets.QApplication):
                                      self.terminal,
                                      self.settings)
         self.settings.css_changed.connect(self.setStyleSheet)
-        self.setStyleSheet(self.settings.css)
+        self.settings.reload_settings()
+        self.settings.reload_stylesheet()
         if file_to_open:
             self.controller.load_file(file_to_open)
 

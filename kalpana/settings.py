@@ -25,19 +25,28 @@ def get_keycode(key_string: str) -> int:
 
 
 class Settings(QtCore.QObject):
+    """Loads and takes care of settings and stylesheets."""
+
     css_changed = QtCore.pyqtSignal(str)
 
     def __init__(self, config_dir: Optional[str]) -> None:
+        """Initiate the class. Note that this won't load any files."""
         super().__init__()
         if config_dir is None:
             self.config_dir = default_config_dir()
         else:
             self.config_dir = config_dir
-        # Settings
+        self.settings = None  # type: ChainMap
+        self.key_bindings = {}  # type: Dict[int, str]
+        self.terminal_key = -1
+        self.css = ''
+
+    def reload_settings(self) -> None:
         self.settings = self.load_settings(self.config_dir)
         self.key_bindings = self.generate_key_bindings(self.settings)
         self.terminal_key = get_keycode(self.settings['terminal-key'])
-        # Styling
+
+    def reload_stylesheet(self) -> None:
         self.css = self.load_stylesheet(self.config_dir)
 
     def error(self, text: str) -> None:
