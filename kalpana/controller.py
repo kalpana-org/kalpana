@@ -42,11 +42,16 @@ class Controller:
         self.set_keybindings()
         self.connect_signals()
         self.register_commands()
+        self.register_settings()
 
     def update_style(self) -> None:
         pass
 
-    def register_commands(self):
+    def register_settings(self) -> None:
+        for obj in [self.chapter_index]:
+            self.settings.register_settings(obj.registered_settings, obj)
+
+    def register_commands(self) -> None:
         commands = [
                 Command('open-file', '', self.load_file),
                 Command('new-file', '', self.new_file),
@@ -65,7 +70,7 @@ class Controller:
         ]
         self.terminal.register_commands(commands)
 
-    def set_keybindings(self):
+    def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):
             def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
                 if event.type() == QtCore.QEvent.KeyPress:

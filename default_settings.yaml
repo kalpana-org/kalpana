@@ -5,3 +5,4 @@ terminal-key: escape
 key-bindings: {}
 
 show-line-numbers: false
+chapter-keyword: CHAPTER

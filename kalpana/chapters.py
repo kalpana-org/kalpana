@@ -1,5 +1,7 @@
 
-from typing import List, Optional, Set, Sized
+from typing import Any, List, Optional, Set, Sized
+
+from kalpana.settings import Configurable
 
 
 class Section(Sized):
@@ -51,11 +53,19 @@ class Chapter(Sized):
             return False
 
 
-class ChapterIndex():
+class ChapterIndex(Configurable):
+
+    registered_settings = ['chapter-keyword']
 
     def __init__(self) -> None:
+        super().__init__()
         self.chapters = []  # type: List[Chapter]
         self.chapter_keyword = 'CHAPTER'
+
+    def setting_changed(self, name: str, new_value: Any) -> None:
+        if name == 'chapter-keyword':
+            print(new_value)
+            self.chapter_keyword = str(new_value)
 
     def get_chapter_line(self, num: int) -> int:
         """Return what line a given chapter begins on."""
@@ -73,7 +83,8 @@ class ChapterIndex():
 
     def parse_document(self, text: str) -> None:
         """Read a string and extract all chapter data from it."""
-        start_chars = self.chapter_keyword[0] + '[#🕑<'
+        ch_str = self.chapter_keyword
+        start_chars = ch_str[0] + '[#🕑<'
         total_line_count = text.count('\n')
         lines = ((n, l) for n, l in enumerate(text.split('\n'))
                  if l and l[0] in start_chars)
@@ -99,10 +110,10 @@ class ChapterIndex():
                 chapters[-1].metadata_line_count = last_n - current_chunk_start
                 current_chunk_start = last_n
                 consume_metadata = False
-            if line == 'CHAPTER' or line.startswith('CHAPTER ') or line.startswith('CHAPTER\t'):
+            if line == ch_str or line.startswith(ch_str+' ') or line.startswith(ch_str+'\t'):
                 chapters[-1].sections[-1].line_count = n - current_chunk_start
                 chapters.append(Chapter(
-                    title=line[len('CHAPTER'):].strip('✓ \t'),
+                    title=line[len(ch_str):].strip('✓ \t'),
                     complete=line.rstrip().endswith('✓')
                 ))
                 current_chunk_start = last_n = n
