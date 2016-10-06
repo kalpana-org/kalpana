@@ -59,6 +59,7 @@ class Controller:
                         accept_args=False),
                 Command('word-count-total', '', self.count_total_words,
                         accept_args=False),
+                Command('word-count-chapter', '', self.count_chapter_words),
                 Command('set-textarea-max-width', '', self.set_textarea_max_width),
         ]
         self.terminal.register_commands(commands)
@@ -192,6 +193,20 @@ class Controller:
     def count_total_words(self) -> None:
         words = len(self.textarea.toPlainText().split())
         self.terminal.print_('Total words: {}'.format(words))
+
+    def count_chapter_words(self, arg: str) -> None:
+        if not self.chapter_index.chapters:
+            self.terminal.error('No chapters detected!')
+        elif not arg.isdecimal():
+            self.terminal.error('Argument has to be a number!')
+        elif int(arg) >= len(self.chapter_index.chapters):
+            self.terminal.error('Invalid chapter!')
+        else:
+            first_line = self.chapter_index.get_chapter_line(int(arg))
+            last_line = first_line + len(self.chapter_index.chapters[int(arg)])
+            lines = self.textarea.toPlainText().split('\n')[first_line:last_line]
+            words = len('\n'.join(lines).split())
+            self.terminal.print_('Words in chapter {}: {}'.format(arg, words))
 
     def set_textarea_max_width(self, arg: str) -> None:
         if not arg.isdecimal():
