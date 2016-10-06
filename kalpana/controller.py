@@ -144,20 +144,31 @@ class Controller:
         if not arg.isdecimal():
             self.terminal.error('Argument has to be a number!')
         else:
-            line_num = min(int(arg), self.textarea.document().blockCount())
-            self.textarea.center_on_line(line_num)
+            line = min(int(arg), self.textarea.document().blockCount())
+            self.textarea.center_on_line(line)
 
     def go_to_chapter(self, arg: str) -> None:
+        """
+        Go to the chapter specified in arg.
+
+        arg - The argument string entered in the terminal. Negative values
+            means going from the end, where -1 is the last chapter
+            and -2 is the second to last.
+        """
         if not self.chapter_index.chapters:
             self.terminal.error('No chapters detected!')
-        elif not arg.isdecimal():
-            # TODO: negative values for last chapter, 2nd last, etc
+        elif not re.match(r'-?\d+$', arg):
             self.terminal.error('Argument has to be a number!')
-        elif int(arg) > len(self.chapter_index.chapters):
-            self.terminal.error('Invalid chapter!')
         else:
-            line_num = self.chapter_index.get_chapter_line(int(arg))
-            self.textarea.center_on_line(line_num)
+            chapter = int(arg)
+            total_chapters = len(self.chapter_index.chapters)
+            if chapter not in range(-total_chapters, total_chapters):
+                self.terminal.error('Invalid chapter!')
+            else:
+                if chapter < 0:
+                    chapter += total_chapters
+                line = self.chapter_index.get_chapter_line(chapter)
+                self.textarea.center_on_line(line)
 
     def go_to_next_chapter(self) -> None:
         self.go_to_chapter_incremental(1)
