@@ -17,16 +17,16 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import os.path
-from typing import Optional
+from typing import cast, Optional
 import sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QEvent
 
 from kalpana.textarea import TextArea
 from kalpana.terminal import Terminal
 from kalpana.controller import Controller
 from kalpana.mainwindow import MainWindow
+from kalpana.settings import Settings
 
 
 class Kalpana(QtWidgets.QApplication):
@@ -43,17 +43,24 @@ class Kalpana(QtWidgets.QApplication):
         self.controller = Controller(self.mainwindow,
                                      self.textarea,
                                      self.terminal)
-        # # Layout
-        # layout.addWidget(self.textarea)
-        # layout.addWidget(self.terminal)
-        # # Misc
-        # self.watch_terminal()
-        self.reloadkey = QtWidgets.QShortcut(QtGui.QKeySequence('F5'), self.mainwindow, self.reload_style)
-
+        self.settings = Settings(config_dir)
         self.reload_style()
 
         if file_to_open:
             self.controller.load_file(file_to_open)
+
+        class EventFilter(QtCore.QObject):
+            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+                if event.type() == QtCore.QEvent.KeyPress:
+                    key_event = cast(QtGui.QKeyEvent, event)
+                    actual_key = key_event.key() | int(cast(int, key_event.modifiers()))
+                    if actual_key in self.settings.key_bindings:
+                        command = self.settings.key_bindings[actual_key]
+                        self.terminal.parse_command(command, '')
+                        return True
+                return False
+        self.evfil = EventFilter()
+        self.mainwindow.installEventFilter(self.evfil)
 
     def reload_style(self) -> None:
         with open(os.path.join(sys.path[0], 'theming', 'stylesheet.css')) as f:
