@@ -2,8 +2,9 @@
 from collections import ChainMap
 import os
 import os.path
+import re
 import sys
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Match, Optional
 
 import yaml
 
@@ -22,6 +23,19 @@ def local_path(*path: str) -> str:
 def get_keycode(key_string: str) -> int:
     """Return the key code (including modifiers) of a key combination string."""
     return QtGui.QKeySequence(key_string)[0]
+
+
+def yaml_escape_unicode(text: str) -> str:
+    r"""
+    Return a string where all 32 bit characters are escaped.
+
+    There's a bug in PyYAML that stops any character above \ufffe from being
+    read. Fortunately other characters can still be read without problems as
+    long as they're written in eight-character form: \U12345678.
+    """
+    def escape(match: Match[str]) -> str:
+        return '\\U{:0>8}'.format(hex(ord(match.group()))[2:])
+    return re.sub(r'[\ufffe-\U0001f9ff]', escape, text)
 
 
 class Configurable:
@@ -97,7 +111,7 @@ class Settings(QtCore.QObject):
             pass
         else:
             try:
-                config = yaml.load(raw_config)
+                config = yaml.load(yaml_escape_unicode(raw_config))
             except yaml.YAMLError as e:
                 self.error('Invalid yaml! ' + str(e))
         new_settings = ChainMap(config, default_config)
