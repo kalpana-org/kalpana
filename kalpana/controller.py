@@ -68,6 +68,10 @@ class Controller:
                 Command('toggle-line-numbers', '', self.textarea.toggle_line_numbers,
                         accept_args=False),
                 Command('insert-text', '', self.textarea.insertPlainText),
+                Command('reload-settings', '', self.settings.reload_settings,
+                        accept_args=False),
+                Command('reload-stylesheet', '', self.settings.reload_stylesheet,
+                        accept_args=False),
         ]
         self.terminal.register_commands(commands)
 
