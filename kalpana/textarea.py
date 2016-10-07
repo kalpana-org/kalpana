@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import re
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
@@ -23,6 +25,9 @@ class TextArea(QtWidgets.QPlainTextEdit):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.line_number_bar = LineNumberBar(self)
+        self.search_buffer = None  # type: str
+        self.print_ = print
+        self.error = print
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
@@ -46,6 +51,132 @@ class TextArea(QtWidgets.QPlainTextEdit):
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
         self.line_number_bar.setFixedHeight(self.height())
+
+    def search_and_replace(self, text: str) -> None:
+        def generate_flags(flagstr):
+            # self.search_flags is automatically generated and does not
+            # need to be initialized in __init__()
+            self.search_flags = QtGui.QTextDocument.FindFlags()
+            if 'b' in flagstr:
+                self.search_flags |= QtGui.QTextDocument.FindBackward
+            if 'i' not in flagstr:
+                self.search_flags |= QtGui.QTextDocument.FindCaseSensitively
+            if 'w' in flagstr:
+                self.search_flags |= QtGui.QTextDocument.FindWholeWords
+        search_rx = re.compile(r'/([^/]|\\/)+$')
+        search_flags_rx = re.compile(r'/([^/]|\\/)*?([^\\]/[biw]*)$')
+        replace_rx = re.compile(r"""
+            /
+            (?P<search>([^/]|\\/)*?[^\\])
+            /
+            (?P<replace>(([^/]|\\/)*[^\\])?)
+            /
+            (?P<flags>[abiw]*)
+            $
+        """, re.VERBOSE)
+        if search_rx.match(text):
+            self.search_buffer = search_rx.match(text).group(0)[1:]
+            self.search_flags = QtGui.QTextDocument.FindCaseSensitively
+            self.search_next()
+        elif search_flags_rx.match(text):
+            self.search_buffer, flags = search_flags_rx.match(text).group(0)[1:].rsplit('/', 1)
+            generate_flags(flags)
+            self.search_next()
+        elif replace_rx.match(text):
+            match = replace_rx.match(text)
+            self.search_buffer = match.group('search')
+            generate_flags(match.group('flags'))
+            if 'a' in match.group('flags'):
+                self._replace_all(match.group('replace'))
+            else:
+                self._replace_next(match.group('replace'))
+        else:
+            print('Malformed search/replace expression')
+
+    def _searching_backwards(self):
+        return QtGui.QTextDocument.FindBackward & self.search_flags
+
+    def search_next(self):
+        """
+        Go to the next string found.
+
+        This does the same thing as running the same search-command again.
+        """
+        if self.search_buffer is None:
+            self.error('No previous searches')
+            return
+        temp_cursor = self.textCursor()
+        found = self.find(self.search_buffer, self.search_flags)
+        if not found:
+            if not self.textCursor().atStart() \
+                        or (self._searching_backwards() and not self.textCursor().atEnd()):
+                if self._searching_backwards():
+                    self.moveCursor(QtGui.QTextCursor.End)
+                else:
+                    self.moveCursor(QtGui.QTextCursor.Start)
+                found = self.find(self.search_buffer, self.search_flags)
+                if not found:
+                    self.setTextCursor(temp_cursor)
+                    self.error('Text not found')
+            else:
+                self.setTextCursor(temp_cursor)
+                self.error('Text not found')
+
+
+    def _replace_next(self, replace_buffer):
+        """
+        Go to the next string found and replace it with replace_buffer.
+
+        While this technically can be called from outside this class, it is
+        not recommended (and most likely needs some modifications of the code.)
+        """
+        temp_cursor = self.textCursor()
+        found = self.find(self.search_buffer, self.search_flags)
+        if not found:
+            if not self.textCursor().atStart() \
+                        or (self._searching_backwards() and not self.textCursor().atEnd()):
+                if self._searching_backwards():
+                    self.moveCursor(QtGui.QTextCursor.End)
+                else:
+                    self.moveCursor(QtGui.QTextCursor.Start)
+                found = self.find(self.search_buffer, self.search_flags)
+                if not found:
+                    self.setTextCursor(temp_cursor)
+        if found:
+            t = self.textCursor()
+            t.insertText(replace_buffer)
+            l = len(replace_buffer)
+            t.setPosition(t.position() - l)
+            t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
+            self.setTextCursor(t)
+            self.print_('Replaced on line {}, pos {}'
+                             ''.format(t.blockNumber(), t.positionInBlock()))
+        else:
+            self.error('Text not found')
+
+
+    def _replace_all(self, replace_buffer):
+        """
+        Replace all strings found with the replace_buffer.
+
+        As with replace_next, you probably don't want to call this manually.
+        """
+        temp_cursor = self.textCursor()
+        times = 0
+        self.moveCursor(QtGui.QTextCursor.Start)
+        while True:
+            found = self.find(self.search_buffer, self.search_flags)
+            if found:
+                self.textCursor().insertText(replace_buffer)
+                times += 1
+            else:
+                break
+        if times:
+            self.print_('{0} instance{1} replaced'.format(times, 's'*(times>0)))
+        else:
+            self.error('Text not found')
+        self.setTextCursor(temp_cursor)
+
 
 
 class LineNumberBar(QtWidgets.QFrame):

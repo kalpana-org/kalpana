@@ -72,6 +72,9 @@ class Controller:
                         accept_args=False),
                 Command('reload-stylesheet', '', self.settings.reload_stylesheet,
                         accept_args=False),
+                Command('search-and-replace', '', self.textarea.search_and_replace),
+                Command('search-next', '', self.textarea.search_next,
+                        accept_args=False),
         ]
         self.terminal.register_commands(commands)
 
