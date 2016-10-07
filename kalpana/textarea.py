@@ -22,8 +22,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class TextArea(QtWidgets.QPlainTextEdit):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent: QtWidgets.QWidget) -> None:
+        super().__init__(parent)
         self.line_number_bar = LineNumberBar(self)
         self.search_buffer = None  # type: str
         self.print_ = print
@@ -93,10 +93,10 @@ class TextArea(QtWidgets.QPlainTextEdit):
         else:
             print('Malformed search/replace expression')
 
-    def _searching_backwards(self):
+    def _searching_backwards(self) -> int:
         return QtGui.QTextDocument.FindBackward & self.search_flags
 
-    def search_next(self):
+    def search_next(self) -> None:
         """
         Go to the next string found.
 
@@ -122,8 +122,7 @@ class TextArea(QtWidgets.QPlainTextEdit):
                 self.setTextCursor(temp_cursor)
                 self.error('Text not found')
 
-
-    def _replace_next(self, replace_buffer):
+    def _replace_next(self, replace_buffer: str) -> None:
         """
         Go to the next string found and replace it with replace_buffer.
 
@@ -154,8 +153,7 @@ class TextArea(QtWidgets.QPlainTextEdit):
         else:
             self.error('Text not found')
 
-
-    def _replace_all(self, replace_buffer):
+    def _replace_all(self, replace_buffer: str) -> None:
         """
         Replace all strings found with the replace_buffer.
 
@@ -178,14 +176,13 @@ class TextArea(QtWidgets.QPlainTextEdit):
         self.setTextCursor(temp_cursor)
 
 
-
 class LineNumberBar(QtWidgets.QFrame):
     def __init__(self, parent: TextArea) -> None:
         super().__init__(parent)
         self.textarea = parent
         self.text_margin = 2
 
-    def update(self, *args) -> None:
+    def update(self) -> None:  # type: ignore
         left_margin, _, right_margin, _ = self.getContentsMargins()
         total_lines = self.textarea.blockCount()
         font = self.font()
@@ -194,10 +191,10 @@ class LineNumberBar(QtWidgets.QFrame):
         max_width = int(left_margin + right_margin + font_metrics.width(str(total_lines)) + 2*self.text_margin)
         self.setFixedWidth(max_width)
         self.textarea.setViewportMargins(max_width, 0, 0, 0)
-        super().update(*args)
+        super().update()
 
-    def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
-        super().paintEvent(ev)
+    def paintEvent(self, event: QtGui.QPaintEvent) -> None:
+        super().paintEvent(event)
         main_rect = self.contentsRect()
         main_rect.setTop(self.rect().top())
         main_rect.setHeight(self.rect().height())

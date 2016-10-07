@@ -26,11 +26,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QEvent, QRect, pyqtSignal, pyqtProperty
 from PyQt5.QtGui import QColor
 
-from kalpana.autocompletion import SuggestionList
+from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget, AutocompletionPattern
 
 SuggestionListAlias = List[Tuple[str, int]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
-AutocompletionPattern = Dict[str, Union[str, bool, SuggestionCallback]]
 
 
 class SuggestionType(IntEnum):
@@ -51,7 +50,7 @@ class Command:
 
 class Terminal(QtWidgets.QFrame):
 
-    class InputField(QtWidgets.QLineEdit):
+    class InputField(QtWidgets.QLineEdit, InputWidget):
         @property
         def text(self) -> str:
             return super().text()
@@ -94,12 +93,12 @@ class Terminal(QtWidgets.QFrame):
                 self.input_field,
                 self.parse_command
         )
-        self.suggestion_list.add_autocompletion_pattern(
+        self.suggestion_list.add_autocompletion_pattern(AutocompletionPattern(
                 name='command',
                 end=r'( |$)',
                 illegal_chars=' \t',
                 get_suggestion_list=self.command_suggestions
-        )
+        ))
         # self.suggestion_list.add_autocompletion_pattern(
         #         name='open-file',
         #         prefix=r'open-file\s+',
@@ -218,7 +217,7 @@ def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
                   for p in raw_paths)
 
 
-class CompletionListWidget(QtWidgets.QScrollArea):
+class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
 
     class CompletionListCanvas(QtWidgets.QFrame):
 
