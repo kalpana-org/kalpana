@@ -5,7 +5,7 @@ import os
 import os.path
 import re
 import sys
-from typing import Any, Dict, Iterable, Match, MutableMapping, Optional
+from typing import Any, DefaultDict, Dict, Iterable, Match, MutableMapping, Optional
 
 import yaml
 
@@ -56,16 +56,16 @@ class Configurable:
 
 class CommandHistory:
 
-    def __init__(self, config_dir):
+    def __init__(self, config_dir: str) -> None:
         self._path = os.path.join(config_dir, 'command_history.json')
-        self.command_frequency = defaultdict(int)
-        self.autocompletion_history = defaultdict(lambda: defaultdict(int))
+        self.command_frequency = defaultdict(int)  # type: DefaultDict[str, int]
+        self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
         try:
             with open(self._path) as f:
-                data = json.loads(f.read())
+                data = json.loads(f.read())  # type: Dict[str, Any]
                 autocompletion_history = data['autocompletion_history']
                 command_frequency = data['command_frequency']
-        except (IOError, json.JSONDecodeError):
+        except (IOError, json.JSONDecodeError):  # type: ignore
             pass
         else:
             self.command_frequency.update(command_frequency)
@@ -74,7 +74,7 @@ class CommandHistory:
         self._hash = json.dumps([self.command_frequency,
                                 self.autocompletion_history], sort_keys=True)
 
-    def save(self):
+    def save(self) -> None:
         data = {'autocompletion_history': self.autocompletion_history,
                 'command_frequency': self.command_frequency}
         with open(self._path, 'w') as f:
@@ -137,7 +137,7 @@ class Settings(QtCore.QObject):
             default_config = yaml.load(f.read())
         try:
             with open(config_path) as f:
-                raw_config = f.read()
+                raw_config = f.read()  # type: str
         except OSError:
             # This is fine, the config file is probably just not created
             pass
@@ -153,11 +153,11 @@ class Settings(QtCore.QObject):
     def load_stylesheet(self, config_dir: str) -> str:
         """Read and return the stylesheet."""
         with open(local_path('theming', 'qt.css')) as f:
-            default_css = f.read()
+            default_css = f.read()  # type: str
         css_path = os.path.join(config_dir, 'qt.css')
         try:
             with open(css_path) as f:
-                user_css = f.read()
+                user_css = f.read()  # type: str
         except OSError:
             # No file present which is perfectly fine
             user_css = ''

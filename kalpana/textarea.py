@@ -206,7 +206,7 @@ def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
 
 class Highlighter(QtGui.QSyntaxHighlighter):
 
-    def __init__(self, document: QtGui.QTextDocument):
+    def __init__(self, document: QtGui.QTextDocument) -> None:
         super().__init__(document)
         self.language = 'en_US'
         self.language_dict = enchant.Dict(self.language)
