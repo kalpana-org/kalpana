@@ -1,10 +1,11 @@
 
-from collections import ChainMap
+from collections import ChainMap, defaultdict
+import json
 import os
 import os.path
 import re
 import sys
-from typing import Any, Dict, Iterable, Match, Optional
+from typing import Any, Dict, Iterable, Match, MutableMapping, Optional
 
 import yaml
 
@@ -53,6 +54,33 @@ class Configurable:
         pass
 
 
+class CommandHistory:
+
+    def __init__(self, config_dir):
+        self._path = os.path.join(config_dir, 'command_history.json')
+        self.command_frequency = defaultdict(int)
+        self.autocompletion_history = defaultdict(lambda: defaultdict(int))
+        try:
+            with open(self._path) as f:
+                data = json.loads(f.read())
+                autocompletion_history = data['autocompletion_history']
+                command_frequency = data['command_frequency']
+        except (IOError, json.JSONDecodeError):
+            pass
+        else:
+            self.command_frequency.update(command_frequency)
+            for abbr, data in autocompletion_history.items():
+                self.autocompletion_history[abbr].update(data)
+        self._hash = json.dumps([self.command_frequency,
+                                self.autocompletion_history], sort_keys=True)
+
+    def save(self):
+        data = {'autocompletion_history': self.autocompletion_history,
+                'command_frequency': self.command_frequency}
+        with open(self._path, 'w') as f:
+            f.write(json.dumps(data))
+
+
 class Settings(QtCore.QObject):
     """Loads and takes care of settings and stylesheets."""
 
@@ -66,10 +94,14 @@ class Settings(QtCore.QObject):
         else:
             self.config_dir = config_dir
         self.registered_settings = {}  # type: Dict[str, Configurable]
+        self.command_history = CommandHistory(self.config_dir)
         self.settings = None  # type: ChainMap
         self.key_bindings = {}  # type: Dict[int, str]
         self.terminal_key = -1
         self.css = ''
+
+    def save_settings(self) -> None:
+        self.command_history.save()
 
     def reload_settings(self) -> None:
         self.settings = self.load_settings(self.config_dir)

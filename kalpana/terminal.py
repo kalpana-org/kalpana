@@ -70,7 +70,7 @@ class Terminal(QtWidgets.QFrame, Configurable):
 
     error_triggered = pyqtSignal()
 
-    def __init__(self, parent: QtWidgets.QFrame) -> None:
+    def __init__(self, parent: QtWidgets.QFrame, command_history) -> None:
         super().__init__(parent)
         # Settings
         self.registered_settings = ['visible-autocompletion-items']
@@ -88,8 +88,8 @@ class Terminal(QtWidgets.QFrame, Configurable):
         layout.addWidget(self.output_field)
         # Misc
         self.commands = {}  # type: Dict[str, Command]
-        self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
-        self.command_frequency = defaultdict(int)  # type: DefaultDict[str, int]
+        self.autocompletion_history = command_history.autocompletion_history
+        self.command_frequency = command_history.command_frequency
         self.completer_popup = CompletionListWidget(parent, self.input_field)
         self.suggestion_list = SuggestionList(
                 self.completer_popup,

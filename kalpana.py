@@ -18,7 +18,7 @@
 
 from typing import Optional
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from kalpana.textarea import TextArea
 from kalpana.terminal import Terminal
@@ -36,19 +36,28 @@ class Kalpana(QtWidgets.QApplication):
         self.settings = Settings(config_dir)
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
-        self.terminal = Terminal(self.mainwindow)
+        self.terminal = Terminal(self.mainwindow, self.settings.command_history)
         self.mainwindow.set_terminal(self.terminal)
         self.mainwindow.add_stack_widgets([self.textarea])
         self.controller = Controller(self.mainwindow,
                                      self.textarea,
                                      self.terminal,
                                      self.settings)
+        self.make_event_filter()
         self.settings.css_changed.connect(self.setStyleSheet)
         self.settings.reload_settings()
         self.settings.reload_stylesheet()
         if file_to_open:
             self.controller.load_file(file_to_open)
 
+    def make_event_filter(self):
+        class MainWindowEventFilter(QtCore.QObject):
+            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+                if event.type() == QtCore.QEvent.Close:
+                    self.settings.save_settings()
+                return False
+        self.close_filter = MainWindowEventFilter()
+        self.mainwindow.installEventFilter(self.close_filter)
 
 def main() -> None:
     import argparse
