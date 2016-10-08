@@ -20,6 +20,7 @@ from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
+
 from typing import Any, Callable, DefaultDict, Dict, Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
