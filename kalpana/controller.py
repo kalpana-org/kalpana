@@ -48,7 +48,7 @@ class Controller:
         pass
 
     def register_settings(self) -> None:
-        for obj in [self.chapter_index]:
+        for obj in [self.chapter_index, self.terminal]:
             self.settings.register_settings(obj.registered_settings, obj)
 
     def register_commands(self) -> None:

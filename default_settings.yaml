@@ -6,3 +6,4 @@ key-bindings: {}
 
 show-line-numbers: false
 chapter-keyword: CHAPTER
+visible-autocompletion-items: 6

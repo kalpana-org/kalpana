@@ -20,12 +20,13 @@ from collections import defaultdict
 from enum import IntEnum
 from operator import itemgetter
 import re
-from typing import Callable, DefaultDict, Dict, Iterable, List, Tuple
+from typing import Any, Callable, DefaultDict, Dict, Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtProperty
 
 from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget, AutocompletionPattern
+from kalpana.settings import Configurable
 
 SuggestionListAlias = List[Tuple[str, int]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
@@ -47,7 +48,7 @@ class Command:
         self.accept_args = accept_args
 
 
-class Terminal(QtWidgets.QFrame):
+class Terminal(QtWidgets.QFrame, Configurable):
 
     class InputField(QtWidgets.QLineEdit, InputWidget):
         @property
@@ -70,6 +71,8 @@ class Terminal(QtWidgets.QFrame):
 
     def __init__(self, parent: QtWidgets.QFrame) -> None:
         super().__init__(parent)
+        # Settings
+        self.registered_settings = ['visible-autocompletion-items']
         # Create the objects
         self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')
@@ -104,6 +107,11 @@ class Terminal(QtWidgets.QFrame):
         #         get_suggestion_list=autocomplete_file_path
         # )
         self.watch_terminal()
+
+    def setting_changed(self, name: str, new_value: Any) -> None:
+        if name == 'visible-autocompletion-items':
+            self.completer_popup.max_visible_lines = int(new_value)
+            self.completer_popup.scrollbar.setPageStep(int(new_value))
 
     def register_command(self, command: Command) -> None:
         self.commands[command.name] = command
