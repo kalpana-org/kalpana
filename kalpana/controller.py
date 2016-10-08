@@ -27,8 +27,9 @@ from kalpana.filehandler import FileHandler, FileError
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal, Command
 from kalpana.autocompletion import AutocompletionPattern
-from kalpana.textarea import TextArea, get_spellcheck_languages
+from kalpana.textarea import TextArea
 from kalpana.settings import Settings
+from kalpana.spellcheck import Spellchecker, get_spellcheck_languages
 
 
 class Controller:
@@ -40,6 +41,7 @@ class Controller:
         self.settings = settings
         self.filehandler = FileHandler()
         self.chapter_index = ChapterIndex()
+        self.spellchecker = Spellchecker(self.textarea)
         self.set_keybindings()
         self.connect_signals()
         self.register_settings()
@@ -50,7 +52,7 @@ class Controller:
         pass
 
     def register_settings(self) -> None:
-        for obj in [self.chapter_index, self.terminal, self.textarea]:
+        for obj in [self.chapter_index, self.terminal, self.textarea, self.spellchecker]:
             self.settings.register_settings(obj.registered_settings, obj)
 
     def register_commands(self) -> None:
@@ -78,9 +80,11 @@ class Controller:
                 Command('search-and-replace', '', self.textarea.search_and_replace),
                 Command('search-next', '', self.textarea.search_next,
                         accept_args=False),
-                Command('toggle-spellcheck', '', self.textarea.toggle_spellcheck,
+                Command('toggle-spellcheck', '', self.spellchecker.toggle_spellcheck,
                         accept_args=False),
-                Command('set-spellcheck-language', '', self.textarea.set_spellcheck_language),
+                Command('set-spellcheck-language', '', self.spellchecker.set_language),
+                Command('suggest-spelling', 'Print a list of possible spellings for the argument or the word under the cursor.',
+                        self.spellchecker.suggest),
         ]
         self.terminal.register_commands(commands)
 
