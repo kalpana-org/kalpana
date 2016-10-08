@@ -16,18 +16,34 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Any, List, Tuple
 import re
+
+import enchant
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from kalpana.settings import Configurable
 
-class TextArea(QtWidgets.QPlainTextEdit):
+
+class TextArea(QtWidgets.QPlainTextEdit, Configurable):
+
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
+        self.registered_settings = ['spellcheck-active', 'spellcheck-language']
         self.line_number_bar = LineNumberBar(self)
+        self.highlighter = Highlighter(self.document())
         self.search_buffer = None  # type: str
         self.print_ = print
         self.error = print
+
+    def setting_changed(self, name: str, new_value: Any) -> None:
+        if name == 'spellcheck-active':
+            self.highlighter.spellcheck_active = bool(new_value)
+            self.highlighter.rehighlight()
+        elif name == 'spellcheck-language':
+            self.highlighter.set_spellcheck_language(str(new_value))
+            # self.rehighlight()
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
@@ -39,8 +55,15 @@ class TextArea(QtWidgets.QPlainTextEdit):
         if self.line_number_bar.isVisible():
             self.line_number_bar.update()
 
+    def set_spellcheck_language(self, language: str) -> None:
+        self.highlighter.set_spellcheck_language(language)
+
     def toggle_line_numbers(self) -> None:
         self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
+
+    def toggle_spellcheck(self) -> None:
+        self.highlighter.spellcheck_active = not self.highlighter.spellcheck_active
+        self.highlighter.rehighlight()
 
     def center_on_line(self, line: int) -> None:
         block = self.document().findBlockByNumber(line)
@@ -174,6 +197,40 @@ class TextArea(QtWidgets.QPlainTextEdit):
         else:
             self.error('Text not found')
         self.setTextCursor(temp_cursor)
+
+
+def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
+    return [(lang, None) for lang in sorted(enchant.list_languages())
+            if lang.startswith(text)]
+
+
+class Highlighter(QtGui.QSyntaxHighlighter):
+
+    def __init__(self, document: QtGui.QTextDocument):
+        super().__init__(document)
+        self.language = 'en_US'
+        self.language_dict = enchant.Dict(self.language)
+        self.spellcheck_active = False
+
+    def set_spellcheck_language(self, language: str) -> None:
+        try:
+            self.language_dict = enchant.Dict(language)
+        except enchant.errors.DictNotFoundError:
+            print('invalid language: {}'.format(language))
+        else:
+            self.language = language
+            self.rehighlight()
+
+    def highlightBlock(self, text: str) -> None:
+        if self.spellcheck_active:
+            f = QtGui.QTextCharFormat()
+            f.setUnderlineColor(QtCore.Qt.red)
+            f.setUnderlineStyle(QtGui.QTextCharFormat.WaveUnderline)
+            for chunk in re.finditer(r"[\w-]+(?:'\w+)?", text):
+                if chunk and re.search(r'\w', chunk.group()):
+                    if not self.language_dict.check(chunk.group()):
+                        self.setFormat(chunk.start(), chunk.end()-chunk.start(), f)
+
 
 
 class LineNumberBar(QtWidgets.QFrame):

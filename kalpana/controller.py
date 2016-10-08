@@ -27,7 +27,7 @@ from kalpana.filehandler import FileHandler, FileError
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal, Command
 from kalpana.autocompletion import AutocompletionPattern
-from kalpana.textarea import TextArea
+from kalpana.textarea import TextArea, get_spellcheck_languages
 from kalpana.settings import Settings
 
 
@@ -50,7 +50,7 @@ class Controller:
         pass
 
     def register_settings(self) -> None:
-        for obj in [self.chapter_index, self.terminal]:
+        for obj in [self.chapter_index, self.terminal, self.textarea]:
             self.settings.register_settings(obj.registered_settings, obj)
 
     def register_commands(self) -> None:
@@ -78,6 +78,9 @@ class Controller:
                 Command('search-and-replace', '', self.textarea.search_and_replace),
                 Command('search-next', '', self.textarea.search_next,
                         accept_args=False),
+                Command('toggle-spellcheck', '', self.textarea.toggle_spellcheck,
+                        accept_args=False),
+                Command('set-spellcheck-language', '', self.textarea.set_spellcheck_language),
         ]
         self.terminal.register_commands(commands)
 
@@ -86,6 +89,10 @@ class Controller:
                 AutocompletionPattern(name='open-file',
                                       prefix=r'open-file\s+',
                                       is_file_path=True),
+                AutocompletionPattern(name='set-spellcheck-language',
+                                      prefix=r'set-spellcheck-language\s+',
+                                      illegal_chars=' ',
+                                      get_suggestion_list=get_spellcheck_languages),
         ]
         self.terminal.register_autocompletion_patterns(patterns)
 
