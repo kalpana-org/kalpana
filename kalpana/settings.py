@@ -78,7 +78,7 @@ class CommandHistory:
         data = {'autocompletion_history': self.autocompletion_history,
                 'command_frequency': self.command_frequency}
         with open(self._path, 'w') as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data, sort_keys=True, indent=2))
 
 
 class Settings(QtCore.QObject):
