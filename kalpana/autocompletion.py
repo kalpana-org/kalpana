@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 import re
 
 SuggestionListAlias = List[Tuple[str, int]]
@@ -12,10 +12,16 @@ class ListWidget:
     @visible.setter
     def visible(self, visible: bool) -> None: ...
 
-    def set_selection(self, selection: int) -> None: ...
+    @property
+    def selection(self) -> bool: ...
+
+    @selection.setter
+    def selection(self, selection: bool) -> None: ...
 
     def set_suggestions(self, suggestions: SuggestionListAlias,
                         selection: int, text_fragment: str) -> None: ...
+
+    def set_help_text(self, help_text: str) -> None: ...
 
 
 class InputWidget:
@@ -80,6 +86,7 @@ class SuggestionList():
         self.list_widget = list_widget
         self.input_widget = input_widget
         self.run_command = run_command
+        self.command_help_texts = {}  # type: Dict[str, str]
         self.suggestions = []  # type: SuggestionListAlias
         self.unautocompleted_cmd = None  # type: str
         self.history = []  # type: SuggestionListAlias
@@ -97,7 +104,12 @@ class SuggestionList():
     @selection.setter
     def selection(self, pos: int) -> None:
         self._selection = max(0, min(pos, len(self.suggestions)-1))
-        self.list_widget.set_selection(self._selection)
+        self.list_widget.selection = self._selection
+        if self.active_pattern == 'command':
+            cmd = self.suggestions[self.selection][0]
+            self.list_widget.set_help_text(self.command_help_texts.get(cmd, ''))
+        else:
+            self.list_widget.set_help_text('')
 
     def up_pressed(self) -> None:
         """Should be called whenever the up key is pressed."""

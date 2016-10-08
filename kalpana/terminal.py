@@ -108,6 +108,7 @@ class Terminal(QtWidgets.QFrame):
 
     def register_command(self, command: Command) -> None:
         self.commands[command.name] = command
+        self.suggestion_list.command_help_texts[command.name] = command.help_text
 
     def register_commands(self, command_list: Iterable[Command]) -> None:
         for command in command_list:
@@ -217,38 +218,7 @@ def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
                   for p in raw_paths)
 
 
-class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
-
-    class CompletionListCanvas(QtWidgets.QFrame):
-
-        def __init__(self, parent: 'CompletionListWidget') -> None:
-            super().__init__(parent)
-            self.parent = parent
-
-        def paintEvent(self, event: QtGui.QPaintEvent) -> None:
-            super().paintEvent(event)
-            visible_rect = event.rect()
-            painter = QtGui.QPainter(self)
-            top_visible_item = visible_rect.y() // self.parent.line_height
-            no_wrap = QtGui.QTextOption()
-            no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
-            item_rect = self.contentsRect()
-            item_rect.translate(0, top_visible_item*self.parent.line_height)
-            item_rect.setHeight(self.parent.line_height)
-            items = enumerate(self.parent.suggestions[top_visible_item:], top_visible_item)
-            for n, (text, status) in items:
-                painter.fillRect(item_rect, self.parent.status_colors[status])
-                painter.fillRect(item_rect.adjusted(5, 0, 0, 0),
-                                 self.parent.status_colors[status].darker(300))
-                if n == self.parent.selection:
-                    painter.fillRect(item_rect, self.parent._selection_color)
-                st = QtGui.QStaticText(text)
-                st.setTextOption(no_wrap)
-                painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
-                item_rect.translate(0, self.parent.line_height)
-                if item_rect.y() > visible_rect.y()+visible_rect.height():
-                    break
-            painter.end()
+class CompletionListWidget(QtWidgets.QFrame, ListWidget):
 
     def css_property(name):
         def set_color(self, color):
@@ -267,8 +237,10 @@ class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
         # Variables
         self.input_field = input_field
         self.mainwindow = mainwindow
+        self.help_text = QtWidgets.QLabel(self)
+        self.help_text.setWordWrap(True)
         self.suggestions = []  # type: SuggestionListAlias
-        self.selection = 0
+        self._selection = 0
         self.line_height = 0
         self.visible_lines = self.max_visible_lines = 6
         # CSS properties
@@ -279,13 +251,11 @@ class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
                 SuggestionType.history: QColor(),
         }
         self._selection_color = QColor()
-        # Misc init
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.setFocusPolicy(Qt.NoFocus)
-        self.canvas = CompletionListWidget.CompletionListCanvas(self)
-        self.setWidget(self.canvas)
         self._install_geometry_filters()
+        # scrollbar
+        self.scrollbar = QtWidgets.QScrollBar(QtCore.Qt.Vertical, self)
+        self.scrollbar.setPageStep(self.max_visible_lines)
+        self.scrollbar.setDisabled(True)
         self.hide()
 
     def set_status_color(self, status_name, color):
@@ -293,6 +263,28 @@ class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
             self._selection_color = color
         else:
             self.status_colors[SuggestionType[status_name]] = color  # type: ignore
+
+    @property
+    def visible(self) -> bool:
+        return self.isVisible()
+
+    @visible.setter
+    def visible(self, visible: bool) -> None:
+        if visible:
+            self.ensure_selection_visible()
+        self.setVisible(visible)
+        if visible and not self.help_text.text():
+            self.help_text.hide()
+
+    @property
+    def selection(self) -> bool:
+        return self._selection
+
+    @selection.setter
+    def selection(self, selection: bool) -> None:
+        self._selection = selection
+        self.ensure_selection_visible()
+        self.update()
 
     def _install_geometry_filters(self) -> None:
         """Install event filters that keep the geometry up to date."""
@@ -305,92 +297,88 @@ class CompletionListWidget(QtWidgets.QScrollArea, ListWidget):
         self.resize_filter = MainWindowEventFilter()
         self.mainwindow.installEventFilter(self.resize_filter)
 
-        class ScrollBarEventFilter(QtCore.QObject):
-            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-                if event.type() in (QtCore.QEvent.Show, QtCore.QEvent.Hide):
-                    self.update_size()
-                    return True
-                return False
-        self.scrollbar_filter = ScrollBarEventFilter()
-        self.verticalScrollBar().installEventFilter(self.scrollbar_filter)
+    def wheelEvent(self, event):
+        super().wheelEvent(event)
+        diff = 1 if event.angleDelta().y() < 0 else -1
+        self.scrollbar.setValue(self.scrollbar.value() + diff)
+        self.update()
 
-    @property
-    def visible(self) -> bool:
-        return self.isVisible()
+    def ensure_selection_visible(self):
+        offset = self.scrollbar.value()
+        if offset > self.selection:
+            offset = self.selection
+        elif offset <= self.selection - self.visible_lines:
+            offset = self.selection - self.visible_lines + 1
+        self.scrollbar.setValue(offset)
 
-    @visible.setter
-    def visible(self, visible: bool) -> None:
-        self.setVisible(visible)
-
-    def update_position(self) -> None:
-        """Match its position with the terminal's position."""
-        pos = QtCore.QPoint(0, -self.height())
-        global_pos = self.input_field.mapTo(self.mainwindow, pos)
-        self.setGeometry(QRect(global_pos, self.size()))
-
-    def update_size(self) -> None:
-        """Update the size to match the number of suggestion items."""
-        font_metrics = QtGui.QFontMetrics(self.font())
-        self.line_height = font_metrics.height() + 4
-        # Canvas size
-        left, top, right, bottom = self.canvas.getContentsMargins()
-        if not self.suggestions:
-            width = 1
-        else:
-            width = max(font_metrics.width(re.sub(r'</?b>', '', text))
-                        for text, _ in self.suggestions) + 20
-            height = len(self.suggestions) * self.line_height
-            self.canvas.resize(width+left+right, height+top+bottom)
-        # ScrollArea geometry
-        left, top, right, bottom = self.getContentsMargins()
-        total_width = self.canvas.width() + left + right
-        if self.verticalScrollBar().isVisible():
-            total_width += self.verticalScrollBar().width()
-        total_height = self.line_height * self.visible_lines + top + bottom
-        size = QtCore.QSize(total_width, total_height)
-        self.resize(size)
-        self.update_position()
-
-    def ensure_selection_visible(self) -> None:
-        top = self.canvas.contentsRect().y() + self.line_height * self.selection
-        bottom = top + self.line_height
-        self.ensureVisible(0, top, xMargin=0, yMargin=0)
-        self.ensureVisible(0, bottom, xMargin=0, yMargin=0)
-
-    def format_suggestions(self, suggestions: SuggestionListAlias,
-                           text_fragment: str) -> Iterable[Tuple[str, int]]:
-        """
-        Highlight relevant letters in the suggestions.
-
-        All characters matching a character in the text fragment should
-        get a bold html tag wrapped around it. Note that this only affects
-        fuzzy matches.
-        """
-        for command, status in suggestions:
-            if status != SuggestionType.fuzzy:
-                yield (command, status)
-                continue
-            formatted_text = ''
-            for char in text_fragment:
-                pos = command.find(char)
-                formatted_text += command[:pos] + '<b>' + char + '</b>'
-                command = command[pos+1:]
-            yield (formatted_text + command, status)
+    def set_help_text(self, help_text: str) -> None:
+        self.help_text.setText(help_text)
+        if self.suggestions:
+            self.update_size()
 
     def set_suggestions(self, suggestions: SuggestionListAlias,
                         selection: int, text_fragment: str) -> None:
         """Set the list of suggestions."""
-        self.text_fragment = text_fragment
-        self.suggestions = list(self.format_suggestions(suggestions, text_fragment))
-        self.visible_lines = min(len(suggestions), self.max_visible_lines)
-        self.selection = selection
-        self.update_size()
-        self.ensure_selection_visible()
-        self.show()
+        if not suggestions:
+            self.hide()
+        else:
+            if not self.visible:
+                self.show()
+            self.suggestions = suggestions
+            self.visible_lines = min(len(suggestions), self.max_visible_lines)
+            self.scrollbar.setMaximum(len(suggestions) - self.visible_lines)
+            self.selection = selection
+            self.update_size()
 
-    def set_selection(self, selection: int) -> None:
-        """Update the selection position."""
-        self.last_selection = self.selection
-        self.selection = selection
-        self.ensure_selection_visible()
-        self.update()
+    def update_position(self) -> None:
+        """Match its position with the terminal's position."""
+        pos = QtCore.QPoint(0, -self.height())
+        self.move(self.input_field.mapTo(self.mainwindow, pos))
+
+    def update_size(self):
+        font_metrics = QtGui.QFontMetrics(self.font())
+        self.line_height = font_metrics.height() + 4
+        left, top, right, bottom = self.getContentsMargins()
+        width = max(font_metrics.width(re.sub(r'</?b>', '', text))
+                    for text, _ in self.suggestions) + 20
+        height = self.visible_lines * self.line_height
+        if self.visible_lines < len(self.suggestions):
+            self.scrollbar.show()
+            self.scrollbar.setFixedHeight(height)
+            self.scrollbar.move(left+width, top)
+            width += self.scrollbar.width()
+        elif self.scrollbar.isVisible():
+            self.scrollbar.hide()
+        self.help_text.hide()
+        if self.help_text.text():
+            self.help_text.move(left, top)
+            self.help_text.setFixedWidth(width)
+            self.help_text.show()
+            help_text_height = self.help_text.height()
+            self.scrollbar.move(self.scrollbar.x(), top+help_text_height)
+            height += help_text_height
+        self.resize(left+width+right, top+height+bottom)
+        self.update_position()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QtGui.QPainter(self)
+        no_wrap = QtGui.QTextOption()
+        no_wrap.setWrapMode(QtGui.QTextOption.NoWrap)
+        item_rect = self.contentsRect()
+        if self.help_text.isVisible():
+            item_rect.translate(0, self.help_text.size().height())
+        item_rect.setHeight(self.line_height)
+        offset = self.scrollbar.value()
+        items = enumerate(self.suggestions[offset:offset+self.visible_lines], offset)
+        for n, (text, status) in items:
+            painter.fillRect(item_rect, self.status_colors[status])
+            painter.fillRect(item_rect.adjusted(5, 0, 0, 0),
+                             self.status_colors[status].darker(300))
+            if n == self.selection:
+                painter.fillRect(item_rect, self._selection_color)
+            st = QtGui.QStaticText(text)
+            st.setTextOption(no_wrap)
+            painter.drawStaticText(item_rect.x()+8, item_rect.y()+2, st)
+            item_rect.translate(0, self.line_height)
+        painter.end()

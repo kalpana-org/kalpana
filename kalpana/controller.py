@@ -53,18 +53,19 @@ class Controller:
 
     def register_commands(self) -> None:
         commands = [
-                Command('open-file', '', self.load_file),
+                Command('open-file', 'Open a file', self.load_file),
                 Command('new-file', '', self.new_file),
                 Command('go-to-line', '', self.go_to_line),
                 Command('go-to-chapter', '', self.go_to_chapter),
-                Command('go-to-next-chapter', '', self.go_to_next_chapter,
+                Command('go-to-next-chapter', 'Jump to next chapter', self.go_to_next_chapter,
                         accept_args=False),
                 Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
                         accept_args=False),
                 Command('word-count-total', '', self.count_total_words,
                         accept_args=False),
                 Command('word-count-chapter', '', self.count_chapter_words),
-                Command('set-textarea-max-width', '', self.set_textarea_max_width),
+                Command('set-textarea-max-width', 'Set the max width of the page',
+                        self.set_textarea_max_width),
                 Command('toggle-line-numbers', '', self.textarea.toggle_line_numbers,
                         accept_args=False),
                 Command('insert-text', '', self.textarea.insertPlainText),
