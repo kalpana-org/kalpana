@@ -25,7 +25,8 @@ from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler, FileError
 from kalpana.mainwindow import MainWindow
-from kalpana.terminal import Terminal, Command, autocomplete_file_path
+from kalpana.terminal import Terminal, Command
+from kalpana.autocompletion import AutocompletionPattern
 from kalpana.textarea import TextArea
 from kalpana.settings import Settings
 
@@ -41,8 +42,9 @@ class Controller:
         self.chapter_index = ChapterIndex()
         self.set_keybindings()
         self.connect_signals()
-        self.register_commands()
         self.register_settings()
+        self.register_commands()
+        self.register_autocompletion_patterns()
 
     def update_style(self) -> None:
         pass
@@ -78,6 +80,14 @@ class Controller:
                         accept_args=False),
         ]
         self.terminal.register_commands(commands)
+
+    def register_autocompletion_patterns(self) -> None:
+        patterns = [
+                AutocompletionPattern(name='open-file',
+                                      prefix=r'open-file\s+',
+                                      is_file_path=True),
+        ]
+        self.terminal.register_autocompletion_patterns(patterns)
 
     def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):

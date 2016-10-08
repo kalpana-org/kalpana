@@ -95,17 +95,12 @@ class Terminal(QtWidgets.QFrame, Configurable):
                 self.input_field,
                 self.parse_command
         )
-        self.suggestion_list.add_autocompletion_pattern(AutocompletionPattern(
+        self.register_autocompletion_pattern(AutocompletionPattern(
                 name='command',
                 end=r'( |$)',
                 illegal_chars=' \t',
                 get_suggestion_list=self.command_suggestions
         ))
-        # self.suggestion_list.add_autocompletion_pattern(
-        #         name='open-file',
-        #         prefix=r'open-file\s+',
-        #         get_suggestion_list=autocomplete_file_path
-        # )
         self.watch_terminal()
 
     def setting_changed(self, name: str, new_value: Any) -> None:
@@ -120,6 +115,13 @@ class Terminal(QtWidgets.QFrame, Configurable):
     def register_commands(self, command_list: Iterable[Command]) -> None:
         for command in command_list:
             self.register_command(command)
+
+    def register_autocompletion_pattern(self, pattern: AutocompletionPattern):
+        self.suggestion_list.add_autocompletion_pattern(pattern)
+
+    def register_autocompletion_patterns(self, pattern_list: Iterable[AutocompletionPattern]) -> None:
+        for pattern in pattern_list:
+            self.register_autocompletion_pattern(pattern)
 
     def print_(self, msg: str) -> None:
         self.output_field.setText(msg)
@@ -208,21 +210,6 @@ class Terminal(QtWidgets.QFrame, Configurable):
         self.input_field.returnPressed.connect(self.suggestion_list.return_pressed)
         self.input_field.textChanged.connect(self.suggestion_list.update)
         self.input_field.cursorPositionChanged.connect(self.suggestion_list.update)
-
-
-def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
-    import os
-    import os.path
-    full_path = os.path.abspath(os.path.expanduser(text))
-    if text.endswith(os.path.sep):
-        dir_path, name_fragment = full_path, ''
-    else:
-        dir_path, name_fragment = os.path.split(full_path)
-    raw_paths = (os.path.join(dir_path, x)
-                 for x in os.listdir(dir_path)
-                 if x.startswith(name_fragment))
-    return sorted((p + ('/' if os.path.isdir(p) else ''), SuggestionType.rest)
-                  for p in raw_paths)
 
 
 class CompletionListWidget(QtWidgets.QFrame, ListWidget):
@@ -331,7 +318,8 @@ class CompletionListWidget(QtWidgets.QFrame, ListWidget):
         else:
             if not self.visible:
                 self.show()
-            self.suggestions = suggestions
+            self.suggestions = [(suggestion, SuggestionType.rest if type_ is None else type_)
+                                for suggestion, type_ in suggestions]
             self.visible_lines = min(len(suggestions), self.max_visible_lines)
             self.scrollbar.setMaximum(len(suggestions) - self.visible_lines)
             self.scrollbar.setVisible(self.scrollbar.maximum() > 0)

@@ -45,6 +45,7 @@ class AutocompletionPattern:
                  start: str = r'^', end: str = r'$',
                  illegal_chars: str = '',
                  remember_raw_text: bool = False,
+                 is_file_path: bool = False,
                  get_suggestion_list: SuggestionCallback = None) -> None:
         """
         Create an autocompletion pattern.
@@ -64,10 +65,14 @@ class AutocompletionPattern:
                 autocompleting. Useful when you want to remember what a certain
                 string has been most often autocompleted to (eg. when
                 autocompleting commands).
+            is_file_path: Use the default file path function instead of using
+                the get_suggestion_list function.
             get_suggestion_list: A function taking (name, text) as arguments,
                 where name is the name of the pattern and text is the string
                 that is being autocompleted.
         """
+        if is_file_path:
+            get_suggestion_list = autocomplete_file_path
         if get_suggestion_list is None:
             raise ValueError('AC pattern {} must have a suggestion list function!'.format(name))
         self.name = name
@@ -77,6 +82,21 @@ class AutocompletionPattern:
         self.illegal_chars = illegal_chars
         self.remember_raw_text = remember_raw_text
         self.get_suggestion_list = get_suggestion_list
+
+
+def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
+    import os
+    import os.path
+    full_path = os.path.abspath(os.path.expanduser(text))
+    if text.endswith(os.path.sep):
+        dir_path, name_fragment = full_path, ''
+    else:
+        dir_path, name_fragment = os.path.split(full_path)
+    raw_paths = (os.path.join(dir_path, x)
+                 for x in os.listdir(dir_path)
+                 if x.startswith(name_fragment))
+    return sorted((p + ('/' if os.path.isdir(p) else ''), None)
+                  for p in raw_paths)
 
 
 class SuggestionList():
