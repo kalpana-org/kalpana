@@ -13,10 +13,10 @@ class ListWidget:
     def visible(self, visible: bool) -> None: ...
 
     @property
-    def selection(self) -> bool: ...
+    def selection(self) -> int: ...
 
     @selection.setter
-    def selection(self, selection: bool) -> None: ...
+    def selection(self, selection: int) -> None: ...
 
     def set_suggestions(self, suggestions: SuggestionListAlias,
                         selection: int, text_fragment: str) -> None: ...
@@ -105,7 +105,7 @@ class SuggestionList():
     def selection(self, pos: int) -> None:
         self._selection = max(0, min(pos, len(self.suggestions)-1))
         self.list_widget.selection = self._selection
-        if self.active_pattern == 'command':
+        if not self.history and self.active_pattern == 'command':
             cmd = self.suggestions[self.selection][0]
             self.list_widget.set_help_text(self.command_help_texts.get(cmd, ''))
         else:
