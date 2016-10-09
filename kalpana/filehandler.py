@@ -90,12 +90,14 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         """
         if self.textarea.document().isModified():
             self.error('There are unsaved changes')
-            return
-        if not filepath:
-            self.filepath = None
+        elif os.path.exists(filepath):
+            self.error('File already exists, open it instead')
         else:
-            self.filepath = filepath
-        self.textarea.setPlainText('')
+            if filepath:
+                self.filepath = filepath
+            else:
+                self.filepath = None
+            self.textarea.setPlainText('')
 
     def new_file_in_new_window(self, filepath: str) -> None:
         """Open a new file in a new instance of Kalpana."""
@@ -111,22 +113,24 @@ class FileHandler(QtCore.QObject, KalpanaObject):
 
         This will only open files encoded in utf-8 or latin1.
         """
-        if not os.path.isfile(filepath):
+        if self.textarea.document().isModified():
+            self.error('There are unsaved changes')
+        elif not os.path.isfile(filepath):
             self.error('The path is not a file')
-            return
-        for e in ('utf-8', 'latin1'):
-            try:
-                with open(filepath, encoding=e) as f:
-                    text = f.read()
-            except UnicodeDecodeError:
-                continue
-            else:
-                self.textarea.setPlainText(text)
-                self.filepath = filepath
-                break
         else:
-            self.error('Unable to open the file')
-            return
+            for e in ('utf-8', 'latin1'):
+                try:
+                    with open(filepath, encoding=e) as f:
+                        text = f.read()
+                except UnicodeDecodeError:
+                    continue
+                else:
+                    self.textarea.setPlainText(text)
+                    self.filepath = filepath
+                    self.log('File opened')
+                    return
+            else:
+                self.error('Unable to open the file')
 
     def open_file_in_new_window(self, filepath: str):
         """Open an existing file in a new instance of Kalpana."""
@@ -136,14 +140,29 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             subprocess.Popen([sys.executable, sys.argv[0], filepath])
 
     def save_file(self, filepath: str) -> None:
-        if not filepath:
-            if self.filepath is None:
-                self.error('No active file')
-                return
-            filepath = self.filepath
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                self.log('TODO: saving to -> {}'.format(filepath))
-            #     f.write(data)
-        except IOError:
-            self.error('Unable to save the file')
+        """
+        Save the file to the disk.
+
+        If filepath is specified, this works as "save as" works in most
+        programs, otherwise it saves over the existing filepath without
+        prompting.
+
+        Note that this always saves in utf-8, no matter the original encoding.
+        """
+        if not filepath and not self.filepath:
+            self.error('No active file')
+        elif filepath != self.filepath and os.path.exists(filepath):
+            self.error('File already exists')
+        else:
+            if filepath:
+                file_to_open = filepath
+            else:
+                file_to_open = self.filepath
+            try:
+                with open(file_to_open, 'w', encoding='utf-8') as f:
+                    f.write(self.textarea.toPlainText())
+            except IOError:
+                self.error('Unable to save the file')
+            else:
+                self.filepath = file_to_open
+                self.log('File saved')
