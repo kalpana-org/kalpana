@@ -41,7 +41,7 @@ class Controller:
         self.settings = settings
         self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
-        self.spellchecker = Spellchecker(self.textarea)
+        self.spellchecker = Spellchecker(self.settings.config_dir, self.textarea)
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()

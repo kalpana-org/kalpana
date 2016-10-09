@@ -1,5 +1,7 @@
 
 import enchant
+import os
+from os.path import join
 from typing import Any, List, Tuple
 
 from PyQt5 import QtCore
@@ -10,13 +12,14 @@ from kalpana.textarea import TextArea
 
 
 def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
+    """Return a list with the tags of all available spellcheck languages."""
     return [(lang, None) for lang in sorted(enchant.list_languages())
             if lang.startswith(text)]
 
 
 class Spellchecker(QtCore.QObject, KalpanaObject):
 
-    def __init__(self, textarea: TextArea) -> None:
+    def __init__(self, config_dir: str, textarea: TextArea) -> None:
         super().__init__()
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
@@ -24,8 +27,11 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
                         accept_args=False),
                 Command('set-spellcheck-language', '', self.set_language),
                 Command('suggest-spelling',
-                        'Print a list of possible spellings for the argument or the word under the cursor.',
+                        'Print a list of possible spellings for the argument '
+                        'or the word under the cursor.',
                         self.suggest),
+                Command('add-word', 'Add word to the spellcheck word list.',
+                        self.add_word)
         ]
         self.kalpana_autocompletion_patterns = [
                 AutocompletionPattern(name='set-spellcheck-language',
@@ -35,18 +41,34 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         ]
         self.textarea = textarea
         self.language = 'en_US'
-        self.language_dict = enchant.Dict(self.language)
+        self.pwl_path = join(config_dir, 'spellcheck-pwl')
+        os.makedirs(self.pwl_path, exist_ok=True)
+        pwl = join(self.pwl_path, self.language + '.pwl')
+        self.language_dict = enchant.DictWithPWL(self.language, pwl=pwl)
         self.highlighter = self.textarea.highlighter
         self.highlighter.spellcheck_word = self.check_word
         self.spellcheck_active = False
 
-    def check_word(self, word: str) -> bool:
-        return self.language_dict.check(word)
+    def add_word(self, word: str) -> None:
+        """
+        Add a word to the spellcheck dictionary.
 
-    def suggest(self, word: str) -> None:
+        This automatically saves the word to the wordlist file as well.
+        """
         if not word:
             word = self.textarea.word_under_cursor()
-        self.log('{}: {}'.format(word, ', '.join(self.language_dict.suggest(word))))
+        self.language_dict.add_to_pwl(word)
+        self.highlighter.rehighlight()
+
+    def suggest(self, word: str) -> None:
+        """Print spelling suggestions for a certain word."""
+        if not word:
+            word = self.textarea.word_under_cursor()
+        self.log('{}: {}'.format(word, ', '.join(self.language_dict.suggest(word)[:5])))
+
+    def check_word(self, word: str) -> bool:
+        """A callback for the highlighter to check a word's spelling."""
+        return self.language_dict.check(word)
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'spellcheck-active':
@@ -58,7 +80,8 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def set_language(self, language: str) -> None:
         try:
-            self.language_dict = enchant.Dict(language)
+            pwl = join(self.pwl_path, language + '.pwl')
+            self.language_dict = enchant.DictWithPWL(language, pwl=pwl)
         except enchant.errors.DictNotFoundError:
             self.error('invalid language: {}'.format(language))
         else:
