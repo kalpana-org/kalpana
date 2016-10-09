@@ -29,13 +29,14 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable, Loggable):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        self.registered_settings = []
+        self.registered_settings = ['show-line-numbers']
         self.line_number_bar = LineNumberBar(self)
         self.highlighter = Highlighter(self.document())
         self.search_buffer = None  # type: str
 
     def setting_changed(self, name: str, new_value: Any) -> None:
-        pass
+        if name == 'show-line-numbers':
+            self.line_number_bar.setVisible(bool(new_value))
 
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
