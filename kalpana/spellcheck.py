@@ -72,7 +72,8 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'spellcheck-active':
-            self.highlighter.spellcheck_active = bool(new_value)
+            self.spellcheck_active = bool(new_value)
+            self.highlighter.spellcheck_active = self.spellcheck_active
             self.highlighter.rehighlight()
         elif name == 'spellcheck-language':
             self.set_language(str(new_value))
@@ -89,5 +90,6 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             self.highlighter.rehighlight()
 
     def toggle_spellcheck(self) -> None:
-        self.highlighter.spellcheck_active = not self.highlighter.spellcheck_active
+        self.spellcheck_active = not self.spellcheck_active
+        self.highlighter.spellcheck_active = self.spellcheck_active
         self.highlighter.rehighlight()
