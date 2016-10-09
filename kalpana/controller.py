@@ -22,6 +22,7 @@ import re
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 
+from kalpana.common import Loggable
 from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
@@ -126,7 +127,8 @@ class Controller:
         self.mainwindow.installEventFilter(self.key_binding_event_filter)
 
     def connect_signals(self) -> None:
-        for widget in [self.textarea, self.filehandler, self.spellchecker]:
+        loggables = [self.textarea, self.filehandler, self.spellchecker]  # type: List[Loggable]
+        for widget in loggables:
             widget.log_signal.connect(self.terminal.print_)
             widget.error_signal.connect(self.terminal.error)
         misc_signals = [

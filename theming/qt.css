@@ -23,6 +23,11 @@ QLineEdit {
   selection-color: #111;
 }
 
+QListView {
+  alternate-background-color: #222;
+  border: 2px solid black;
+}
+
 CompletionListWidget {
   border: 2px solid black;
   qproperty-item_spacing: 0px;

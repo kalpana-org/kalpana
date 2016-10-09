@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from collections import defaultdict
+from datetime import datetime
 from enum import IntEnum
 from operator import itemgetter
 import re
@@ -72,7 +72,9 @@ class Terminal(QtWidgets.QFrame, Configurable):
 
     def __init__(self, parent: QtWidgets.QFrame, command_history) -> None:
         super().__init__(parent)
-        # Settings
+        self.commands = {}  # type: Dict[str, Command]
+        self.autocompletion_history = command_history.autocompletion_history
+        self.command_frequency = command_history.command_frequency
         self.registered_settings = ['visible-autocompletion-items']
         # Create the objects
         self.input_field = Terminal.InputField(self)
@@ -80,28 +82,24 @@ class Terminal(QtWidgets.QFrame, Configurable):
         self.output_field = QtWidgets.QLineEdit(self)
         self.output_field.setObjectName('terminal_output')
         self.output_field.setDisabled(True)
-        # Set the layout
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(self.input_field)
-        layout.addWidget(self.output_field)
-        # Misc
-        self.commands = {}  # type: Dict[str, Command]
-        self.autocompletion_history = command_history.autocompletion_history
-        self.command_frequency = command_history.command_frequency
         self.completer_popup = CompletionListWidget(parent, self.input_field)
-        self.suggestion_list = SuggestionList(
-                self.completer_popup,
-                self.input_field,
-                self.parse_command
-        )
+        self.suggestion_list = SuggestionList(self.completer_popup,
+                                              self.input_field,
+                                              self.parse_command)
+        self.log_history = LogHistory(self)
         self.register_autocompletion_pattern(AutocompletionPattern(
                 name='command',
                 end=r'( |$)',
                 illegal_chars=' \t',
                 get_suggestion_list=self.command_suggestions
         ))
+        # Set the layout
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self.log_history)
+        layout.addWidget(self.input_field)
+        layout.addWidget(self.output_field)
         self.watch_terminal()
 
     def setting_changed(self, name: str, new_value: Any) -> None:
@@ -125,9 +123,11 @@ class Terminal(QtWidgets.QFrame, Configurable):
             self.register_autocompletion_pattern(pattern)
 
     def print_(self, msg: str) -> None:
+        self.log_history.add(msg)
         self.output_field.setText(msg)
 
     def error(self, msg: str) -> None:
+        self.log_history.add_error(msg)
         self.output_field.setText('Error: ' + msg)
         self.error_triggered.emit()
 
@@ -162,6 +162,7 @@ class Terminal(QtWidgets.QFrame, Configurable):
                 self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
             self.command_frequency[cmd_name] += 1
             self.suggestion_list.history.append((text, SuggestionType.history))
+            self.log_history.add_input(text)
             if command.accept_args:
                 command.callback(arg)
             else:
@@ -180,12 +181,26 @@ class Terminal(QtWidgets.QFrame, Configurable):
         return [(cmd, type_) for cmd, num, type_
                 in sorted(suggestions, key=itemgetter(*[2, 1, 0]))]
 
+    def keyPressEvent(self, event):
+        diffs = {Qt.Key_PageUp: -1, Qt.Key_PageDown: 1}
+        if event.key() in diffs:
+            if self.completer_popup.isVisible():
+                self.completer_popup.scroll_view(diffs[event.key()], page=True)
+                event.accept()
+            elif self.log_history.isVisible():
+                sb = self.log_history.verticalScrollBar()
+                sb.setValue(sb.value() + sb.pageStep()*diffs[event.key()])
+                event.accept()
+        super().keyPressEvent(event)
+
     def watch_terminal(self) -> None:
         class EventFilter(QtCore.QObject):
             backtab_pressed = pyqtSignal()
             tab_pressed = pyqtSignal()
             up_pressed = pyqtSignal()
             down_pressed = pyqtSignal()
+            page_up_pressed = pyqtSignal()
+            page_down_pressed = pyqtSignal()
 
             def eventFilter(self_, obj, ev):
                 catch_keys = [
@@ -211,6 +226,53 @@ class Terminal(QtWidgets.QFrame, Configurable):
         self.input_field.returnPressed.connect(self.suggestion_list.return_pressed)
         self.input_field.textChanged.connect(self.suggestion_list.update)
         self.input_field.cursorPositionChanged.connect(self.suggestion_list.update)
+
+
+class LogHistory(QtWidgets.QListWidget):
+
+    class LogType(IntEnum):
+        normal = 0
+        error = 1
+        input = 2
+
+    def __init__(self, parent: Terminal) -> None:
+        super().__init__(parent)
+        self.setAlternatingRowColors(True)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.NoDragDrop)
+        parent.register_command(Command(
+                name='toggle-terminal-log',
+                help_text='Show or hide the log of all input and output in the terminal.',
+                callback=self.toggle_visibility,
+                accept_args=False))
+        self.hide()
+
+    def toggle_visibility(self) -> None:
+        self.setVisible(not self.isVisible())
+
+    @staticmethod
+    def _timestamp() -> str:
+        return datetime.now().strftime('%H:%M:%S')
+
+    def add(self, message: str) -> None:
+        self._add_to_log(LogHistory.LogType.normal, message)
+
+    def add_error(self, message: str) -> None:
+        self._add_to_log(LogHistory.LogType.error, message)
+
+    def add_input(self, text: str) -> None:
+        self._add_to_log(LogHistory.LogType.input, text)
+
+    def _add_to_log(self, type_: int, message: str) -> None:
+        timestamp = self._timestamp()
+        if type_ == LogHistory.LogType.error:
+            message = '> [ERROR] ' + message
+        elif type_ == LogHistory.LogType.input:
+            message = '> ' + message
+        else:
+            message = '< ' + message
+        self.addItem('{} - {}'.format(timestamp, message))
 
 
 class CompletionListWidget(QtWidgets.QFrame, ListWidget):
@@ -289,10 +351,21 @@ class CompletionListWidget(QtWidgets.QFrame, ListWidget):
         self.resize_filter = MainWindowEventFilter()
         self.mainwindow.installEventFilter(self.resize_filter)
 
-    def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
-        diff = 1 if event.angleDelta().y() < 0 else -1
+    def scroll_view(self, direction: int, page: bool = False) -> None:
+        """
+        Scroll the view without moving the selection.
+
+        direction - +1 if moving down, -1 if moving up.
+        page - If true, scroll a whole page (the number of currently visible
+               lines) instead of just one step.
+        """
+        diff = direction * self.scrollbar.pageStep() if page else 1
         self.scrollbar.setValue(self.scrollbar.value() + diff)
         self.update()
+
+    def wheelEvent(self, event: QtGui.QWheelEvent) -> None:
+        direction = 1 if event.angleDelta().y() < 0 else -1
+        self.scroll_view(direction)
 
     def ensure_selection_visible(self) -> None:
         offset = self.scrollbar.value()
