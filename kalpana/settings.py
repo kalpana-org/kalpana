@@ -80,6 +80,7 @@ class Settings(QtCore.QObject, KalpanaObject):
             self.config_dir = default_config_dir()
         else:
             self.config_dir = config_dir
+        os.makedirs(self.config_dir, exist_ok=True)
         self.registered_settings = {}  # type: Dict[str, KalpanaObject]
         self.command_history = CommandHistory(self.config_dir)
         self.settings = None  # type: ChainMap
