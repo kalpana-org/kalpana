@@ -126,11 +126,14 @@ class Controller:
         self.mainwindow.installEventFilter(self.key_binding_event_filter)
 
     def connect_signals(self) -> None:
-        pairs = [
+        for widget in [self.textarea, self.filehandler, self.spellchecker]:
+            widget.log_signal.connect(self.terminal.print_)
+            widget.error_signal.connect(self.terminal.error)
+        misc_signals = [
             (self.textarea.textChanged, self.update_chapter_index),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]  # type: List[Tuple[pyqtSignal, Callable]]
-        for signal, slot in pairs:
+        for signal, slot in misc_signals:
             signal.connect(slot)
 
     def toggle_terminal(self) -> None:

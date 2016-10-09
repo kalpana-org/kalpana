@@ -22,9 +22,10 @@ import re
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from kalpana.settings import Configurable
+from kalpana.common import Loggable
 
 
-class TextArea(QtWidgets.QPlainTextEdit, Configurable):
+class TextArea(QtWidgets.QPlainTextEdit, Configurable, Loggable):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
@@ -32,8 +33,6 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable):
         self.line_number_bar = LineNumberBar(self)
         self.highlighter = Highlighter(self.document())
         self.search_buffer = None  # type: str
-        self.print_ = print
-        self.error = print
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         pass
@@ -105,7 +104,7 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable):
             else:
                 self._replace_next(match.group('replace'))
         else:
-            print('Malformed search/replace expression')
+            self.error('Malformed search/replace expression')
 
     def _searching_backwards(self) -> int:
         return QtGui.QTextDocument.FindBackward & self.search_flags
@@ -162,7 +161,7 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable):
             t.setPosition(t.position() - l)
             t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
             self.setTextCursor(t)
-            self.print_('Replaced on line {}, pos {}'
+            self.log('Replaced on line {}, pos {}'
                              ''.format(t.blockNumber(), t.positionInBlock()))
         else:
             self.error('Text not found')
@@ -184,7 +183,7 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable):
             else:
                 break
         if times:
-            self.print_('{0} instance{1} replaced'.format(times, 's'*(times>0)))
+            self.log('{0} instance{1} replaced'.format(times, 's'*(times>0)))
         else:
             self.error('Text not found')
         self.setTextCursor(temp_cursor)

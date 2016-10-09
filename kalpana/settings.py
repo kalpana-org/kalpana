@@ -11,6 +11,8 @@ import yaml
 
 from PyQt5 import QtCore, QtGui
 
+from kalpana.common import Loggable
+
 
 def default_config_dir() -> str:
     return os.path.join(os.getenv('HOME'), '.config', 'kalpana2')
@@ -81,7 +83,7 @@ class CommandHistory:
             f.write(json.dumps(data, sort_keys=True, indent=2))
 
 
-class Settings(QtCore.QObject):
+class Settings(QtCore.QObject, Loggable):
     """Loads and takes care of settings and stylesheets."""
 
     css_changed = QtCore.pyqtSignal(str)
@@ -110,11 +112,6 @@ class Settings(QtCore.QObject):
 
     def reload_stylesheet(self) -> None:
         self.css = self.load_stylesheet(self.config_dir)
-
-    def error(self, text: str) -> None:
-        """Show an error when something goes wrong."""
-        # TODO: do something more useful with this
-        print('[SETTINGS ERROR]:', text)
 
     def register_settings(self, names: Iterable[str], obj: Configurable) -> None:
         """Register that an object is waiting for changes to a certain setting."""
@@ -145,7 +142,7 @@ class Settings(QtCore.QObject):
             try:
                 config = yaml.load(yaml_escape_unicode(raw_config))
             except yaml.YAMLError as e:
-                self.error('Invalid yaml! ' + str(e))
+                self.error('Invalid yaml in the config: {}'.format(e))
         new_settings = ChainMap(config, default_config)
         self.notify_settings_changes(new_settings)
         return new_settings

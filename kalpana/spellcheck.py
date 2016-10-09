@@ -2,6 +2,9 @@
 import enchant
 from typing import Any, List, Tuple
 
+from PyQt5 import QtCore
+
+from kalpana.common import Loggable
 from kalpana.settings import Configurable
 from kalpana.textarea import TextArea
 
@@ -11,9 +14,10 @@ def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
             if lang.startswith(text)]
 
 
-class Spellchecker(Configurable):
+class Spellchecker(QtCore.QObject, Configurable, Loggable):
 
     def __init__(self, textarea: TextArea) -> None:
+        super().__init__()
         self.registered_settings = ['spellcheck-active', 'spellcheck-language']
         self.textarea = textarea
         self.language = 'en_US'
@@ -28,7 +32,7 @@ class Spellchecker(Configurable):
     def suggest(self, word: str) -> None:
         if not word:
             word = self.textarea.word_under_cursor()
-        print(', '.join(self.language_dict.suggest(word)))
+        self.log('{}: {}'.format(word, ', '.join(self.language_dict.suggest(word))))
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'spellcheck-active':
@@ -42,7 +46,7 @@ class Spellchecker(Configurable):
         try:
             self.language_dict = enchant.Dict(language)
         except enchant.errors.DictNotFoundError:
-            print('invalid language: {}'.format(language))
+            self.error('invalid language: {}'.format(language))
         else:
             self.language = language
             self.highlighter.rehighlight()

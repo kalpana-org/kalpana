@@ -20,10 +20,12 @@ import os.path
 
 from PyQt5 import QtCore
 
+from kalpana.common import Loggable
 from kalpana.textarea import TextArea
 
 
-class FileHandler(QtCore.QObject):
+class FileHandler(QtCore.QObject, Loggable):
+    """Takes care of saving and opening files."""
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
@@ -31,8 +33,18 @@ class FileHandler(QtCore.QObject):
         self.filepath = None  # type: str
 
     def new_file(self, filepath: str) -> None:
+        """
+        Clear the textarea and filepath unless there are unsaved changes.
+
+        If filepath is not an empty string, that string is made the active
+        filepath, which means you can then use save_file without a filepath
+        to save.
+
+        Note that nothing is written to the disk when new_file is run. An
+        invalid filepath will only be detected when trying to save.
+        """
         if self.textarea.document().isModified():
-            print('file is modified!')
+            self.error('There are unsaved changes')
             return
         if not filepath:
             self.filepath = None
@@ -41,8 +53,11 @@ class FileHandler(QtCore.QObject):
         self.textarea.setPlainText('')
 
     def open_file(self, filepath: str) -> None:
+        """
+        Open a file, unless there are unsaved changes.
+        """
         if not os.path.isfile(filepath):
-            print('the path is not a file')
+            self.error('The path is not a file')
             return
         for e in ('utf-8', 'latin1'):
             try:
@@ -55,18 +70,18 @@ class FileHandler(QtCore.QObject):
                 self.filepath = filepath
                 break
         else:
-            print('can\'t open the file')
+            self.error('Unable to open the file')
             return
 
     def save_file(self, filepath: str) -> None:
         if not filepath:
             if self.filepath is None:
-                print('no filename set')
+                self.error('No active file')
                 return
             filepath = self.filepath
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
-                print('TODO: saving to -> {}'.format(filepath))
+                self.log('TODO: saving to -> {}'.format(filepath))
             #     f.write(data)
         except IOError:
-            print('could not save the file')
+            self.error('Unable to save the file')
