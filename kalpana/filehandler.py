@@ -18,21 +18,32 @@
 
 import os.path
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 
-class FileError(Exception):
-    pass
+from kalpana.textarea import TextArea
 
 
 class FileHandler(QtCore.QObject):
 
-    def __init__(self) -> None:
+    def __init__(self, textarea: TextArea) -> None:
         super().__init__()
+        self.textarea = textarea
         self.filepath = None  # type: str
 
-    def open_file(self, filepath: str) -> str:
+    def new_file(self, filepath: str) -> None:
+        if self.textarea.document().isModified():
+            print('file is modified!')
+            return
+        if not filepath:
+            self.filepath = None
+        else:
+            self.filepath = filepath
+        self.textarea.setPlainText('')
+
+    def open_file(self, filepath: str) -> None:
         if not os.path.isfile(filepath):
-            raise FileError('the path is not a file')
+            print('the path is not a file')
+            return
         for e in ('utf-8', 'latin1'):
             try:
                 with open(filepath, encoding=e) as f:
@@ -40,11 +51,22 @@ class FileHandler(QtCore.QObject):
             except UnicodeDecodeError:
                 continue
             else:
-                return text
-        raise FileError('unknown encoding')
+                self.textarea.setPlainText(text)
+                self.filepath = filepath
+                break
+        else:
+            print('can\'t open the file')
+            return
 
-    def save_file(self, data: str, filepath: str = None) -> None:
-        if filepath is None:
+    def save_file(self, filepath: str) -> None:
+        if not filepath:
+            if self.filepath is None:
+                print('no filename set')
+                return
             filepath = self.filepath
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(data)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                print('TODO: saving to -> {}'.format(filepath))
+            #     f.write(data)
+        except IOError:
+            print('could not save the file')

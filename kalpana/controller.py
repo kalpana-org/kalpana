@@ -19,11 +19,11 @@
 from typing import cast, Callable, List, Tuple
 import re
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QEvent, pyqtSignal
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtCore import pyqtSignal
 
 from kalpana.chapters import ChapterIndex
-from kalpana.filehandler import FileHandler, FileError
+from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal, Command
 from kalpana.autocompletion import AutocompletionPattern
@@ -39,7 +39,7 @@ class Controller:
         self.textarea = textarea
         self.terminal = terminal
         self.settings = settings
-        self.filehandler = FileHandler()
+        self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.textarea)
         self.set_keybindings()
@@ -57,8 +57,10 @@ class Controller:
 
     def register_commands(self) -> None:
         commands = [
-                Command('open-file', 'Open a file', self.load_file),
-                Command('new-file', '', self.new_file),
+                Command('new-file', 'Create a new file. Filename is optional.',
+                        self.filehandler.new_file),
+                Command('open-file', 'Open a file', self.filehandler.open_file),
+                Command('save-file', 'Save the file', self.filehandler.save_file),
                 Command('go-to-line', '', self.go_to_line),
                 Command('go-to-chapter', '', self.go_to_chapter),
                 Command('go-to-next-chapter', 'Jump to next chapter', self.go_to_next_chapter,
@@ -90,8 +92,14 @@ class Controller:
 
     def register_autocompletion_patterns(self) -> None:
         patterns = [
+                AutocompletionPattern(name='new-file',
+                                      prefix=r'new-file\s+',
+                                      is_file_path=True),
                 AutocompletionPattern(name='open-file',
                                       prefix=r'open-file\s+',
+                                      is_file_path=True),
+                AutocompletionPattern(name='save-file',
+                                      prefix=r'save-file\s+',
                                       is_file_path=True),
                 AutocompletionPattern(name='set-spellcheck-language',
                                       prefix=r'set-spellcheck-language\s+',
@@ -177,22 +185,6 @@ class Controller:
         self.textarea.setUndoRedoEnabled(True)
 
     # =========== COMMANDS ================================
-
-    def load_file(self, filepath: str) -> None:
-        try:
-            data = self.filehandler.open_file(filepath)
-        except FileError as e:
-            self.terminal.error(e.args[0])
-        else:
-            self.textarea.setPlainText(data)
-            # self.chapter_index.parse_document(self.textarea.toPlainText())
-            # x = ChapterIndex()
-            # x.parse_document(self.textarea.toPlainText())
-            # self.set_text_block_formats()
-            # self.textarea.document().contentsChange.connect(self.update_text_format)
-
-    def new_file(self, arg) -> None:
-        self.textarea.setPlainText('')
 
     def go_to_line(self, arg: str) -> None:
         if not arg.isdecimal():
