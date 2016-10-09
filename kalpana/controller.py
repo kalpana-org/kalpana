@@ -22,6 +22,7 @@ import re
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 
+from kalpana.autocompletion import AutocompletionPattern
 from kalpana.common import Command, KalpanaObject
 from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler
@@ -63,8 +64,17 @@ class Controller:
                         accept_args=False),
                 Command('reload-stylesheet', '', self.settings.reload_stylesheet,
                         accept_args=False),
+                Command('show-info', 'Show information about the open file or the session.',
+                        self.show_info),
         ]
         self.terminal.register_commands(commands)
+        autocompletion_patterns = [
+                AutocompletionPattern(name='show-info',
+                                      prefix=r'show-info\s+',
+                                      illegal_chars=' ',
+                                      get_suggestion_list=self.get_show_info_suggestions),
+        ]
+        self.terminal.register_autocompletion_patterns(autocompletion_patterns)
 
     def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):
@@ -154,6 +164,22 @@ class Controller:
 
     # =========== COMMANDS ================================
 
+    def show_info(self, arg: str) -> None:
+        if arg == 'file':
+            if self.filehandler.filepath is None:
+                self.terminal.print_('No filename set')
+            else:
+                self.terminal.print_(self.filehandler.filepath)
+        elif arg == 'spellcheck':
+            active = 'Active' if self.spellchecker.spellcheck_active else 'Inactive'
+            language = self.spellchecker.language
+            self.terminal.print_('{}, language: {}'.format(active, language))
+        else:
+            self.terminal.error('Invalid argument')
+
+    def get_show_info_suggestions(self, name: str, text: str) -> List[Tuple[str, int]]:
+        return [(item, None) for item in ['file', 'spellcheck']
+                if item.startswith(text)]
 
     def go_to_chapter(self, arg: str) -> None:
         """
