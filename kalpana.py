@@ -48,7 +48,7 @@ class Kalpana(QtWidgets.QApplication):
         self.settings.reload_settings()
         self.settings.reload_stylesheet()
         if file_to_open:
-            self.controller.filehandler.open_file(file_to_open)
+            self.controller.filehandler.load_file_at_startup(file_to_open)
 
     def make_event_filter(self):
         class MainWindowEventFilter(QtCore.QObject):

@@ -17,6 +17,8 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import os.path
+import subprocess
+import sys
 
 from PyQt5 import QtCore
 
@@ -35,20 +37,45 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         self.kalpana_commands = [
                 Command('new-file', 'Create a new file. Filename is optional.',
                         self.new_file),
+                Command('new-file-in-new-window',
+                        'Create a new file. Filename is optional.',
+                        self.new_file_in_new_window),
                 Command('open-file', 'Open a file', self.open_file),
+                Command('open-file-in-new-window',
+                        'Open a file in a new window',
+                        self.open_file_in_new_window),
                 Command('save-file', 'Save the file', self.save_file),
         ]
         self.kalpana_autocompletion_patterns = [
                 AutocompletionPattern(name='new-file',
                                       prefix=r'new-file\s+',
                                       is_file_path=True),
+                AutocompletionPattern(name='new-file-in-new-window',
+                                      prefix=r'new-file-in-new-window\s+',
+                                      is_file_path=True),
                 AutocompletionPattern(name='open-file',
                                       prefix=r'open-file\s+',
+                                      is_file_path=True),
+                AutocompletionPattern(name='open-file-in-new-window',
+                                      prefix=r'open-file-in-new-window\s+',
                                       is_file_path=True),
                 AutocompletionPattern(name='save-file',
                                       prefix=r'save-file\s+',
                                       is_file_path=True),
         ]
+
+    def load_file_at_startup(self, filepath: str) -> None:
+        """
+        Initialize the filepath and textarea when the application starts.
+
+        This is a convenience method so you can create a new file with a
+        file name from the operating system's terminal or the
+        open_file_in_new_window command easily.
+        """
+        if os.path.exists(filepath):
+            self.open_file(filepath)
+        else:
+            self.new_file(filepath)
 
     def new_file(self, filepath: str) -> None:
         """
@@ -70,9 +97,19 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             self.filepath = filepath
         self.textarea.setPlainText('')
 
+    def new_file_in_new_window(self, filepath: str) -> None:
+        """Open a new file in a new instance of Kalpana."""
+        if os.path.exists(filepath):
+            self.error('File already exists')
+        else:
+            subprocess.Popen([sys.executable, sys.argv[0]] +
+                             ([filepath] if filepath else []))
+
     def open_file(self, filepath: str) -> None:
         """
         Open a file, unless there are unsaved changes.
+
+        This will only open files encoded in utf-8 or latin1.
         """
         if not os.path.isfile(filepath):
             self.error('The path is not a file')
@@ -90,6 +127,13 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         else:
             self.error('Unable to open the file')
             return
+
+    def open_file_in_new_window(self, filepath: str):
+        """Open an existing file in a new instance of Kalpana."""
+        if not filepath:
+            self.error('No file specified')
+        else:
+            subprocess.Popen([sys.executable, sys.argv[0], filepath])
 
     def save_file(self, filepath: str) -> None:
         if not filepath:
