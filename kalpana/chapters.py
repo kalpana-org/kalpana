@@ -1,7 +1,9 @@
 
 from typing import Any, List, Optional, Set, Sized
 
-from kalpana.settings import Configurable
+from PyQt5 import QtCore
+
+from kalpana.settings import KalpanaObject
 
 
 class Section(Sized):
@@ -53,12 +55,11 @@ class Chapter(Sized):
             return False
 
 
-class ChapterIndex(Configurable):
-
-    registered_settings = ['chapter-keyword']
+class ChapterIndex(QtCore.QObject, KalpanaObject):
 
     def __init__(self) -> None:
         super().__init__()
+        self.kalpana_settings = ['chapter-keyword']
         self.chapters = []  # type: List[Chapter]
         self.chapter_keyword = 'CHAPTER'
 

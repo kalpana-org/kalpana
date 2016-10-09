@@ -4,8 +4,8 @@ from typing import Any, List, Tuple
 
 from PyQt5 import QtCore
 
-from kalpana.common import Loggable
-from kalpana.settings import Configurable
+from kalpana.autocompletion import AutocompletionPattern
+from kalpana.common import Command, KalpanaObject
 from kalpana.textarea import TextArea
 
 
@@ -14,11 +14,25 @@ def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
             if lang.startswith(text)]
 
 
-class Spellchecker(QtCore.QObject, Configurable, Loggable):
+class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
-        self.registered_settings = ['spellcheck-active', 'spellcheck-language']
+        self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
+        self.kalpana_commands = [
+                Command('toggle-spellcheck', '', self.toggle_spellcheck,
+                        accept_args=False),
+                Command('set-spellcheck-language', '', self.set_language),
+                Command('suggest-spelling',
+                        'Print a list of possible spellings for the argument or the word under the cursor.',
+                        self.suggest),
+        ]
+        self.kalpana_autocompletion_patterns = [
+                AutocompletionPattern(name='set-spellcheck-language',
+                                      prefix=r'set-spellcheck-language\s+',
+                                      illegal_chars=' ',
+                                      get_suggestion_list=get_spellcheck_languages),
+        ]
         self.textarea = textarea
         self.language = 'en_US'
         self.language_dict = enchant.Dict(self.language)

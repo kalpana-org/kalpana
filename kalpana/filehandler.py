@@ -20,17 +20,35 @@ import os.path
 
 from PyQt5 import QtCore
 
-from kalpana.common import Loggable
+from kalpana.autocompletion import AutocompletionPattern
+from kalpana.common import Command, KalpanaObject
 from kalpana.textarea import TextArea
 
 
-class FileHandler(QtCore.QObject, Loggable):
+class FileHandler(QtCore.QObject, KalpanaObject):
     """Takes care of saving and opening files."""
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
         self.textarea = textarea
         self.filepath = None  # type: str
+        self.kalpana_commands = [
+                Command('new-file', 'Create a new file. Filename is optional.',
+                        self.new_file),
+                Command('open-file', 'Open a file', self.open_file),
+                Command('save-file', 'Save the file', self.save_file),
+        ]
+        self.kalpana_autocompletion_patterns = [
+                AutocompletionPattern(name='new-file',
+                                      prefix=r'new-file\s+',
+                                      is_file_path=True),
+                AutocompletionPattern(name='open-file',
+                                      prefix=r'open-file\s+',
+                                      is_file_path=True),
+                AutocompletionPattern(name='save-file',
+                                      prefix=r'save-file\s+',
+                                      is_file_path=True),
+        ]
 
     def new_file(self, filepath: str) -> None:
         """

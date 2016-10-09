@@ -21,13 +21,13 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from typing import Any, Callable, DefaultDict, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtProperty
 
 from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget, AutocompletionPattern
-from kalpana.settings import Configurable
+from kalpana.common import Command, KalpanaObject
 
 SuggestionListAlias = List[Tuple[str, int]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
@@ -40,16 +40,7 @@ class SuggestionType(IntEnum):
     history = 10
 
 
-class Command:
-    def __init__(self, name: str, help_text: str, callback: Callable,
-                 accept_args: bool = True) -> None:
-        self.name = name
-        self.help_text = help_text
-        self.callback = callback
-        self.accept_args = accept_args
-
-
-class Terminal(QtWidgets.QFrame, Configurable):
+class Terminal(QtWidgets.QFrame, KalpanaObject):
 
     class InputField(QtWidgets.QLineEdit, InputWidget):
         @property
@@ -75,7 +66,7 @@ class Terminal(QtWidgets.QFrame, Configurable):
         self.commands = {}  # type: Dict[str, Command]
         self.autocompletion_history = command_history.autocompletion_history
         self.command_frequency = command_history.command_frequency
-        self.registered_settings = ['visible-autocompletion-items']
+        self.kalpana_settings = ['visible-autocompletion-items']
         # Create the objects
         self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')

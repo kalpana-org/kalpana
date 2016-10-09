@@ -5,13 +5,13 @@ import os
 import os.path
 import re
 import sys
-from typing import Any, DefaultDict, Dict, Iterable, Match, MutableMapping, Optional
+from typing import Any, DefaultDict, Dict, Iterable, Match, Optional
 
 import yaml
 
 from PyQt5 import QtCore, QtGui
 
-from kalpana.common import Loggable
+from kalpana.common import KalpanaObject
 
 
 def default_config_dir() -> str:
@@ -41,21 +41,6 @@ def yaml_escape_unicode(text: str) -> str:
     return re.sub(r'[\ufffe-\U0001f9ff]', escape, text)
 
 
-class Configurable:
-    """An interface for any objects wants to use settings."""
-
-    registered_settings = []  # type: List[str]
-
-    def setting_changed(self, name: str, new_value: Any) -> None:
-        """
-        Set the setting's corresponding variable to the new value.
-
-        This is called any time the setting is changed. Since it does nothing
-        as it is, it should be implemented by all subclasses.
-        """
-        pass
-
-
 class CommandHistory:
 
     def __init__(self, config_dir: str) -> None:
@@ -83,7 +68,7 @@ class CommandHistory:
             f.write(json.dumps(data, sort_keys=True, indent=2))
 
 
-class Settings(QtCore.QObject, Loggable):
+class Settings(QtCore.QObject, KalpanaObject):
     """Loads and takes care of settings and stylesheets."""
 
     css_changed = QtCore.pyqtSignal(str)
@@ -95,7 +80,7 @@ class Settings(QtCore.QObject, Loggable):
             self.config_dir = default_config_dir()
         else:
             self.config_dir = config_dir
-        self.registered_settings = {}  # type: Dict[str, Configurable]
+        self.registered_settings = {}  # type: Dict[str, KalpanaObject]
         self.command_history = CommandHistory(self.config_dir)
         self.settings = None  # type: ChainMap
         self.key_bindings = {}  # type: Dict[int, str]
@@ -113,7 +98,7 @@ class Settings(QtCore.QObject, Loggable):
     def reload_stylesheet(self) -> None:
         self.css = self.load_stylesheet(self.config_dir)
 
-    def register_settings(self, names: Iterable[str], obj: Configurable) -> None:
+    def register_settings(self, names: Iterable[str], obj: KalpanaObject) -> None:
         """Register that an object is waiting for changes to a certain setting."""
         for name in names:
             self.registered_settings[name] = obj

@@ -22,15 +22,14 @@ import re
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 
-from kalpana.common import Loggable
+from kalpana.common import Command, KalpanaObject
 from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
-from kalpana.terminal import Terminal, Command
-from kalpana.autocompletion import AutocompletionPattern
+from kalpana.terminal import Terminal
 from kalpana.textarea import TextArea
 from kalpana.settings import Settings
-from kalpana.spellcheck import Spellchecker, get_spellcheck_languages
+from kalpana.spellcheck import Spellchecker
 
 
 class Controller:
@@ -44,25 +43,14 @@ class Controller:
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.textarea)
         self.set_keybindings()
-        self.connect_signals()
-        self.register_settings()
-        self.register_commands()
-        self.register_autocompletion_patterns()
+        self.connect_objects()
+        self.register_own_commands()
 
     def update_style(self) -> None:
         pass
 
-    def register_settings(self) -> None:
-        for obj in [self.chapter_index, self.terminal, self.textarea, self.spellchecker]:
-            self.settings.register_settings(obj.registered_settings, obj)
-
-    def register_commands(self) -> None:
+    def register_own_commands(self) -> None:
         commands = [
-                Command('new-file', 'Create a new file. Filename is optional.',
-                        self.filehandler.new_file),
-                Command('open-file', 'Open a file', self.filehandler.open_file),
-                Command('save-file', 'Save the file', self.filehandler.save_file),
-                Command('go-to-line', '', self.go_to_line),
                 Command('go-to-chapter', '', self.go_to_chapter),
                 Command('go-to-next-chapter', 'Jump to next chapter', self.go_to_next_chapter,
                         accept_args=False),
@@ -71,43 +59,12 @@ class Controller:
                 Command('word-count-total', '', self.count_total_words,
                         accept_args=False),
                 Command('word-count-chapter', '', self.count_chapter_words),
-                Command('set-textarea-max-width', 'Set the max width of the page',
-                        self.set_textarea_max_width),
-                Command('toggle-line-numbers', '', self.textarea.toggle_line_numbers,
-                        accept_args=False),
-                Command('insert-text', '', self.textarea.insertPlainText),
                 Command('reload-settings', '', self.settings.reload_settings,
                         accept_args=False),
                 Command('reload-stylesheet', '', self.settings.reload_stylesheet,
                         accept_args=False),
-                Command('search-and-replace', '', self.textarea.search_and_replace),
-                Command('search-next', '', self.textarea.search_next,
-                        accept_args=False),
-                Command('toggle-spellcheck', '', self.spellchecker.toggle_spellcheck,
-                        accept_args=False),
-                Command('set-spellcheck-language', '', self.spellchecker.set_language),
-                Command('suggest-spelling', 'Print a list of possible spellings for the argument or the word under the cursor.',
-                        self.spellchecker.suggest),
         ]
         self.terminal.register_commands(commands)
-
-    def register_autocompletion_patterns(self) -> None:
-        patterns = [
-                AutocompletionPattern(name='new-file',
-                                      prefix=r'new-file\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='open-file',
-                                      prefix=r'open-file\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='save-file',
-                                      prefix=r'save-file\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='set-spellcheck-language',
-                                      prefix=r'set-spellcheck-language\s+',
-                                      illegal_chars=' ',
-                                      get_suggestion_list=get_spellcheck_languages),
-        ]
-        self.terminal.register_autocompletion_patterns(patterns)
 
     def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):
@@ -126,11 +83,17 @@ class Controller:
         self.key_binding_event_filter = EventFilter()
         self.mainwindow.installEventFilter(self.key_binding_event_filter)
 
-    def connect_signals(self) -> None:
-        loggables = [self.textarea, self.filehandler, self.spellchecker]  # type: List[Loggable]
-        for widget in loggables:
-            widget.log_signal.connect(self.terminal.print_)
-            widget.error_signal.connect(self.terminal.error)
+    def connect_objects(self) -> None:
+        objects = [self.textarea, self.filehandler, self.spellchecker,
+                   self.chapter_index, self.settings, self.terminal]  # type: List[KalpanaObject]
+        for obj in objects:
+            if obj != self.terminal:
+                obj.log_signal.connect(self.terminal.print_)
+                obj.error_signal.connect(self.terminal.error)
+                self.terminal.register_commands(obj.kalpana_commands)
+                self.terminal.register_autocompletion_patterns(obj.kalpana_autocompletion_patterns)
+            if obj != self.settings:
+                self.settings.register_settings(obj.kalpana_settings, obj)
         misc_signals = [
             (self.textarea.textChanged, self.update_chapter_index),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
@@ -191,12 +154,6 @@ class Controller:
 
     # =========== COMMANDS ================================
 
-    def go_to_line(self, arg: str) -> None:
-        if not arg.isdecimal():
-            self.terminal.error('Argument has to be a number!')
-        else:
-            line = min(int(arg), self.textarea.document().blockCount())
-            self.textarea.center_on_line(line)
 
     def go_to_chapter(self, arg: str) -> None:
         """
@@ -257,13 +214,3 @@ class Controller:
             lines = self.textarea.toPlainText().split('\n')[first_line:last_line]
             words = len('\n'.join(lines).split())
             self.terminal.print_('Words in chapter {}: {}'.format(arg, words))
-
-    def set_textarea_max_width(self, arg: str) -> None:
-        if not arg.isdecimal():
-            self.terminal.error('Argument has to be a number!')
-            return
-        elif int(arg) < 1:
-            self.terminal.error('Width has to be at least 1!')
-            return
-        self.textarea.setMaximumWidth(int(arg))
-        self.terminal.print_('Max textarea width set to {} px'.format(arg))

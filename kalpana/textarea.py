@@ -21,15 +21,25 @@ import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from kalpana.settings import Configurable
-from kalpana.common import Loggable
+from kalpana.common import Command, KalpanaObject
 
 
-class TextArea(QtWidgets.QPlainTextEdit, Configurable, Loggable):
+class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        self.registered_settings = ['show-line-numbers']
+        self.kalpana_settings = ['show-line-numbers']
+        self.kalpana_commands = [
+                Command('go-to-line', '', self.go_to_line),
+                Command('set-textarea-max-width', 'Set the max width of the page',
+                        self.set_max_width),
+                Command('toggle-line-numbers', '', self.toggle_line_numbers,
+                        accept_args=False),
+                Command('insert-text', '', self.insertPlainText),
+                Command('search-and-replace', '', self.search_and_replace),
+                Command('search-next', '', self.search_next,
+                        accept_args=False),
+        ]
         self.line_number_bar = LineNumberBar(self)
         self.highlighter = Highlighter(self.document())
         self.search_buffer = None  # type: str
@@ -38,13 +48,22 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable, Loggable):
         if name == 'show-line-numbers':
             self.line_number_bar.setVisible(bool(new_value))
 
+    def set_max_width(self, arg: str) -> None:
+        if not arg.isdecimal():
+            self.error('Argument has to be a number!')
+        elif int(arg) < 1:
+            self.error('Width has to be at least 1!')
+        else:
+            self.setMaximumWidth(int(arg))
+            self.log('Max textarea width set to {} px'.format(arg))
+
+    def toggle_line_numbers(self) -> None:
+        self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
+
     def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
             self.setViewportMargins(0, 0, 0, 0)
         super().paintEvent(ev)
-        painter = QtGui.QPainter(self.viewport())
-        #painter.fillRect(0,0,400,400, QtCore.Qt.red)
-        painter.end()
         if self.line_number_bar.isVisible():
             self.line_number_bar.update()
 
@@ -53,8 +72,12 @@ class TextArea(QtWidgets.QPlainTextEdit, Configurable, Loggable):
         cursor.select(QtGui.QTextCursor.WordUnderCursor)
         return cursor.selectedText()
 
-    def toggle_line_numbers(self) -> None:
-        self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
+    def go_to_line(self, arg: str) -> None:
+        if not arg.isdecimal():
+            self.error('Argument has to be a number!')
+        else:
+            line = min(int(arg), self.document().blockCount())
+            self.center_on_line(line)
 
     def center_on_line(self, line: int) -> None:
         block = self.document().findBlockByNumber(line)
