@@ -28,7 +28,7 @@ from kalpana.chapters import ChapterIndex
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal
-from kalpana.textarea import TextArea
+from kalpana.textarea import TextArea, Highlighter, LineFormatData
 from kalpana.settings import Settings
 from kalpana.spellcheck import Spellchecker
 
@@ -43,6 +43,8 @@ class Controller:
         self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.settings.config_dir, self.textarea)
+        self.highlighter = Highlighter(self.textarea, self.chapter_index, self.spellchecker)
+        # self.textarea.highlighter = self.highlighter
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()
@@ -105,6 +107,7 @@ class Controller:
             if obj != self.settings:
                 self.settings.register_settings(obj.kalpana_settings, obj)
         misc_signals = [
+            (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (self.textarea.textChanged, self.update_chapter_index),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]  # type: List[Tuple[pyqtSignal, Callable]]
@@ -121,10 +124,7 @@ class Controller:
             self.terminal.input_field.setFocus()
 
     def update_chapter_index(self) -> None:
-        self.chapter_index.parse_document(self.textarea.toPlainText())
-
-    # def update_text_format(self, pos: int, removed: int, added: int) -> None:
-    #     print(self.textarea.toPlainText()[pos:pos+added])
+        self.chapter_index.update_line_index(self.textarea.document().firstBlock())
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,

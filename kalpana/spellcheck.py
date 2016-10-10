@@ -19,6 +19,8 @@ def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, int]]:
 
 class Spellchecker(QtCore.QObject, KalpanaObject):
 
+    rehighlight = QtCore.pyqtSignal()
+
     def __init__(self, config_dir: str, textarea: TextArea) -> None:
         super().__init__()
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
@@ -45,8 +47,6 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         os.makedirs(self.pwl_path, exist_ok=True)
         pwl = join(self.pwl_path, self.language + '.pwl')
         self.language_dict = enchant.DictWithPWL(self.language, pwl=pwl)
-        self.highlighter = self.textarea.highlighter
-        self.highlighter.spellcheck_word = self.check_word
         self.spellcheck_active = False
 
     def add_word(self, word: str) -> None:
@@ -58,7 +58,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         if not word:
             word = self.textarea.word_under_cursor()
         self.language_dict.add_to_pwl(word)
-        self.highlighter.rehighlight()
+        self.rehighlight.emit()
 
     def suggest(self, word: str) -> None:
         """Print spelling suggestions for a certain word."""
@@ -73,8 +73,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'spellcheck-active':
             self.spellcheck_active = bool(new_value)
-            self.highlighter.spellcheck_active = self.spellcheck_active
-            self.highlighter.rehighlight()
+            self.rehighlight.emit()
         elif name == 'spellcheck-language':
             self.set_language(str(new_value))
             # self.rehighlight()
@@ -90,9 +89,8 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             self.error('Invalid language: {}'.format(language))
         else:
             self.language = language
-            self.highlighter.rehighlight()
+            self.rehighlight.emit()
 
     def toggle_spellcheck(self) -> None:
         self.spellcheck_active = not self.spellcheck_active
-        self.highlighter.spellcheck_active = self.spellcheck_active
-        self.highlighter.rehighlight()
+        self.rehighlight.emit()
