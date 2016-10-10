@@ -1,7 +1,7 @@
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 import re
 
-SuggestionListAlias = List[Tuple[str, int]]
+SuggestionListAlias = List[Tuple[str, Optional[int]]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
 
 
@@ -84,7 +84,7 @@ class AutocompletionPattern:
         self.get_suggestion_list = get_suggestion_list
 
 
-def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
+def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, Optional[int]]]:
     import os
     import os.path
     full_path = os.path.abspath(os.path.expanduser(text))
@@ -102,18 +102,18 @@ def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, int]]:
 class SuggestionList():
 
     def __init__(self, list_widget: ListWidget, input_widget: InputWidget,
-                 run_command: Callable[[str, str], None]) -> None:
+                 run_command: Callable[[str, Optional[str]], None]) -> None:
         self.list_widget = list_widget
         self.input_widget = input_widget
         self.run_command = run_command
         self.command_help_texts = {}  # type: Dict[str, str]
         self.suggestions = []  # type: SuggestionListAlias
-        self.unautocompleted_cmd = None  # type: str
+        self.unautocompleted_cmd = None  # type: Optional[str]
         self.history = []  # type: SuggestionListAlias
         self.history_active = False
         self._selection = 0
         self.autocompletion_patterns = []  # type: List[AutocompletionPattern]
-        self.active_pattern = None  # type: str
+        self.active_pattern = ''  # type: str
         self.completable_span = (0, 0)
 
     @property
@@ -219,8 +219,8 @@ def _contains_illegal_chars(text: str, illegal_chars: str) -> bool:
 
 
 def _generate_suggestions(autocompletion_patterns: List[AutocompletionPattern],
-                          rawtext: str,
-                          rawpos: int) -> Tuple[SuggestionListAlias, Tuple[int, int], str]:
+                          rawtext: str, rawpos: int)\
+                          -> Tuple[SuggestionListAlias, Tuple[int, int], str]:
     for ac in autocompletion_patterns:
         prefix = re.match(ac.prefix, rawtext)
         if prefix is None:
@@ -244,4 +244,4 @@ def _generate_suggestions(autocompletion_patterns: List[AutocompletionPattern],
             continue
         normalized_span = (start+prefix_length, end+prefix_length)
         return ac.get_suggestion_list(ac.name, matchtext), normalized_span, ac.name
-    return [], (0, len(rawtext)), None
+    return [], (0, len(rawtext)), ''

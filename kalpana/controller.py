@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Callable, List, Tuple
+from typing import cast, Callable, List, Optional, Tuple
 import re
 
 from PyQt5 import QtCore, QtGui
@@ -177,7 +177,7 @@ class Controller:
         else:
             self.terminal.error('Invalid argument')
 
-    def get_show_info_suggestions(self, name: str, text: str) -> List[Tuple[str, int]]:
+    def get_show_info_suggestions(self, name: str, text: str) -> List[Tuple[str, Optional[int]]]:
         return [(item, None) for item in ['file', 'spellcheck']
                 if item.startswith(text)]
 

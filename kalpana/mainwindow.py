@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterable
+from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -27,9 +27,10 @@ class MainWindow(QtWidgets.QFrame):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        # self.setGraphicsEffect(QtWidgets.QGraphicsBlurEffect(self))
         self.stack = QtWidgets.QStackedWidget(self)
         layout.addWidget(self.stack)
-        self.terminal = None  # type: QtWidgets.QFrame
+        self.terminal = None  # type: Optional[QtWidgets.QFrame]
         self.show()
 
     def set_terminal(self, terminal: QtWidgets.QFrame) -> None:

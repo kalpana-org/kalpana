@@ -21,7 +21,7 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal, pyqtProperty
@@ -29,7 +29,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, pyqtProperty
 from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget, AutocompletionPattern
 from kalpana.common import Command, KalpanaObject
 
-SuggestionListAlias = List[Tuple[str, int]]
+SuggestionListAlias = List[Tuple[str, Optional[int]]]
+StrictSuggestionListAlias = List[Tuple[str, int]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
 
 
@@ -138,7 +139,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         else:
             self.parse_command(command_string, '')
 
-    def parse_command(self, text: str, unautocompleted_cmd: str) -> None:
+    def parse_command(self, text: str, unautocompleted_cmd: Optional[str]) -> None:
         chunks = text.split(None, 1)
         cmd_name = chunks[0]
         arg = chunks[1] if len(chunks) == 2 else ''
@@ -149,7 +150,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             if arg and not command.accept_args:
                 self.error('This command does not take any arguments!')
                 return
-            if unautocompleted_cmd and cmd_name != unautocompleted_cmd:
+            if unautocompleted_cmd is not None and cmd_name != unautocompleted_cmd:
                 self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
             self.command_frequency[cmd_name] += 1
             self.suggestion_list.history.append((text, SuggestionType.history))
@@ -278,7 +279,7 @@ class CompletionListWidget(QtWidgets.QFrame, ListWidget):
             pass
         self.help_text = CompletionListHelpText(self)
         self.help_text.setWordWrap(True)
-        self.suggestions = []  # type: SuggestionListAlias
+        self.suggestions = []  # type: StrictSuggestionListAlias
         self._selection = 0
         self.line_height = 0
         self.line_spacing = 0

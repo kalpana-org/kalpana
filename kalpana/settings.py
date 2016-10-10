@@ -5,7 +5,7 @@ import os
 import os.path
 import re
 import sys
-from typing import Any, DefaultDict, Dict, Iterable, Match, Optional
+from typing import Any, DefaultDict, Dict, Iterable, Mapping, Match, Optional
 
 import yaml
 
@@ -83,7 +83,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         os.makedirs(self.config_dir, exist_ok=True)
         self.registered_settings = {}  # type: Dict[str, KalpanaObject]
         self.command_history = CommandHistory(self.config_dir)
-        self.settings = None  # type: ChainMap
+        self.settings = ChainMap()  # type: Mapping[str, Any]
         self.key_bindings = {}  # type: Dict[int, str]
         self.terminal_key = -1
         self.css = ''
@@ -104,14 +104,14 @@ class Settings(QtCore.QObject, KalpanaObject):
         for name in names:
             self.registered_settings[name] = obj
 
-    def notify_settings_changes(self, new_settings: ChainMap) -> None:
+    def notify_settings_changes(self, new_settings: Mapping[str, Any]) -> None:
         """Send changed settings to the objects that registered them."""
         if new_settings:
             for setting, obj in self.registered_settings.items():
                 if not self.settings or (new_settings[setting] != self.settings[setting]):
                     obj.setting_changed(setting, new_settings[setting])
 
-    def load_settings(self, config_dir: str) -> ChainMap:
+    def load_settings(self, config_dir: str) -> Mapping[str, Any]:
         """Read and return the settings, with default values overriden."""
         default_config_path = local_path('default_settings.yaml')
         config_path = os.path.join(config_dir, 'settings.yaml')
@@ -148,7 +148,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.css_changed.emit(css)
         return css
 
-    def generate_key_bindings(self, settings: Dict) -> Dict[int, str]:
+    def generate_key_bindings(self, settings: Mapping[str, Any]) -> Dict[int, str]:
         """Return a dict with keycode and the command to run."""
         return {get_keycode(key): command
                 for key, command in settings['key-bindings'].items()}

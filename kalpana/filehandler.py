@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Optional
 import os.path
 import subprocess
 import sys
@@ -33,7 +34,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
         self.textarea = textarea
-        self.filepath = None  # type: str
+        self.filepath = None  # type: Optional[str]
         self.kalpana_commands = [
                 Command('new-file', 'Create a new file. Filename is optional.',
                         self.new_file),
@@ -149,12 +150,12 @@ class FileHandler(QtCore.QObject, KalpanaObject):
 
         Note that this always saves in utf-8, no matter the original encoding.
         """
-        if not filepath and not self.filepath:
+        if not filepath and self.filepath is None:
             self.error('No active file')
         elif filepath != self.filepath and os.path.exists(filepath):
             self.error('File already exists')
         else:
-            if filepath:
+            if self.filepath is None:
                 file_to_open = filepath
             else:
                 file_to_open = self.filepath

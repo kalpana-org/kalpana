@@ -31,13 +31,13 @@ class Section(Sized):
 
 class Chapter(Sized):
 
-    def __init__(self, title: str = None, complete: bool = False) -> None:
+    def __init__(self, title: Optional[str] = None, complete: bool = False) -> None:
         self.title = title
         self.complete = complete
         self.metadata_line_count = 0
-        self.desc = None  # type: str
-        self.time = None  # type: str
-        self.tags = None  # type: Set[str]
+        self.desc = None  # type: Optional[str]
+        self.time = None  # type: Optional[str]
+        self.tags = None  # type: Optional[Set[str]]
         self.sections = [Section()]  # type: List[Section]
 
     def __len__(self) -> int:

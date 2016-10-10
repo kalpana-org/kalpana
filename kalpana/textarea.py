@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -41,7 +41,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                         accept_args=False),
         ]
         self.line_number_bar = LineNumberBar(self)
-        self.search_buffer = None  # type: str
+        self.search_buffer = None  # type: Optional[str]
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'show-line-numbers':
@@ -165,6 +165,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         While this technically can be called from outside this class, it is
         not recommended (and most likely needs some modifications of the code.)
         """
+        if self.search_buffer is None:
+            return
         temp_cursor = self.textCursor()
         found = self.find(self.search_buffer, self.search_flags)
         if not found:
@@ -195,6 +197,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
         As with replace_next, you probably don't want to call this manually.
         """
+        if self.search_buffer is None:
+            return
         temp_cursor = self.textCursor()
         times = 0
         self.moveCursor(QtGui.QTextCursor.Start)
