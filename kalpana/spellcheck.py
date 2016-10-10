@@ -80,11 +80,14 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             # self.rehighlight()
 
     def set_language(self, language: str) -> None:
+        if not language:
+            self.error('No language specified')
+            return
         try:
             pwl = join(self.pwl_path, language + '.pwl')
             self.language_dict = enchant.DictWithPWL(language, pwl=pwl)
         except enchant.errors.DictNotFoundError:
-            self.error('invalid language: {}'.format(language))
+            self.error('Invalid language: {}'.format(language))
         else:
             self.language = language
             self.highlighter.rehighlight()
