@@ -1,7 +1,10 @@
+from enum import IntEnum
 from typing import Callable, Dict, List, Optional, Tuple
 import re
 
-SuggestionListAlias = List[Tuple[str, Optional[int]]]
+# from kalpana.common import SuggestionListAlias
+
+SuggestionListAlias = List[Tuple[str, Optional[IntEnum]]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
 
 
@@ -84,7 +87,7 @@ class AutocompletionPattern:
         self.get_suggestion_list = get_suggestion_list
 
 
-def autocomplete_file_path(name: str, text: str) -> List[Tuple[str, Optional[int]]]:
+def autocomplete_file_path(name: str, text: str) -> SuggestionListAlias:
     import os
     import os.path
     full_path = os.path.abspath(os.path.expanduser(text))
@@ -124,12 +127,12 @@ class SuggestionList():
     @selection.setter
     def selection(self, pos: int) -> None:
         self._selection = max(0, min(pos, len(self.suggestions)-1))
-        self.list_widget.selection = self._selection
         if not self.history and self.active_pattern == 'command':
             cmd = self.suggestions[self.selection][0]
             self.list_widget.set_help_text(self.command_help_texts.get(cmd, ''))
         else:
             self.list_widget.set_help_text('')
+        self.list_widget.selection = self._selection
 
     def up_pressed(self) -> None:
         """Should be called whenever the up key is pressed."""

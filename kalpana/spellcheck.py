@@ -7,11 +7,11 @@ from typing import Any, List, Optional, Tuple
 from PyQt5 import QtCore
 
 from kalpana.autocompletion import AutocompletionPattern
-from kalpana.common import Command, KalpanaObject
+from kalpana.common import Command, KalpanaObject, SuggestionListAlias
 from kalpana.textarea import TextArea
 
 
-def get_spellcheck_languages(name: str, text: str) -> List[Tuple[str, Optional[int]]]:
+def get_spellcheck_languages(name: str, text: str) -> SuggestionListAlias:
     """Return a list with the tags of all available spellcheck languages."""
     return [(lang, None) for lang in sorted(enchant.list_languages())
             if lang.startswith(text)]

@@ -29,42 +29,38 @@ QListView {
 }
 
 /* ============= AUTOCOMPLETION POPUP LIST============= */
-CompletionListWidget {
+CompletionListWidget, CompletionListHelpText {
   border: 2px solid black;
-  qproperty-item_spacing: 0px;
 }
 /* the completion list's horizontal scrollbar should always be hidden */
 CompletionListWidget QScrollBar:horizontal {
   height: 0px;
 }
-CompletionListHelpText {
-  background: #444;
-  border-bottom: 2px solid black;
+CompletionListWidget::item {
   padding: 2px;
 }
-CompletionListItem {
-  /* Note that due to how Qt works, margins are broken. */
-  margin: 0px;
-  padding: 3px 4px;
+CompletionListHelpText {
+  background: #444;
+  border-bottom: 0;
+  padding: 2px;
 }
 /* The size of items are always calculated from the default CompletionListItem,
    so any size changing options here will be buggy and/or ignored. */
-CompletionListItem#selected {
+#selected {
   /* This is drawn ON TOP OF the regular CompletionListItem. Use low opacity
      if you want the regular item's color to be visible. */
-  background: rgba(255, 255, 255, 24);
-  color: rgba(0,0,0,0);
+  background: rgba(255, 255, 255, 64);
 }
-CompletionListItem#history {
+#history {
   background: #1f2f36;
 }
-CompletionListItem#exact {
+#exact {
   background: #2d0347;
 }
-CompletionListItem#fuzzy {
+#fuzzy {
   background: #0d3013;
 }
-CompletionListItem#rest {
+#rest {
   background: #333333;
 }
 

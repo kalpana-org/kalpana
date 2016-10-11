@@ -23,7 +23,7 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 
 from kalpana.autocompletion import AutocompletionPattern
-from kalpana.common import Command, KalpanaObject
+from kalpana.common import Command, KalpanaObject, SuggestionListAlias
 from kalpana.chapters import ChapterIndex
 from kalpana.chapteroverview import ChapterOverview
 from kalpana.filehandler import FileHandler
@@ -56,7 +56,7 @@ class Controller:
 
     def register_own_commands(self) -> None:
         commands = [
-                Command('go-to-chapter', '', self.go_to_chapter),
+                Command('go-to-chapter', 'Jump to a specified chapter', self.go_to_chapter),
                 Command('go-to-next-chapter', 'Jump to next chapter', self.go_to_next_chapter,
                         accept_args=False),
                 Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
@@ -121,7 +121,7 @@ class Controller:
     def toggle_terminal(self) -> None:
         if self.terminal.input_field.hasFocus():
             if self.terminal.completer_popup.isVisible():
-                self.terminal.completer_popup.hide()
+                self.terminal.completer_popup.visible = False
             else:
                 self.mainwindow.setFocus()
         else:
@@ -191,7 +191,7 @@ class Controller:
         else:
             self.terminal.error('Invalid argument')
 
-    def get_show_info_suggestions(self, name: str, text: str) -> List[Tuple[str, Optional[int]]]:
+    def get_show_info_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         return [(item, None) for item in ['file', 'spellcheck']
                 if item.startswith(text)]
 

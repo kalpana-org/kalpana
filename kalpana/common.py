@@ -4,12 +4,15 @@ Classes and functions needed in multiple different modules.
 This is to avoid potential circular imports.
 """
 
-from typing import Any, Callable, List
+from enum import IntEnum
+from typing import Any, Callable, List, Optional, Tuple
 
 from PyQt5.QtCore import pyqtSignal
 
 from kalpana.autocompletion import AutocompletionPattern
 
+
+SuggestionListAlias = List[Tuple[str, Optional[IntEnum]]]
 
 class KalpanaObject:
     """
