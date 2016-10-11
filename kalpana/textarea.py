@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright nycz 2011-2016
 
 # This file is part of Kalpana.
@@ -16,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright nycz 2011-2016
 
 # This file is part of Kalpana.
@@ -21,15 +20,13 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSignal, pyqtProperty
+from PyQt5.QtCore import Qt, pyqtSignal
 
-from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget, AutocompletionPattern
-from kalpana.common import Command, KalpanaObject, SuggestionListAlias
-
-SuggestionCallback = Callable[[str, str], SuggestionListAlias]
+from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget
+from kalpana.common import AutocompletionPattern, Command, KalpanaObject, SuggestionListAlias
 
 
 class SuggestionType(IntEnum):

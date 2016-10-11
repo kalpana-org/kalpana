@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright nycz 2011-2016
 
 # This file is part of Kalpana.
@@ -16,20 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Callable, List, Optional, Tuple
+from typing import cast, Callable, List, Tuple
 import re
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
 
-from kalpana.autocompletion import AutocompletionPattern
-from kalpana.common import Command, KalpanaObject, SuggestionListAlias
 from kalpana.chapters import ChapterIndex
 from kalpana.chapteroverview import ChapterOverview
+from kalpana.common import AutocompletionPattern, Command, KalpanaObject, SuggestionListAlias
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal
-from kalpana.textarea import TextArea, Highlighter, LineFormatData
+from kalpana.textarea import TextArea, Highlighter
 from kalpana.settings import Settings
 from kalpana.spellcheck import Spellchecker
 

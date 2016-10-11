@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright nycz 2011-2016
 
 # This file is part of Kalpana.
@@ -23,8 +22,7 @@ import sys
 
 from PyQt5 import QtCore
 
-from kalpana.autocompletion import AutocompletionPattern
-from kalpana.common import Command, KalpanaObject
+from kalpana.common import AutocompletionPattern, Command, KalpanaObject
 from kalpana.textarea import TextArea
 
 

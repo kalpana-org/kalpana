@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright nycz 2011-2016
 
 # This file is part of Kalpana.
