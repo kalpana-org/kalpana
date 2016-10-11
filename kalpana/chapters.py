@@ -139,11 +139,14 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         desc = 0b00100
         tags = 0b01000
         time = 0b10000
+        meta = 0b100000
         ch_str = self.chapter_keyword
         if text == ch_str or text.startswith(ch_str+' ') or text.startswith(ch_str+'\t'):
             return chapter, 'chapter'
         elif text.startswith('<<') and text.rstrip().endswith('>>'):
             return section, 'section'
+        elif text.startswith('%%'):
+            return meta, 'meta'
         elif previous_state & chapter:
             if not previous_state & desc and text.startswith('[[') and text.rstrip().endswith(']]'):
                 return previous_state | desc, 'desc'

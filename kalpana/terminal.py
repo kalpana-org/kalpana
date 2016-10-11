@@ -278,6 +278,7 @@ class CompletionListWidget(QtWidgets.QListWidget, ListWidget):
         self.input_field = input_field
         self.mainwindow = mainwindow
         self.max_visible_lines = 6
+        # These are here to make styling easier
         names = ['history', 'exact', 'fuzzy', 'rest', 'selected']
         self._list_item_bases = {name: list_item(name) for name in names}
         class CompletionListHelpText(QtWidgets.QLabel):

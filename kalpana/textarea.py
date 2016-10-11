@@ -232,36 +232,69 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         self.chapter_index = chapter_index
         self.spellchecker = spellchecker
 
+    def utf16_len(self, text: str) -> int:
+        """Adjust for the UTF-16 backend Qt uses."""
+        return len(re.sub(r'[\uffff-\U0010ffff]', 'xx', text))
+
     def highlightBlock(self, text: str) -> None:
-        def utf16_len(text: str) -> int:
-            """Adjust for the UTF-16 backend Qt uses."""
-            return len(re.sub(r'[\uffff-\U0010ffff]', 'xx', text))
         state, line_format = self.chapter_index.parse_line(text, self.previousBlockState())
         self.setCurrentBlockState(state)
         self.setCurrentBlockUserData(LineFormatData(line_format))
+        fg = self.textarea.palette().windowText().color()
         if line_format:
-            f = QtGui.QTextCharFormat()
-            fg = self.textarea.palette().windowText().color()
-            if line_format == 'chapter':
-                f.setFontPointSize(16)
-                f.setFontWeight(QtGui.QFont.Bold)
-            elif line_format == 'section':
-                fg.setAlphaF(0.5)
-                f.setFontWeight(QtGui.QFont.Bold)
-                f.setForeground(QtGui.QBrush(fg))
-            elif line_format in ('desc', 'tags', 'time'):
-                fg.setAlphaF(0.3)
-                f.setForeground(QtGui.QBrush(fg))
-            self.setFormat(0, utf16_len(text), f)
+            self.highlight_lines(text, line_format, fg)
             return
+        self.highlight_text_formatting(text, fg)
         if self.spellchecker.spellcheck_active:
-            f = QtGui.QTextCharFormat()
-            f.setUnderlineColor(QtCore.Qt.red)
-            f.setUnderlineStyle(QtGui.QTextCharFormat.WaveUnderline)
-            for chunk in re.finditer(r"[\w-]+(?:'\w+)?", text):
-                if chunk and re.search(r'\w', chunk.group()):
-                    if not self.spellchecker.check_word(chunk.group()):
-                        self.setFormat(chunk.start(), chunk.end()-chunk.start(), f)
+            self.highlight_spelling(text)
+
+    def highlight_lines(self, text: str, line_format: str, fg: QtGui.QColor) -> None:
+        """Apply formatting to metadata lines (chapter headers, etc)."""
+        f = QtGui.QTextCharFormat()
+        if line_format == 'chapter':
+            f.setFontPointSize(16)
+            f.setFontWeight(QtGui.QFont.Bold)
+        elif line_format == 'section':
+            fg.setAlphaF(0.5)
+            f.setFontWeight(QtGui.QFont.Bold)
+            f.setForeground(QtGui.QBrush(fg))
+        elif line_format in ('desc', 'tags', 'time'):
+            fg.setAlphaF(0.3)
+            f.setForeground(QtGui.QBrush(fg))
+        elif line_format == 'meta':
+            fg.setAlphaF(0.15)
+            f.setForeground(QtGui.QBrush(fg))
+        self.setFormat(0, self.utf16_len(text), f)
+
+    def highlight_text_formatting(self, text: str, fg: QtGui.QColor) -> None:
+        """Apply rich text formatting, such as bold or italic text."""
+        faded = QtGui.QTextCharFormat()
+        fg.setAlphaF(0.5)
+        faded.setForeground(QtGui.QBrush(fg))
+        if '/' in text:
+            italic = QtGui.QTextCharFormat()
+            italic.setFontItalic(True)
+            for chunk in re.finditer(r'/[^/]*/', text):
+                self.setFormat(chunk.start(), 1, faded)
+                self.setFormat(chunk.end()-1, 1, faded)
+                self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, italic)
+        if '*' in text:
+            bold = QtGui.QTextCharFormat()
+            bold.setFontWeight(QtGui.QFont.Bold)
+            for chunk in re.finditer(r'\*[^\*]*\*', text):
+                self.setFormat(chunk.start(), 1, faded)
+                self.setFormat(chunk.end()-1, 1, faded)
+                self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, bold)
+
+    def highlight_spelling(self, text: str) -> None:
+        """Highlight misspelled words."""
+        f = QtGui.QTextCharFormat()
+        f.setUnderlineColor(QtCore.Qt.red)
+        f.setUnderlineStyle(QtGui.QTextCharFormat.WaveUnderline)
+        for chunk in re.finditer(r"[\w-]+(?:'\w+)?", text):
+            if chunk and re.search(r'\w', chunk.group()):
+                if not self.spellchecker.check_word(chunk.group()):
+                    self.setFormat(chunk.start(), chunk.end()-chunk.start(), f)
 
 
 class LineNumberBar(QtWidgets.QFrame):
