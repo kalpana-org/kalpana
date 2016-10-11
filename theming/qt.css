@@ -28,6 +28,7 @@ QListView {
   border: 2px solid black;
 }
 
+/* ============= AUTOCOMPLETION POPUP LIST============= */
 CompletionListWidget {
   border: 2px solid black;
   qproperty-item_spacing: 0px;
@@ -67,7 +68,49 @@ CompletionListItem#rest {
   background: #333333;
 }
 
-/* Scrollbars */
+/* ================= CHAPTER OVERVIEW ================= */
+ChapterOverview {
+  max-width: 1000px;
+}
+ChapterItem {
+  margin-top: 0px;
+  padding: 5px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(255, 255, 255, 30);
+}
+/* Disabled chapters means they're completed. thx qt for hardcoding pseudo-states */
+ChapterItem QLabel {
+  background: rgba(0, 0, 0, 0);
+}
+SectionItem {
+  background: rgba(255, 255, 255, 10);
+  margin: 4px;
+  padding: 1px 4px;
+}
+#num {
+  color: rgba(255, 255, 255, 128);
+  font-size: 13px;
+  font-style: italic;
+  margin-right: 5px;
+}
+#title {
+  font-size: 16px;
+  font-weight: bold;
+}
+#desc {
+  color: rgba(255, 255, 255, 192);
+  font-size: 14px;
+}
+#length {
+  color: rgba(255, 255, 255, 120);
+  font-size: 14px;
+  margin-left: 1px;
+}
+#time {
+  color: rgba(255, 255, 255, 120);
+}
+
+/* ================= SCROLLBARS ======================= */
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
   background: black;
 }

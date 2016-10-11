@@ -20,6 +20,7 @@ from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 
+from kalpana.chapteroverview import ChapterOverview
 from kalpana.textarea import TextArea
 from kalpana.terminal import Terminal
 from kalpana.controller import Controller
@@ -36,13 +37,15 @@ class Kalpana(QtWidgets.QApplication):
         self.settings = Settings(config_dir)
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
+        self.chapter_overview = ChapterOverview(self.mainwindow)
         self.terminal = Terminal(self.mainwindow, self.settings.command_history)
         self.mainwindow.set_terminal(self.terminal)
-        self.mainwindow.add_stack_widgets([self.textarea])
+        self.mainwindow.add_stack_widgets([self.textarea, self.chapter_overview])
         self.controller = Controller(self.mainwindow,
                                      self.textarea,
                                      self.terminal,
-                                     self.settings)
+                                     self.settings,
+                                     self.chapter_overview)
         self.make_event_filter()
         self.settings.css_changed.connect(self.setStyleSheet)
         self.settings.reload_settings()

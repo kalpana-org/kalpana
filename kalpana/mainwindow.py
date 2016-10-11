@@ -16,28 +16,45 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Iterable, Optional
+from typing import cast, List, Optional, Union
 
 from PyQt5 import QtCore, QtWidgets
 
+from kalpana.chapteroverview import ChapterOverview
+from kalpana.terminal import Terminal
+from kalpana.textarea import TextArea
+
+InnerStackWidget = Union[ChapterOverview, TextArea]
+
 
 class MainWindow(QtWidgets.QFrame):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self) -> None:
+        super().__init__()
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        # self.setGraphicsEffect(QtWidgets.QGraphicsBlurEffect(self))
         self.stack = QtWidgets.QStackedWidget(self)
         layout.addWidget(self.stack)
-        self.terminal = None  # type: Optional[QtWidgets.QFrame]
+        self.stack_wrappers = {}  # type: Dict[int, QtWidgets.QFrame]
+        self.terminal = None  # type: Optional[Terminal]
         self.show()
 
-    def set_terminal(self, terminal: QtWidgets.QFrame) -> None:
+    @property
+    def active_stack_widget(self) -> InnerStackWidget:
+        """Return the stack's actual active widget (not the wrapper)."""
+        return cast(InnerStackWidget, self.stack.currentWidget().layout().itemAt(1).widget())
+
+    @active_stack_widget.setter
+    def active_stack_widget(self, widget: InnerStackWidget):
+        """Set the stack's active widget to the wrapper of the argument."""
+        self.stack.setCurrentWidget(self.stack_wrappers[id(widget)])
+
+    def set_terminal(self, terminal: Terminal) -> None:
         self.terminal = terminal
         self.layout().addWidget(terminal)
 
-    def add_stack_widgets(self, widgets: Iterable[QtWidgets.QFrame]) -> None:
+    def add_stack_widgets(self, widgets: List[InnerStackWidget]) -> None:
+        """Add the widgets to the stack."""
         for widget in widgets:
             wrapper = QtWidgets.QFrame(self)
             layout = QtWidgets.QHBoxLayout(wrapper)
@@ -45,11 +62,12 @@ class MainWindow(QtWidgets.QFrame):
             layout.addStretch()
             layout.addWidget(widget, stretch=1)
             layout.addStretch()
+            self.stack_wrappers[id(widget)] = wrapper
             self.stack.addWidget(wrapper)
 
     def setFocus(self) -> None:
         if self.stack.count() > 0:
-            self.stack.currentWidget().layout().itemAt(1).widget().setFocus()
+            self.active_stack_widget.setFocus()
         else:
             super().setFocus()
 

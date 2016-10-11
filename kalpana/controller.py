@@ -25,6 +25,7 @@ from PyQt5.QtCore import pyqtSignal
 from kalpana.autocompletion import AutocompletionPattern
 from kalpana.common import Command, KalpanaObject
 from kalpana.chapters import ChapterIndex
+from kalpana.chapteroverview import ChapterOverview
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal
@@ -35,16 +36,17 @@ from kalpana.spellcheck import Spellchecker
 
 class Controller:
     def __init__(self, mainwindow: MainWindow, textarea: TextArea,
-                 terminal: Terminal, settings: Settings) -> None:
+                 terminal: Terminal, settings: Settings,
+                 chapter_overview: ChapterOverview) -> None:
         self.mainwindow = mainwindow
         self.textarea = textarea
         self.terminal = terminal
         self.settings = settings
+        self.chapter_overview = chapter_overview
         self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.settings.config_dir, self.textarea)
         self.highlighter = Highlighter(self.textarea, self.chapter_index, self.spellchecker)
-        # self.textarea.highlighter = self.highlighter
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()
@@ -68,6 +70,8 @@ class Controller:
                         accept_args=False),
                 Command('show-info', 'Show information about the open file or the session.',
                         self.show_info),
+                Command('toggle-chapter-overview', '', self.toggle_chapter_overview,
+                        accept_args=False),
         ]
         self.terminal.register_commands(commands)
         autocompletion_patterns = [
@@ -125,6 +129,7 @@ class Controller:
 
     def update_chapter_index(self) -> None:
         self.chapter_index.update_line_index(self.textarea.document().firstBlock())
+        self.chapter_overview.load_chapter_data(self.chapter_index.chapters)
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,
@@ -163,6 +168,15 @@ class Controller:
         self.textarea.setUndoRedoEnabled(True)
 
     # =========== COMMANDS ================================
+
+    def toggle_chapter_overview(self) -> None:
+        if self.mainwindow.active_stack_widget == self.textarea:
+            if not self.chapter_overview.empty:
+                self.mainwindow.active_stack_widget = self.chapter_overview
+            else:
+                self.terminal.error('No chapters to show')
+        elif self.mainwindow.active_stack_widget == self.chapter_overview:
+            self.mainwindow.active_stack_widget = self.textarea
 
     def show_info(self, arg: str) -> None:
         if arg == 'file':
