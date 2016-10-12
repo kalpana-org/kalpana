@@ -99,7 +99,8 @@ class Controller:
 
     def connect_objects(self) -> None:
         objects = [self.textarea, self.filehandler, self.spellchecker,
-                   self.chapter_index, self.settings, self.terminal]  # type: List[KalpanaObject]
+                   self.chapter_index, self.settings, self.terminal,
+                   self.mainwindow]  # type: List[KalpanaObject]
         for obj in objects:
             if obj != self.terminal:
                 obj.log_signal.connect(self.terminal.print_)
@@ -115,6 +116,7 @@ class Controller:
         misc_signals = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (self.textarea.textChanged, self.update_chapter_index),
+            (self.textarea.modificationChanged, self.mainwindow.modification_changed),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]  # type: List[Tuple[pyqtSignal, Callable]]
         for signal, slot in misc_signals:
