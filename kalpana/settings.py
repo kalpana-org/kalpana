@@ -129,6 +129,8 @@ class Settings(QtCore.QObject, KalpanaObject):
     def change_setting(self, name: str, new_value: Any) -> None:
         # TODO: warning if the setting doesn't exist?
         self.settings[name] = new_value
+        if not self.active_file:
+            return
         all_files_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
         all_files_config = self._load_yaml_file('file', all_files_config_path)
         if all_files_config is None:
