@@ -212,7 +212,10 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         diffs = {Qt.Key_PageUp: -1, Qt.Key_PageDown: 1}
         if event.key() in diffs:
             if self.completer_popup.isVisible():
-                self.completer_popup.scroll_view(diffs[event.key()], page=True)
+                diff = diffs[event.key()]
+                jump = min(self.completer_popup.count(),
+                           self.completer_popup.max_visible_lines) - 1
+                self.suggestion_list.selection += diff * jump
                 event.accept()
             elif self.log_history.isVisible():
                 sb = self.log_history.verticalScrollBar()
