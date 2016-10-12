@@ -27,7 +27,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        self.kalpana_settings = ['show-line-numbers']
+        self.kalpana_settings = ['show-line-numbers', 'max-textarea-width']
         self.kalpana_commands = [
                 Command('go-to-line', '', self.go_to_line),
                 Command('set-textarea-max-width', 'Set the max width of the page',
@@ -46,15 +46,24 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'show-line-numbers':
             self.line_number_bar.setVisible(bool(new_value))
+        elif name == 'max-textarea-width':
+            width = int(new_value)
+            if width < 1:
+                self.error('Width has to be at least 1!')
+            else:
+                self.setMaximumWidth(width)
 
     def set_max_width(self, arg: str) -> None:
         if not arg.isdecimal():
             self.error('Argument has to be a number!')
-        elif int(arg) < 1:
-            self.error('Width has to be at least 1!')
         else:
-            self.setMaximumWidth(int(arg))
-            self.log('Max textarea width set to {} px'.format(arg))
+            width = int(arg)
+            if width < 1:
+                self.error('Width has to be at least 1!')
+            else:
+                self.setMaximumWidth(width)
+                self.log('Max textarea width set to {} px'.format(width))
+                self.change_setting('max-textarea-width', self.maximumWidth())
 
     def toggle_line_numbers(self) -> None:
         self.line_number_bar.setVisible(not self.line_number_bar.isVisible())

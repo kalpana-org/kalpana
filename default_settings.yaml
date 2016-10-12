@@ -9,3 +9,4 @@ chapter-keyword: CHAPTER
 visible-autocompletion-items: 6
 spellcheck-active: false
 spellcheck-language: en_US
+max-textarea-width: 1000
