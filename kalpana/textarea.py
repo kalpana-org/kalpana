@@ -58,6 +58,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
     def toggle_line_numbers(self) -> None:
         self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
+        self.change_setting('show-line-numbers', self.line_number_bar.isVisible())
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():

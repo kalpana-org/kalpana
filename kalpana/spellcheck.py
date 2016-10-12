@@ -90,9 +90,14 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             self.spellcheck_active = bool(new_value)
             self.rehighlight.emit()
         elif name == 'spellcheck-language':
-            self.set_language(str(new_value))
+            self._change_language(str(new_value))
 
     def set_language(self, language: str) -> None:
+        """Set the language. (callback for the terminal command)"""
+        self._change_language(language)
+        self.change_setting('spellcheck-language', self.language)
+
+    def _change_language(self, language: str) -> None:
         if not language:
             self.error('No language specified')
             return
@@ -107,4 +112,5 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def toggle_spellcheck(self) -> None:
         self.spellcheck_active = not self.spellcheck_active
+        self.change_setting('spellcheck-active', self.spellcheck_active)
         self.rehighlight.emit()
