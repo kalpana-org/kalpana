@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Optional
+from typing import cast, Optional
 import os.path
 import subprocess
 import sys
@@ -135,10 +135,11 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         elif not os.path.isfile(filepath):
             self.error('The path is not a file')
         else:
-            for e in ('utf-8', 'latin1'):
+            encodings = ['utf-8', 'latin1']
+            for e in encodings:
                 try:
                     with open(filepath, encoding=e) as f:
-                        text = f.read()
+                        text = cast(str, f.read())
                 except UnicodeDecodeError:
                     continue
                 else:
@@ -150,7 +151,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             else:
                 self.error('Unable to open the file: {}'.format(filepath))
 
-    def open_file_in_new_window(self, filepath: str):
+    def open_file_in_new_window(self, filepath: str) -> None:
         """Open an existing file in a new instance of Kalpana."""
         if not filepath:
             self.error('No file specified')

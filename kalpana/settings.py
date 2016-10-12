@@ -154,7 +154,7 @@ class Settings(QtCore.QObject, KalpanaObject):
                 if not self.settings or (new_settings[setting] != self.settings[setting]):
                     obj.setting_changed(setting, new_settings[setting])
 
-    def _load_yaml_file(self, config_path: str) -> Dict:
+    def _load_yaml_file(self, config_path: str) -> Dict[str, Any]:
         """
         Load a yaml config file.
 
@@ -181,18 +181,18 @@ class Settings(QtCore.QObject, KalpanaObject):
         with open(default_config_path) as f:
             default_config = cast(dict, yaml.load(f.read()))
         # Global config
+        global_config = {}  # type: Dict[str, Any]
         try:
             global_config = self._load_yaml_file(global_config_path)
         except yaml.YAMLError as e:
             self.error('Invalid yaml in the global config: {}'.format(e))
-            global_config = {}
         # File specific config
+        file_config = {}  # type: Dict[str, Any]
         try:
             all_files_config = self._load_yaml_file(all_files_config_path)
             file_config = all_files_config.get(self.active_file, {})
         except yaml.YAMLError as e:
             self.error('Invalid yaml in the file config: {}'.format(e))
-            file_config = {}
         new_settings = ChainMap(file_config, global_config, default_config)
         self.notify_settings_changes(new_settings)
         return new_settings
@@ -200,11 +200,11 @@ class Settings(QtCore.QObject, KalpanaObject):
     def load_stylesheet(self, config_dir: str) -> str:
         """Read and return the stylesheet."""
         with open(local_path('theming', 'qt.css')) as f:
-            default_css = f.read()  # type: str
+            default_css = cast(str, f.read())
         css_path = os.path.join(config_dir, 'qt.css')
         try:
             with open(css_path) as f:
-                user_css = f.read()  # type: str
+                user_css = cast(str, f.read())
         except OSError:
             # No file present which is perfectly fine
             user_css = ''

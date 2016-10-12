@@ -61,7 +61,7 @@ class Chapter(Sized):
         return self.metadata_line_count + sum(map(len, self.sections))
 
     def __repr__(self) -> str:
-        def cap(text, length):
+        def cap(text: Optional[str], length: int) -> str:
             if text is None:
                 return ''
             elif len(text) <= length:

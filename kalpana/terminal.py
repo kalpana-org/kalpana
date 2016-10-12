@@ -20,13 +20,14 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import cast, Any, Callable, Dict, Iterable, Optional, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal
 
 from kalpana.autocompletion import SuggestionList, ListWidget, InputWidget
 from kalpana.common import AutocompletionPattern, Command, KalpanaObject, SuggestionListAlias
+from kalpana.settings import CommandHistory
 
 
 class SuggestionType(IntEnum):
@@ -61,13 +62,14 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         def cursor_position(self, pos: int) -> None:
             self.setCursorPosition(pos)
 
-        def setFocus(self):
+        def setFocus(self) -> None:
             self.parentWidget().show()
             super().setFocus()
 
     error_triggered = pyqtSignal()
 
-    def __init__(self, parent: QtWidgets.QFrame, command_history) -> None:
+    def __init__(self, parent: QtWidgets.QFrame,
+                 command_history: CommandHistory) -> None:
         super().__init__(parent)
         self.commands = {}  # type: Dict[str, Command]
         self.autocompletion_history = command_history.autocompletion_history
@@ -113,7 +115,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         for command in command_list:
             self.register_command(command)
 
-    def register_autocompletion_pattern(self, pattern: AutocompletionPattern):
+    def register_autocompletion_pattern(self, pattern: AutocompletionPattern) -> None:
         self.suggestion_list.add_autocompletion_pattern(pattern)
 
     def register_autocompletion_patterns(self, pattern_list: Iterable[AutocompletionPattern]) -> None:
@@ -180,7 +182,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             else:
                 command.callback()
 
-    def parse_confirmation(self, text: str):
+    def parse_confirmation(self, text: str) -> None:
         if self.confirmation_callback is None:
             return
         self.waiting_for_confirmation = False
@@ -208,18 +210,18 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         return [(cmd, type_) for cmd, num, type_
                 in sorted(suggestions, key=itemgetter(*[2, 1, 0]))]
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         diffs = {Qt.Key_PageUp: -1, Qt.Key_PageDown: 1}
         if event.key() in diffs:
+            diff = diffs[cast(Qt.Key, event.key())]
             if self.completer_popup.isVisible():
-                diff = diffs[event.key()]
                 jump = min(self.completer_popup.count(),
                            self.completer_popup.max_visible_lines) - 1
                 self.suggestion_list.selection += diff * jump
                 event.accept()
             elif self.log_history.isVisible():
                 sb = self.log_history.verticalScrollBar()
-                sb.setValue(sb.value() + sb.pageStep()*diffs[event.key()])
+                sb.setValue(sb.value() + sb.pageStep() * diff)
                 event.accept()
         super().keyPressEvent(event)
 
@@ -231,23 +233,22 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             down_pressed = pyqtSignal()
             page_up_pressed = pyqtSignal()
             page_down_pressed = pyqtSignal()
-
-            def eventFilter(self_, obj, ev):
+            def eventFilter(self_, obj: object, event: QtCore.QEvent) -> bool:
                 catch_keys = [
                     (Qt.Key_Backtab, Qt.ShiftModifier, self_.backtab_pressed),
                     (Qt.Key_Tab, Qt.NoModifier, self_.tab_pressed),
                     (Qt.Key_Up, Qt.NoModifier, self_.up_pressed),
                     (Qt.Key_Down, Qt.NoModifier, self_.down_pressed),
                 ]
-                if ev.type() == QtCore.QEvent.KeyPress:
+                if event.type() == QtCore.QEvent.KeyPress:
+                    key_event = cast(QtGui.QKeyEvent, event)
                     for key, mod, signal in catch_keys:
-                        if ev.key() == key and ev.modifiers() == mod:
+                        if key_event.key() == key and key_event.modifiers() == mod:
                             signal.emit()
                             return True
-                elif ev.type() == QtCore.QEvent.Paint:
+                elif event.type() == QtCore.QEvent.Paint:
                     self.completer_popup.update()
                 return False
-
         self.term_event_filter = EventFilter()
         self.input_field.installEventFilter(self.term_event_filter)
         self.term_event_filter.tab_pressed.connect(self.suggestion_list.tab_pressed)
@@ -310,7 +311,7 @@ class CompletionListWidget(QtWidgets.QListWidget, ListWidget):
     def __init__(self, mainwindow: QtWidgets.QFrame,
                  input_field: QtWidgets.QLineEdit) -> None:
         super().__init__(mainwindow)
-        def list_item(name):
+        def list_item(name: str) -> QtWidgets.QLabel:
             widget = QtWidgets.QLabel()
             widget.setObjectName(name)
             widget.hide()
@@ -332,7 +333,7 @@ class CompletionListWidget(QtWidgets.QListWidget, ListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self._install_geometry_filters()
 
-    def sizeHint(self):
+    def sizeHint(self) -> QtCore.QSize:
         left, top, right, bottom = self.getContentsMargins()
         visible_lines = min(self.count(), self.max_visible_lines)
         scrollbar_width = (self.verticalScrollBar().width()
@@ -384,10 +385,10 @@ class CompletionListWidget(QtWidgets.QListWidget, ListWidget):
         b = color1.blueF()*(1-a) + color2.blueF()*a
         return QtGui.QColor(int(r*255), int(g*255), int(b*255))
 
-    def item_background(self, name):
+    def item_background(self, name: str) -> QtGui.QBrush:
         return self._list_item_bases[name].palette().window()
 
-    def item_foreground(self, name):
+    def item_foreground(self, name: str) -> QtGui.QBrush:
         return self._list_item_bases[name].palette().windowText()
 
     def set_suggestions(self, suggestions: SuggestionListAlias,

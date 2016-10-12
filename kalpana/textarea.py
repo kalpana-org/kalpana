@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, List, Optional
+from typing import cast, Any, List, Match, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -42,6 +42,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.hr_blocks = []  # type: List[QtGui.QTextBlock]
         self.line_number_bar = LineNumberBar(self)
         self.search_buffer = None  # type: Optional[str]
+        self.search_flags = QtGui.QTextDocument.FindFlag()
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'show-line-numbers':
@@ -77,7 +78,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         if self.line_number_bar.isVisible():
             self.line_number_bar.update()
 
-    def draw_horizontal_ruler(self):
+    def draw_horizontal_ruler(self) -> None:
         painter = QtGui.QPainter(self.viewport())
         pagebottom = self.viewport().height()
         viewport_offset = self.contentOffset()
@@ -91,9 +92,9 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             if rect.y() > pagebottom:
                 break
             if block in self.hr_blocks and block != self.textCursor().block():
-                x1 = rect.x() + rect.width()*hrmargin
-                x2 = rect.x() + rect.width()*(1-hrmargin)
-                y = rect.y() + rect.height()*0.5
+                x1 = int(rect.x() + rect.width()*hrmargin)
+                x2 = int(rect.x() + rect.width()*(1-hrmargin))
+                y = int(rect.y() + rect.height()*0.5)
                 painter.drawLine(x1, y, x2, y)
             block = block.next()
         painter.end()
@@ -121,16 +122,17 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.line_number_bar.setFixedHeight(self.height())
 
     def search_and_replace(self, text: str) -> None:
-        def generate_flags(flagstr):
+        def generate_flags(flagstr: str) -> None:
             # self.search_flags is automatically generated and does not
             # need to be initialized in __init__()
-            self.search_flags = QtGui.QTextDocument.FindFlags()
+            search_flags = 0
             if 'b' in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindBackward
+                search_flags |= QtGui.QTextDocument.FindBackward
             if 'i' not in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindCaseSensitively
+                search_flags |= QtGui.QTextDocument.FindCaseSensitively
             if 'w' in flagstr:
-                self.search_flags |= QtGui.QTextDocument.FindWholeWords
+                search_flags |= QtGui.QTextDocument.FindWholeWords
+            self.search_flags = cast(QtGui.QTextDocument.FindFlag, search_flags)
         search_rx = re.compile(r'/([^/]|\\/)+$')
         search_flags_rx = re.compile(r'/([^/]|\\/)*?([^\\]/[biw]*)$')
         replace_rx = re.compile(r"""
@@ -332,7 +334,7 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         faded = QtGui.QTextCharFormat()
         fg.setAlphaF(0.5)
         faded.setForeground(QtGui.QBrush(fg))
-        def set_format(chunk, f):
+        def set_format(chunk: Match[str], f: QtGui.QTextCharFormat) -> None:
             self.setFormat(chunk.start(), chunk.end()-chunk.start(), faded)
             self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, f)
         f = QtGui.QTextCharFormat()

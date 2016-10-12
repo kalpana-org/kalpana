@@ -49,7 +49,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         return cast(InnerStackWidget, self.stack.currentWidget().layout().itemAt(1).widget())
 
     @active_stack_widget.setter
-    def active_stack_widget(self, widget: InnerStackWidget):
+    def active_stack_widget(self, widget: InnerStackWidget) -> None:
         """Set the stack's active widget to the wrapper of the argument."""
         self.stack.setCurrentWidget(self.stack_wrappers[id(widget)])
 
@@ -61,11 +61,11 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         else:
             super().closeEvent(event)
 
-    def force_close(self, _) -> None:
+    def force_close(self, arg: str) -> None:
         self.force_close_flag = True
         self.close()
 
-    def update_window_title(self):
+    def update_window_title(self) -> None:
         title = '*{}*'.format(self.title) if self.modified else self.title
         self.setWindowTitle(title)
 

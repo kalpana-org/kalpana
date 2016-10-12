@@ -16,7 +16,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from itertools import zip_longest
-from typing import cast, Iterable, List, Optional, Tuple
+from typing import cast, Iterable, List, Optional, Set, Tuple
 
 from PyQt5 import QtWidgets
 
@@ -70,8 +70,9 @@ class ChapterItem(QtWidgets.QFrame):
         self.section_items = []  # type: List[SectionItem]
 
     def set_data(self, title: Optional[str], length: Optional[int],
-                 time: Optional[str], tags: Optional[set], desc: Optional[str],
-                 sections: List[Section], complete: bool):
+                 time: Optional[str], tags: Optional[Set[str]],
+                 desc: Optional[str], sections: List[Section],
+                 complete: bool) -> None:
         self.complete = complete
         self.setDisabled(complete)
         self.title.setDisabled(complete)

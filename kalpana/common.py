@@ -68,7 +68,7 @@ class KalpanaObject:
         """
         pass
 
-    def file_opened(self, filepath: str, is_new: bool):
+    def file_opened(self, filepath: str, is_new: bool) -> None:
         """
         This is called whenever a file is opened.
 
@@ -76,7 +76,7 @@ class KalpanaObject:
         """
         pass
 
-    def file_saved(self, filepath: str, new_name: bool):
+    def file_saved(self, filepath: str, new_name: bool) -> None:
         """
         This is called whenever a file is saved.
 
