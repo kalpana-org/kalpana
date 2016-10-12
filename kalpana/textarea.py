@@ -363,6 +363,14 @@ class LineNumberBar(QtWidgets.QFrame):
         self.textarea.setViewportMargins(max_width, 0, 0, 0)
         super().update()
 
+    def hideEvent(self, event: QtGui.QHideEvent) -> None:
+        super().hideEvent(event)
+        self.textarea.setViewportMargins(0, 0, 0, 0)
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        super().showEvent(event)
+        self.textarea.setViewportMargins(self.width(), 0, 0, 0)
+
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         super().paintEvent(event)
         main_rect = self.contentsRect()
