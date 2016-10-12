@@ -24,7 +24,7 @@ This is to avoid potential circular imports.
 from enum import IntEnum
 from typing import Any, Callable, List, Optional, Tuple
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QVariant
 
 SuggestionListAlias = List[Tuple[str, Optional[IntEnum]]]
 SuggestionCallback = Callable[[str, str], SuggestionListAlias]
@@ -38,6 +38,7 @@ class KalpanaObject:
     settings, autocompletion patterns, and print to the terminal.
     """
     error_signal = pyqtSignal(str)
+    change_setting_signal = pyqtSignal(str, QVariant)
     log_signal = pyqtSignal(str)
     kalpana_settings = []  # type: List[str]
     kalpana_commands = []  # type: List[Command]
@@ -51,12 +52,31 @@ class KalpanaObject:
         """Show a regular message in the terminal."""
         self.log_signal.emit(text)
 
+    def change_setting(self, name: str, new_value: Any) -> None:
+        self.change_setting_signal.emit(name, new_value)
+
     def setting_changed(self, name: str, new_value: Any) -> None:
         """
         Set the setting's corresponding variable to the new value.
 
         This is called any time the setting is changed. Since it does nothing
         as it is, it should be implemented by all subclasses.
+        """
+        pass
+
+    def file_opened(self, filepath: str, is_new: bool):
+        """
+        This is called whenever a file is opened.
+
+        is_new - The file does not exist yet.
+        """
+        pass
+
+    def file_saved(self, filepath: str, new_name: bool):
+        """
+        This is called whenever a file is saved.
+
+        new_name - The file was saved with a new name. (aka Save As)
         """
         pass
 

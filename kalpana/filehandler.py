@@ -28,6 +28,10 @@ from kalpana.textarea import TextArea
 
 class FileHandler(QtCore.QObject, KalpanaObject):
     """Takes care of saving and opening files."""
+    # file_opened(filepath, is new file)
+    file_opened = QtCore.pyqtSignal(str, bool)
+    # file_saved(filepath, new save name)
+    file_saved = QtCore.pyqtSignal(str, bool)
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
@@ -94,14 +98,18 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         else:
             if filepath:
                 self.filepath = filepath
+                self.file_opened.emit(filepath, True)
+                self.log('New file: {}'.format(filepath))
             else:
                 self.filepath = None
+                self.file_opened.emit('', True)
+                self.log('New file')
             self.textarea.setPlainText('')
 
     def new_file_in_new_window(self, filepath: str) -> None:
         """Open a new file in a new instance of Kalpana."""
         if os.path.exists(filepath):
-            self.error('File already exists')
+            self.error('File already exists: {}'.format(filepath))
         else:
             subprocess.Popen([sys.executable, sys.argv[0]] +
                              ([filepath] if filepath else []))
@@ -126,10 +134,11 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 else:
                     self.textarea.setPlainText(text)
                     self.filepath = filepath
-                    self.log('File opened')
+                    self.log('File opened: {}'.format(filepath))
+                    self.file_opened.emit(filepath, False)
                     return
             else:
-                self.error('Unable to open the file')
+                self.error('Unable to open the file: {}'.format(filepath))
 
     def open_file_in_new_window(self, filepath: str):
         """Open an existing file in a new instance of Kalpana."""
@@ -151,17 +160,23 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         if not filepath and self.filepath is None:
             self.error('No active file')
         elif filepath != self.filepath and os.path.exists(filepath):
-            self.error('File already exists')
+            self.error('File already exists: {}'.format(filepath))
         else:
             if self.filepath is None:
-                file_to_open = filepath
+                file_to_save = filepath
+            elif filepath:
+                file_to_save = filepath
             else:
-                file_to_open = self.filepath
+                file_to_save = self.filepath
             try:
-                with open(file_to_open, 'w', encoding='utf-8') as f:
+                with open(file_to_save, 'w', encoding='utf-8') as f:
                     f.write(self.textarea.toPlainText())
             except IOError:
-                self.error('Unable to save the file')
+                self.error('Unable to save the file: {}'.format(file_to_save))
             else:
-                self.filepath = file_to_open
-                self.log('File saved')
+                self.log('File saved: {}'.format(file_to_save))
+                if file_to_save == self.filepath:
+                    self.file_saved.emit(file_to_save, False)
+                else:
+                    self.file_saved.emit(file_to_save, True)
+                self.filepath = file_to_save

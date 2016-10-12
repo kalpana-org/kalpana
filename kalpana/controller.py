@@ -107,7 +107,11 @@ class Controller:
                 self.terminal.register_commands(obj.kalpana_commands)
                 self.terminal.register_autocompletion_patterns(obj.kalpana_autocompletion_patterns)
             if obj != self.settings:
+                obj.change_setting_signal.connect(self.settings.change_setting)
                 self.settings.register_settings(obj.kalpana_settings, obj)
+            if obj != self.filehandler:
+                self.filehandler.file_saved.connect(obj.file_saved)
+                self.filehandler.file_opened.connect(obj.file_opened)
         misc_signals = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (self.textarea.textChanged, self.update_chapter_index),
