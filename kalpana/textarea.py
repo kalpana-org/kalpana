@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -39,6 +39,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 Command('search-next', '', self.search_next,
                         accept_args=False),
         ]
+        self.hr_blocks = []  # type: List[QtGui.QTextBlock]
         self.line_number_bar = LineNumberBar(self)
         self.search_buffer = None  # type: Optional[str]
 
@@ -58,12 +59,34 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
     def toggle_line_numbers(self) -> None:
         self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
 
-    def paintEvent(self, ev: QtGui.QPaintEvent) -> None:
+    def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
             self.setViewportMargins(0, 0, 0, 0)
-        super().paintEvent(ev)
+        super().paintEvent(event)
+        self.draw_horizontal_ruler()
         if self.line_number_bar.isVisible():
             self.line_number_bar.update()
+
+    def draw_horizontal_ruler(self):
+        painter = QtGui.QPainter(self.viewport())
+        pagebottom = self.viewport().height()
+        viewport_offset = self.contentOffset()
+        block = self.firstVisibleBlock()
+        hrmargin = 0.3
+        fg = self.palette().windowText().color()
+        fg.setAlphaF(0.4)
+        painter.setPen(QtGui.QPen(QtGui.QBrush(fg), 2))
+        while block.isValid():
+            rect = self.blockBoundingGeometry(block).translated(viewport_offset)
+            if rect.y() > pagebottom:
+                break
+            if block in self.hr_blocks and block != self.textCursor().block():
+                x1 = rect.x() + rect.width()*hrmargin
+                x2 = rect.x() + rect.width()*(1-hrmargin)
+                y = rect.y() + rect.height()*0.5
+                painter.drawLine(x1, y, x2, y)
+            block = block.next()
+        painter.end()
 
     def word_under_cursor(self) -> str:
         cursor = self.textCursor()
@@ -224,12 +247,24 @@ class LineFormatData(QtGui.QTextBlockUserData):
 
 class Highlighter(QtGui.QSyntaxHighlighter):
 
-    def __init__(self, textarea,
+    def __init__(self, textarea: TextArea,
                  chapter_index=None, spellchecker=None) -> None:
         super().__init__(textarea.document())
         self.textarea = textarea
+        self.textarea.cursorPositionChanged.connect(self.new_cursor_position)
         self.chapter_index = chapter_index
         self.spellchecker = spellchecker
+        self.active_block = self.textarea.document().firstBlock()
+        self.last_block = self.active_block
+
+    def new_cursor_position(self) -> None:
+        """Make sure the horizontal rulers are drawn in the right place."""
+        self.last_block = self.active_block
+        self.active_block = self.textarea.textCursor().block()
+        for block in [self.last_block, self.active_block]:
+            self.rehighlightBlock(block)
+            if block in self.textarea.hr_blocks:
+                self.document().markContentsDirty(block.position(), block.length())
 
     def utf16_len(self, text: str) -> int:
         """Adjust for the UTF-16 backend Qt uses."""
@@ -243,9 +278,25 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         if line_format:
             self.highlight_lines(text, line_format, fg)
             return
+        if '*' in text and text.strip(' \t*') == '':
+            self.highlight_horizontal_ruler(text, fg)
+            return
+        elif self.currentBlock() in self.textarea.hr_blocks:
+            self.textarea.hr_blocks.remove(self.currentBlock())
         self.highlight_text_formatting(text, fg)
         if self.spellchecker.spellcheck_active:
             self.highlight_spelling(text)
+
+    def highlight_horizontal_ruler(self, text: str, fg: QtGui.QColor) -> None:
+        """Hide the asterisks where the horizontal ruler should be."""
+        f = QtGui.QTextCharFormat()
+        f.setFontPointSize(40)
+        if not self.active_block or self.currentBlock() != self.active_block:
+            fg.setAlphaF(0)
+            f.setForeground(QtGui.QBrush(fg))
+        self.setFormat(0, self.utf16_len(text), f)
+        if self.currentBlock() not in self.textarea.hr_blocks:
+            self.textarea.hr_blocks.append(self.currentBlock())
 
     def highlight_lines(self, text: str, line_format: str, fg: QtGui.QColor) -> None:
         """Apply formatting to metadata lines (chapter headers, etc)."""
@@ -254,15 +305,16 @@ class Highlighter(QtGui.QSyntaxHighlighter):
             f.setFontPointSize(16)
             f.setFontWeight(QtGui.QFont.Bold)
         elif line_format == 'section':
-            fg.setAlphaF(0.5)
+            if not self.currentBlock() == self.active_block:
+                fg.setAlphaF(0.5)
             f.setFontWeight(QtGui.QFont.Bold)
-            f.setForeground(QtGui.QBrush(fg))
         elif line_format in ('desc', 'tags', 'time'):
-            fg.setAlphaF(0.3)
-            f.setForeground(QtGui.QBrush(fg))
+            if not self.currentBlock() == self.active_block:
+                fg.setAlphaF(0.3)
         elif line_format == 'meta':
-            fg.setAlphaF(0.15)
-            f.setForeground(QtGui.QBrush(fg))
+            if not self.currentBlock() == self.active_block:
+                fg.setAlphaF(0.15)
+        f.setForeground(QtGui.QBrush(fg))
         self.setFormat(0, self.utf16_len(text), f)
 
     def highlight_text_formatting(self, text: str, fg: QtGui.QColor) -> None:
@@ -270,20 +322,18 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         faded = QtGui.QTextCharFormat()
         fg.setAlphaF(0.5)
         faded.setForeground(QtGui.QBrush(fg))
+        def set_format(chunk, f):
+            self.setFormat(chunk.start(), chunk.end()-chunk.start(), faded)
+            self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, f)
+        f = QtGui.QTextCharFormat()
         if '/' in text:
-            italic = QtGui.QTextCharFormat()
-            italic.setFontItalic(True)
+            f.setFontItalic(True)
             for chunk in re.finditer(r'/[^/]*/', text):
-                self.setFormat(chunk.start(), 1, faded)
-                self.setFormat(chunk.end()-1, 1, faded)
-                self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, italic)
+                set_format(chunk, f)
         if '*' in text:
-            bold = QtGui.QTextCharFormat()
-            bold.setFontWeight(QtGui.QFont.Bold)
+            f.setFontWeight(QtGui.QFont.Bold)
             for chunk in re.finditer(r'\*[^\*]*\*', text):
-                self.setFormat(chunk.start(), 1, faded)
-                self.setFormat(chunk.end()-1, 1, faded)
-                self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, bold)
+                set_format(chunk, f)
 
     def highlight_spelling(self, text: str) -> None:
         """Highlight misspelled words."""
@@ -338,7 +388,7 @@ class LineNumberBar(QtWidgets.QFrame):
                 font.setBold(False)
                 painter.setFont(font)
             tm = self.text_margin
-            painter.drawText(rect.adjusted(tm,tm/2, -tm,-tm/2),
+            painter.drawText(rect.adjusted(tm, tm/2, -tm, -tm/2),
                              str(block.blockNumber()+1), option=text_align)
             block = block.next()
         painter.end()
