@@ -36,9 +36,15 @@ class SuggestionType(IntEnum):
     history = 10
 
 
+class FocusWrapper(QtWidgets.QLineEdit):
+    def setText(self, text: str) -> None:
+        super().setText(text)
+        self.parentWidget().show()
+
+
 class Terminal(QtWidgets.QFrame, KalpanaObject):
 
-    class InputField(QtWidgets.QLineEdit, InputWidget):
+    class InputField(FocusWrapper, InputWidget):
         @property
         def text(self) -> str:
             return super().text()
@@ -55,6 +61,10 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         def cursor_position(self, pos: int) -> None:
             self.setCursorPosition(pos)
 
+        def setFocus(self):
+            self.parentWidget().show()
+            super().setFocus()
+
     error_triggered = pyqtSignal()
 
     def __init__(self, parent: QtWidgets.QFrame, command_history) -> None:
@@ -66,7 +76,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         # Create the objects
         self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')
-        self.output_field = QtWidgets.QLineEdit(self)
+        self.output_field = FocusWrapper(self)
         self.output_field.setObjectName('terminal_output')
         self.output_field.setDisabled(True)
         self.completer_popup = CompletionListWidget(parent, self.input_field)

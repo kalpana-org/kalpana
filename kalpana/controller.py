@@ -127,6 +127,7 @@ class Controller:
             if self.terminal.completer_popup.isVisible():
                 self.terminal.completer_popup.visible = False
             else:
+                self.terminal.hide()
                 self.mainwindow.setFocus()
         else:
             self.terminal.input_field.setFocus()
