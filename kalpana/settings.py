@@ -21,7 +21,7 @@ import os
 import os.path
 import re
 import sys
-from typing import Any, DefaultDict, Dict, Iterable, Mapping, Match, Optional
+from typing import cast, Any, DefaultDict, Dict, Iterable, Mapping, Match, MutableMapping, Optional
 
 import yaml
 
@@ -100,7 +100,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.active_file = ''
         self.registered_settings = {}  # type: Dict[str, KalpanaObject]
         self.command_history = CommandHistory(self.config_dir)
-        self.settings = ChainMap()  # type: Mapping[str, Any]
+        self.settings = ChainMap()  # type: ChainMap
         self.key_bindings = {}  # type: Dict[int, str]
         self.terminal_key = -1
         self.css = ''
@@ -132,9 +132,10 @@ class Settings(QtCore.QObject, KalpanaObject):
         if not self.active_file:
             return
         all_files_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
-        all_files_config = self._load_yaml_file('file', all_files_config_path)
-        if all_files_config is None:
-            return
+        try:
+            all_files_config = self._load_yaml_file(all_files_config_path)
+        except yaml.YAMLError as e:
+            self.error('Invalid yaml in the file config: {}'.format(e))
         else:
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
@@ -153,7 +154,7 @@ class Settings(QtCore.QObject, KalpanaObject):
                 if not self.settings or (new_settings[setting] != self.settings[setting]):
                     obj.setting_changed(setting, new_settings[setting])
 
-    def _load_yaml_file(self, name: str, config_path: str) -> Dict[str, Any]:
+    def _load_yaml_file(self, config_path: str) -> Dict:
         """
         Load a yaml config file.
 
@@ -166,33 +167,32 @@ class Settings(QtCore.QObject, KalpanaObject):
         except OSError:
             return {}
         else:
-            try:
-                config = yaml.load(yaml_escape_unicode(raw_config))
-                if not isinstance(config, dict):
-                    raise yaml.YAMLError('root type has to be a dict')
-            except yaml.YAMLError as e:
-                self.error('Invalid yaml in the {} config: {}'.format(name, e))
-            else:
-                return config
+            config = yaml.load(yaml_escape_unicode(raw_config))
+            if not isinstance(config, dict):
+                raise yaml.YAMLError('root type has to be a dict')
+            return config
 
-    def load_settings(self, config_dir: str) -> Mapping[str, Any]:
+    def load_settings(self, config_dir: str) -> ChainMap:#MutableMapping[str, Any]:
         """Read and return the settings, with default values overriden."""
         default_config_path = local_path('default_settings.yaml')
         global_config_path = os.path.join(config_dir, 'settings.yaml')
-        file_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
+        all_files_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
         # Default config
         with open(default_config_path) as f:
-            default_config = yaml.load(f.read())
+            default_config = cast(dict, yaml.load(f.read()))
         # Global config
-        global_config = self._load_yaml_file('global', global_config_path)
-        if global_config is None:
-            return
+        try:
+            global_config = self._load_yaml_file(global_config_path)
+        except yaml.YAMLError as e:
+            self.error('Invalid yaml in the global config: {}'.format(e))
+            global_config = {}
         # File specific config
-        all_files_config = self._load_yaml_file('file', file_config_path)
-        if all_files_config is None:
-            return
-        else:
+        try:
+            all_files_config = self._load_yaml_file(all_files_config_path)
             file_config = all_files_config.get(self.active_file, {})
+        except yaml.YAMLError as e:
+            self.error('Invalid yaml in the file config: {}'.format(e))
+            file_config = {}
         new_settings = ChainMap(file_config, global_config, default_config)
         self.notify_settings_changes(new_settings)
         return new_settings

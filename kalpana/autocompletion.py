@@ -70,6 +70,7 @@ class SuggestionList():
         self.unautocompleted_cmd = None  # type: Optional[str]
         self.history = []  # type: SuggestionListAlias
         self.history_active = False
+        self.confirmation_mode = False
         self._selection = 0
         self.autocompletion_patterns = []  # type: List[AutocompletionPattern]
         self.active_pattern = ''  # type: str
@@ -92,6 +93,8 @@ class SuggestionList():
 
     def up_pressed(self) -> None:
         """Should be called whenever the up key is pressed."""
+        if self.confirmation_mode:
+            return
         if self.list_widget.visible:
             self.selection -= 1
         else:
@@ -103,11 +106,15 @@ class SuggestionList():
 
     def down_pressed(self) -> None:
         """Should be called whenever the down key is pressed."""
+        if self.confirmation_mode:
+            return
         if self.list_widget.visible:
             self.selection += 1
 
     def tab_pressed(self) -> None:
         """Should be called whenever the tab key is pressed."""
+        if self.confirmation_mode:
+            return
         if self.list_widget.visible:
             self._autocomplete()
         else:
@@ -115,6 +122,11 @@ class SuggestionList():
 
     def return_pressed(self) -> None:
         """Should be called whenever the return key is pressed."""
+        if self.confirmation_mode:
+            text = self.input_widget.text
+            self.input_widget.text = ''
+            self.run_command(text, None)
+            return
         if self.history_active:
             self.input_widget.text = self.suggestions[self.selection][0]
             self.history_active = False
@@ -128,6 +140,8 @@ class SuggestionList():
         self.input_widget.text = ''
 
     def update(self) -> None:
+        if self.confirmation_mode:
+            return
         if self.input_widget.text:
             self._update_suggestions(self.input_widget.text)
         else:

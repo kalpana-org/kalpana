@@ -17,7 +17,7 @@
 
 from typing import cast, List, Optional, Union
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from kalpana.common import KalpanaObject
 from kalpana.chapteroverview import ChapterOverview
@@ -35,6 +35,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         layout.setSpacing(0)
         self.title = 'New file'
         self.modified = False
+        self.force_close_flag = False
         self.update_window_title()
         self.stack = QtWidgets.QStackedWidget(self)
         layout.addWidget(self.stack)
@@ -51,6 +52,18 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
     def active_stack_widget(self, widget: InnerStackWidget):
         """Set the stack's active widget to the wrapper of the argument."""
         self.stack.setCurrentWidget(self.stack_wrappers[id(widget)])
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        if self.modified and not self.force_close_flag:
+            self.confirm('There are unsaved changes. Discard them?',
+                         self.force_close)
+            event.ignore()
+        else:
+            super().closeEvent(event)
+
+    def force_close(self, _) -> None:
+        self.force_close_flag = True
+        self.close()
 
     def update_window_title(self):
         title = '*{}*'.format(self.title) if self.modified else self.title

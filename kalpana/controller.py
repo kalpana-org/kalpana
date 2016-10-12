@@ -105,6 +105,7 @@ class Controller:
             if obj != self.terminal:
                 obj.log_signal.connect(self.terminal.print_)
                 obj.error_signal.connect(self.terminal.error)
+                obj.confirm_signal.connect(self.terminal.confirm_command)
                 self.terminal.register_commands(obj.kalpana_commands)
                 self.terminal.register_autocompletion_patterns(obj.kalpana_autocompletion_patterns)
             if obj != self.settings:
@@ -189,6 +190,8 @@ class Controller:
                 self.terminal.print_('No filename set')
             else:
                 self.terminal.print_(self.filehandler.filepath)
+        elif arg == 'modified':
+            self.terminal.print_('Modified' if self.textarea.document().isModified() else 'Not modified')
         elif arg == 'spellcheck':
             active = 'Active' if self.spellchecker.spellcheck_active else 'Inactive'
             language = self.spellchecker.language
@@ -197,7 +200,7 @@ class Controller:
             self.terminal.error('Invalid argument')
 
     def get_show_info_suggestions(self, name: str, text: str) -> SuggestionListAlias:
-        return [(item, None) for item in ['file', 'spellcheck']
+        return [(item, None) for item in ['file', 'spellcheck', 'modified']
                 if item.startswith(text)]
 
     def go_to_chapter(self, arg: str) -> None:

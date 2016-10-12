@@ -80,7 +80,10 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         else:
             self.new_file(filepath)
 
-    def new_file(self, filepath: str) -> None:
+    def force_new_file(self, filepath: str) -> None:
+        self.new_file(filepath, force=True)
+
+    def new_file(self, filepath: str, force: bool = False) -> None:
         """
         Clear the textarea and filepath unless there are unsaved changes.
 
@@ -91,8 +94,9 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         Note that nothing is written to the disk when new_file is run. An
         invalid filepath will only be detected when trying to save.
         """
-        if self.textarea.document().isModified():
-            self.error('There are unsaved changes')
+        if self.textarea.document().isModified() and not force:
+            self.confirm('There are unsaved changes. Discard them?',
+                         self.force_new_file, filepath)
         elif os.path.exists(filepath):
             self.error('File already exists, open it instead')
         else:
@@ -105,23 +109,29 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 self.file_opened.emit('', True)
                 self.log('New file')
             self.textarea.setPlainText('')
+            # For some reason this signal isn't triggered on its own
+            self.textarea.document().modificationChanged.emit(False)
 
     def new_file_in_new_window(self, filepath: str) -> None:
         """Open a new file in a new instance of Kalpana."""
         if os.path.exists(filepath):
-            self.error('File already exists: {}'.format(filepath))
+            self.error('File already exists, open it instead')
         else:
             subprocess.Popen([sys.executable, sys.argv[0]] +
                              ([filepath] if filepath else []))
 
-    def open_file(self, filepath: str) -> None:
+    def force_open_file(self, filepath: str) -> None:
+        self.open_file(filepath, force=True)
+
+    def open_file(self, filepath: str, force: bool = False) -> None:
         """
         Open a file, unless there are unsaved changes.
 
         This will only open files encoded in utf-8 or latin1.
         """
-        if self.textarea.document().isModified():
-            self.error('There are unsaved changes')
+        if self.textarea.document().isModified() and not force:
+            self.confirm('There are unsaved changes. Discard them?',
+                         self.force_open_file, filepath)
         elif not os.path.isfile(filepath):
             self.error('The path is not a file')
         else:
@@ -147,7 +157,10 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         else:
             subprocess.Popen([sys.executable, sys.argv[0], filepath])
 
-    def save_file(self, filepath: str) -> None:
+    def force_save_file(self, filepath: str) -> None:
+        self.save_file(filepath, force=True)
+
+    def save_file(self, filepath: str, force: bool = False) -> None:
         """
         Save the file to the disk.
 
@@ -159,8 +172,9 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         """
         if not filepath and self.filepath is None:
             self.error('No active file')
-        elif filepath != self.filepath and os.path.exists(filepath):
-            self.error('File already exists: {}'.format(filepath))
+        elif filepath != self.filepath and os.path.exists(filepath) and not force:
+            self.confirm('File already exists. Overwrite?',
+                         self.force_save_file, filepath)
         else:
             if self.filepath is None:
                 file_to_save = filepath
@@ -180,3 +194,4 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 else:
                     self.file_saved.emit(file_to_save, True)
                 self.filepath = file_to_save
+                self.textarea.document().setModified(False)

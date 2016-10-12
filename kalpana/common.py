@@ -38,8 +38,9 @@ class KalpanaObject:
     settings, autocompletion patterns, and print to the terminal.
     """
     error_signal = pyqtSignal(str)
-    change_setting_signal = pyqtSignal(str, QVariant)
     log_signal = pyqtSignal(str)
+    confirm_signal = pyqtSignal(str, QVariant, str)
+    change_setting_signal = pyqtSignal(str, QVariant)
     kalpana_settings = []  # type: List[str]
     kalpana_commands = []  # type: List[Command]
     kalpana_autocompletion_patterns = []  # type: List[AutocompletionPattern]
@@ -51,6 +52,9 @@ class KalpanaObject:
     def log(self, text: str) -> None:
         """Show a regular message in the terminal."""
         self.log_signal.emit(text)
+
+    def confirm(self, text: str, callback: Callable, arg: str = '') -> None:
+        self.confirm_signal.emit(text, callback, arg)
 
     def change_setting(self, name: str, new_value: Any) -> None:
         self.change_setting_signal.emit(name, new_value)

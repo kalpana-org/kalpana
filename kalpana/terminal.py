@@ -20,7 +20,7 @@ from enum import IntEnum
 from operator import itemgetter
 import re
 
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -73,6 +73,8 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         self.autocompletion_history = command_history.autocompletion_history
         self.command_frequency = command_history.command_frequency
         self.kalpana_settings = ['visible-autocompletion-items']
+        self.waiting_for_confirmation = False
+        self.confirmation_callback = None  # type: Optional[Tuple[Callable, str]]
         # Create the objects
         self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')
@@ -130,6 +132,15 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
     def prompt(self, msg: str) -> None:
         self.input_field.setText(msg)
 
+    def confirm_command(self, text: str, callback: Callable, arg: str) -> None:
+        self.print_('{} Type y to confirm.'.format(text))
+        self.input_field.setText('')
+        self.input_field.setFocus()
+        self.completer_popup.visible = False
+        self.waiting_for_confirmation = True
+        self.suggestion_list.confirmation_mode = True
+        self.confirmation_callback = (callback, arg)
+
     def exec_command(self, command_string: str) -> None:
         """
         Parse and run or prompt a command string from the config.
@@ -137,6 +148,8 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         If command_string starts with a space, set the input field's text to
         command_string (minus the leading space), otherwise run the command.
         """
+        if self.waiting_for_confirmation:
+            return
         if command_string.startswith(' '):
             self.input_field.text = command_string[1:]
             self.input_field.setFocus()
@@ -144,6 +157,9 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             self.parse_command(command_string, '')
 
     def parse_command(self, text: str, unautocompleted_cmd: Optional[str]) -> None:
+        if self.waiting_for_confirmation:
+            self.parse_confirmation(text)
+            return
         chunks = text.split(None, 1)
         cmd_name = chunks[0]
         arg = chunks[1] if len(chunks) == 2 else ''
@@ -163,6 +179,21 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
                 command.callback(arg)
             else:
                 command.callback()
+
+    def parse_confirmation(self, text: str):
+        if self.confirmation_callback is None:
+            return
+        self.waiting_for_confirmation = False
+        self.output_field.setText('')
+        if text == 'y':
+            self.print_('Confirmed')
+            callback, arg = self.confirmation_callback
+            callback(arg)
+        else:
+            self.print_('Aborted')
+        self.confirmation_callback = None
+        self.suggestion_list.confirmation_mode = False
+
 
     def command_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         suggestions = []
