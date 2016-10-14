@@ -85,11 +85,14 @@ class SuggestionList():
     def selection(self, pos: int) -> None:
         self._selection = max(0, min(pos, len(self.suggestions)-1))
         if not self.history and self.active_pattern == 'command':
-            cmd = self.suggestions[self.selection][0]
+            cmd = self.active_suggestion()
             self.list_widget.set_help_text(self.command_help_texts.get(cmd, ''))
         else:
             self.list_widget.set_help_text('')
         self.list_widget.selection = self._selection
+
+    def active_suggestion(self):
+        return self.suggestions[self.selection][0]
 
     def up_pressed(self) -> None:
         """Should be called whenever the up key is pressed."""
@@ -128,7 +131,7 @@ class SuggestionList():
             self.run_command(text, None)
             return
         if self.history_active:
-            self.input_widget.text = self.suggestions[self.selection][0]
+            self.input_widget.text = self.active_suggestion()
             self.history_active = False
             self.list_widget.visible = False
             return
@@ -151,14 +154,14 @@ class SuggestionList():
         if not self.suggestions:
             return
         if self.history_active:
-            self.input_widget.text = self.suggestions[self.selection][0]
+            self.input_widget.text = self.active_suggestion()
             self.history_active = False
             self.list_widget.visible = False
             return
         start, end = self.completable_span
         if self.active_pattern == 'command':
             self.unautocompleted_cmd = self.input_widget.text[start:end]
-        new_fragment = self.suggestions[self.selection][0]
+        new_fragment = self.active_suggestion()
         self.input_widget.text = self.input_widget.text[:start] + new_fragment + self.input_widget.text[end:]
         self.input_widget.cursor_position = start + len(new_fragment)
 

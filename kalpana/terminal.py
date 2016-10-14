@@ -172,22 +172,25 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         chunks = text.split(None, 1)
         cmd_name = chunks[0]
         arg = chunks[1] if len(chunks) == 2 else ''
-        if cmd_name not in self.commands:
-            self.error('Invalid command: {}'.format(cmd_name))
-        else:
+        if cmd_name in self.commands:
             command = self.commands[cmd_name]
-            if arg and not command.accept_args:
-                self.error('This command does not take any arguments!')
-                return
-            if unautocompleted_cmd is not None and cmd_name != unautocompleted_cmd:
-                self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
-            self.command_frequency[cmd_name] += 1
-            self.suggestion_list.history.append((text, SuggestionType.history))
-            self.log_history.add_input(text)
-            if command.accept_args:
-                command.callback(arg)
-            else:
-                command.callback()
+        elif self.completer_popup.isVisible():
+            command = self.commands[self.suggestion_list.active_suggestion()]
+        else:
+            self.error('Invalid command: {}'.format(cmd_name))
+            return
+        if arg and not command.accept_args:
+            self.error('This command does not take any arguments!')
+            return
+        if unautocompleted_cmd is not None and cmd_name != unautocompleted_cmd:
+            self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
+        self.command_frequency[cmd_name] += 1
+        self.suggestion_list.history.append((text, SuggestionType.history))
+        self.log_history.add_input(text)
+        if command.accept_args:
+            command.callback(arg)
+        else:
+            command.callback()
 
     def handle_confirmation(self, confirmed: bool) -> None:
         if self.confirmation_callback is None:
