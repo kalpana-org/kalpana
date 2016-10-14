@@ -304,7 +304,7 @@ class LogHistory(QtWidgets.QListWidget):
     def _add_to_log(self, type_: int, message: str) -> None:
         timestamp = self._timestamp()
         if type_ == LogHistory.LogType.error:
-            message = '> [ERROR] ' + message
+            message = '< [ERROR] ' + message
         elif type_ == LogHistory.LogType.input:
             message = '> ' + message
         else:
