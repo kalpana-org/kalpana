@@ -159,7 +159,7 @@ class SuggestionList():
             self.list_widget.visible = False
             return
         start, end = self.completable_span
-        if self.active_pattern == 'command':
+        if self.active_pattern == 'command' and start != end:
             self.unautocompleted_cmd = self.input_widget.text[start:end]
         new_fragment = self.active_suggestion()
         self.input_widget.text = self.input_widget.text[:start] + new_fragment + self.input_widget.text[end:]

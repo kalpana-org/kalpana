@@ -175,16 +175,18 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         if cmd_name in self.commands:
             command = self.commands[cmd_name]
         elif self.completer_popup.isVisible():
-            command = self.commands[self.suggestion_list.active_suggestion()]
+            if cmd_name:
+                unautocompleted_cmd = cmd_name
+            command = self.commands[self.suggestion_list.active_suggestion().strip()]
         else:
             self.error('Invalid command: {}'.format(cmd_name))
             return
         if arg and not command.accept_args:
             self.error('This command does not take any arguments!')
             return
-        if unautocompleted_cmd is not None and cmd_name != unautocompleted_cmd:
-            self.autocompletion_history[unautocompleted_cmd][cmd_name] += 1
-        self.command_frequency[cmd_name] += 1
+        if unautocompleted_cmd is not None and command.name != unautocompleted_cmd:
+            self.autocompletion_history[unautocompleted_cmd][command.name] += 1
+        self.command_frequency[command.name] += 1
         self.suggestion_list.history.append((text, SuggestionType.history))
         self.log_history.add_input(text)
         if command.accept_args:
@@ -205,17 +207,23 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         self.confirmation_callback = None
         self.suggestion_list.confirmation_mode = False
 
-
     def command_suggestions(self, name: str, text: str) -> SuggestionListAlias:
         suggestions = []
         raw_top = self.autocompletion_history.get(text, {})  # type: ignore
-        for cmd in self.commands:
-            if cmd in raw_top:
-                suggestions.append((cmd, raw_top[cmd], SuggestionType.exact))
-            elif text and re.search('.*'.join(map(re.escape, text)), cmd):
-                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.fuzzy))
+        for command_name, command in self.commands.items():
+            suggestion = ()
+            if command_name in raw_top:
+                suggestion = (raw_top[command_name], SuggestionType.exact)
+            elif text and re.search('.*'.join(map(re.escape, text)), command_name):
+                suggestion = (self.command_frequency[command_name],
+                              SuggestionType.fuzzy)
             else:
-                suggestions.append((cmd, self.command_frequency[cmd], SuggestionType.rest))
+                suggestion = (self.command_frequency[command_name],
+                              SuggestionType.rest)
+            # Add extra space at the end if the command takes arguments
+            if command.accept_args:
+                command_name += ' '
+            suggestions.append((command_name,) + suggestion)
         return [(cmd, type_) for cmd, num, type_
                 in sorted(suggestions, key=itemgetter(*[2, 1, 0]))]
 
@@ -405,7 +413,7 @@ class CompletionListWidget(QtWidgets.QListWidget, ListWidget):
         self.clear()
         for n, (name, type_) in enumerate(suggestions):
             type_name = 'rest' if type_ is None else type_.name
-            self.addItem(name)
+            self.addItem(name.strip())
             item = self.item(n)
             item.setData(Qt.UserRole, type_name)
             item.setBackground(self.item_background(type_name))
