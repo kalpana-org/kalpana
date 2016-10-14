@@ -80,8 +80,9 @@ class CommandHistory:
     def save(self) -> None:
         data = {'autocompletion_history': self.autocompletion_history,
                 'command_frequency': self.command_frequency}
+        json_data = json.dumps(data, sort_keys=True, indent=2)
         with open(self._path, 'w') as f:
-            f.write(json.dumps(data, sort_keys=True, indent=2))
+            f.write(json_data)
 
 
 class Settings(QtCore.QObject, KalpanaObject):
@@ -139,8 +140,9 @@ class Settings(QtCore.QObject, KalpanaObject):
         else:
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
+            yaml_data = yaml.dump(all_files_config, default_flow_style=False)
             with open(all_files_config_path, 'w') as f:
-                f.write(yaml.dump(all_files_config, default_flow_style=False))
+                f.write(yaml_data)
 
     def register_settings(self, names: Iterable[str], obj: KalpanaObject) -> None:
         """Register that an object is waiting for changes to a certain setting."""
