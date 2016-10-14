@@ -165,6 +165,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             self.parse_command(command_string, '')
 
     def parse_command(self, text: str, unautocompleted_cmd: Optional[str]) -> None:
+        self.output_field.setText('')
         if self.waiting_for_confirmation:
             self.handle_confirmation(text == 'y')
             return
