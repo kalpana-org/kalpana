@@ -45,7 +45,7 @@ class FocusWrapper(QtWidgets.QLineEdit):
 
 class Terminal(QtWidgets.QFrame, KalpanaObject):
 
-    class InputField(FocusWrapper, InputWidget):
+    class InputField(QtWidgets.QLineEdit, InputWidget):
         @property
         def text(self) -> str:
             return super().text()
@@ -80,7 +80,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         # Create the objects
         self.input_field = Terminal.InputField(self)
         self.input_field.setObjectName('terminal_input')
-        self.output_field = FocusWrapper(self)
+        self.output_field = QtWidgets.QLineEdit(self)
         self.output_field.setObjectName('terminal_output')
         self.output_field.setDisabled(True)
         self.completer_popup = CompletionListWidget(parent, self.input_field)
@@ -103,6 +103,11 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         layout.addWidget(self.output_field)
         self.watch_terminal()
 
+    def hideEvent(self, event: QtGui.QHideEvent) -> None:
+        self.handle_confirmation(False)
+        self.output_field.setText('')
+        super().hideEvent(event)
+
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'visible-autocompletion-items':
             self.completer_popup.max_visible_lines = int(new_value)
@@ -122,17 +127,18 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         for pattern in pattern_list:
             self.register_autocompletion_pattern(pattern)
 
-    def print_(self, msg: str) -> None:
+    def print_(self, msg: str, show: bool = True) -> None:
         self.log_history.add(msg)
         self.output_field.setText(msg)
+        if show:
+            self.show()
 
-    def error(self, msg: str) -> None:
+    def error(self, msg: str, show: bool = True) -> None:
         self.log_history.add_error(msg)
         self.output_field.setText('Error: ' + msg)
+        if show:
+            self.show()
         self.error_triggered.emit()
-
-    def prompt(self, msg: str) -> None:
-        self.input_field.setText(msg)
 
     def confirm_command(self, text: str, callback: Callable, arg: str) -> None:
         self.print_('{} Type y to confirm.'.format(text))
@@ -160,7 +166,7 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
 
     def parse_command(self, text: str, unautocompleted_cmd: Optional[str]) -> None:
         if self.waiting_for_confirmation:
-            self.parse_confirmation(text)
+            self.handle_confirmation(text == 'y')
             return
         chunks = text.split(None, 1)
         cmd_name = chunks[0]
@@ -182,17 +188,16 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
             else:
                 command.callback()
 
-    def parse_confirmation(self, text: str) -> None:
+    def handle_confirmation(self, confirmed: bool) -> None:
         if self.confirmation_callback is None:
             return
         self.waiting_for_confirmation = False
-        self.output_field.setText('')
-        if text == 'y':
-            self.print_('Confirmed')
+        if confirmed:
+            self.print_('Confirmed', show=False)
             callback, arg = self.confirmation_callback
             callback(arg)
         else:
-            self.print_('Aborted')
+            self.print_('Aborted', show=False)
         self.confirmation_callback = None
         self.suggestion_list.confirmation_mode = False
 
