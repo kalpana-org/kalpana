@@ -19,7 +19,7 @@ from typing import cast, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from kalpana.common import KalpanaObject
+from kalpana.common import Command, KalpanaObject
 from kalpana.chapteroverview import ChapterOverview
 from kalpana.terminal import Terminal
 from kalpana.textarea import TextArea
@@ -30,13 +30,16 @@ InnerStackWidget = Union[ChapterOverview, TextArea]
 class MainWindow(QtWidgets.QFrame, KalpanaObject):
     def __init__(self) -> None:
         super().__init__()
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        self.kalpana_commands = [
+                Command('quit', '', self.close, accept_args=False)
+        ]
         self.title = 'New file'
         self.modified = False
         self.force_close_flag = False
         self.update_window_title()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         self.stack = QtWidgets.QStackedWidget(self)
         layout.addWidget(self.stack)
         self.stack_wrappers = {}  # type: Dict[int, QtWidgets.QFrame]
