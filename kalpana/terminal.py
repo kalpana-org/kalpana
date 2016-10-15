@@ -187,7 +187,9 @@ class Terminal(QtWidgets.QFrame, KalpanaObject):
         if unautocompleted_cmd is not None and command.name != unautocompleted_cmd:
             self.autocompletion_history[unautocompleted_cmd][command.name] += 1
         self.command_frequency[command.name] += 1
-        self.suggestion_list.history.append((text, SuggestionType.history))
+        if not (self.suggestion_list.history and self.suggestion_list.history[-1][0] == text):
+            history_text = command.name.strip() + ((' ' + arg) if arg else '')
+            self.suggestion_list.history.append((history_text, SuggestionType.history))
         self.log_history.add_input(text)
         if command.accept_args:
             command.callback(arg)
