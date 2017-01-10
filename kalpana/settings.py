@@ -18,9 +18,8 @@
 from collections import ChainMap, defaultdict
 import json
 import os
-import os.path
+from os.path import dirname, join, realpath
 import re
-import sys
 from typing import cast, Any, DefaultDict, Dict, Iterable, Mapping, Match, MutableMapping, Optional
 
 import yaml
@@ -31,12 +30,12 @@ from kalpana.common import KalpanaObject
 
 
 def default_config_dir() -> str:
-    return os.path.join(os.getenv('HOME'), '.config', 'kalpana2')
+    return join(os.getenv('HOME'), '.config', 'kalpana2')
 
 
-def local_path(*path: str) -> str:
+def data_path(*path: str) -> str:
     """Return the path joined with the directory kalpana.py is in."""
-    return os.path.join(sys.path[0], *path)
+    return join(dirname(realpath(__file__)), 'data', *path)
 
 
 def get_keycode(key_string: str) -> int:
@@ -60,7 +59,7 @@ def yaml_escape_unicode(text: str) -> str:
 class CommandHistory:
 
     def __init__(self, config_dir: str) -> None:
-        self._path = os.path.join(config_dir, 'command_history.json')
+        self._path = join(config_dir, 'command_history.json')
         self.command_frequency = defaultdict(int)  # type: DefaultDict[str, int]
         self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
         try:
@@ -132,7 +131,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.settings[name] = new_value
         if not self.active_file:
             return
-        all_files_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
+        all_files_config_path = join(self.config_dir, 'file_settings.yaml')
         try:
             all_files_config = self._load_yaml_file(all_files_config_path)
         except yaml.YAMLError as e:
@@ -176,9 +175,9 @@ class Settings(QtCore.QObject, KalpanaObject):
 
     def load_settings(self, config_dir: str) -> ChainMap:#MutableMapping[str, Any]:
         """Read and return the settings, with default values overriden."""
-        default_config_path = local_path('default_settings.yaml')
-        global_config_path = os.path.join(config_dir, 'settings.yaml')
-        all_files_config_path = os.path.join(self.config_dir, 'file_settings.yaml')
+        default_config_path = data_path('default_settings.yaml')
+        global_config_path = join(config_dir, 'settings.yaml')
+        all_files_config_path = join(self.config_dir, 'file_settings.yaml')
         # Default config
         with open(default_config_path) as f:
             default_config = cast(dict, yaml.load(f.read()))
@@ -201,9 +200,9 @@ class Settings(QtCore.QObject, KalpanaObject):
 
     def load_stylesheet(self, config_dir: str) -> str:
         """Read and return the stylesheet."""
-        with open(local_path('theming', 'qt.css')) as f:
+        with open(data_path('qt.css')) as f:
             default_css = cast(str, f.read())
-        css_path = os.path.join(config_dir, 'qt.css')
+        css_path = join(config_dir, 'qt.css')
         try:
             with open(css_path) as f:
                 user_css = cast(str, f.read())
