@@ -77,6 +77,54 @@ search- or replace strings. Search terms are case-sensitive by default.
   search-and-replace /nope/b          (searches for "nope", backwards)
 
 
+Text formatting
+---------------
+Despite its minimalistic nature, Kalpana does have simple formatting available.
+For example, if you surround a line or a part of a line with asterisks `*`, the
+text will be shown as bold.
+
+In later versions, this will be configurable, but as of this vesion, it is
+still hardcoded. Right now, formats also don't work over multiple lines.
+Customizing the existing formatting in the stylesheet is not yet implemented
+either. (The few options that look relevant are for the chapter overview, not
+the main textarea.)
+
+Chapter formatting
+~~~~~~~~~~~~~~~~~~
+Chapter syntax will be formatted as well, such as chapter titles, descriptions,
+and more. These lines are also used when generating the chapter overview.
+See the Chapter section below for more info.
+
+**Inline formats**::
+
+  *word*                (bold)
+  /foo bar/             (italic)
+
+
+**Line formats** (have to be on their own lines)::
+
+  * * *                 (horizontal line, whitespace is optional)
+  CHAPTER foo bar       (chapter title)
+  [[ description ]]     (chapter description, has to follow a chapter
+                         title/time/tags line)
+  🕑 a day earlier       (chapter time/date, has to follow a chapter
+                         title/description/tags line)
+  #something, #tag2     (chapter tags, has to follow a chapter
+                         title/description/time line)
+  << something >>       (chapter section, more or less a subheading)
+  %% stuff              (generic metadata line)
+
+
+Chapters
+--------
+*TODO: more documentation here*
+
+There is a chapter overview but at the moment a lot of it is hardcoded.
+Prefix your chapter titles with CHAPTER to let Kalpana recognize them as
+chapter titles. Then use the ``toggle-chapter-overview`` command to see the
+chapter overview.
+
+
 Configuration
 -------------
 The default settings are located in
@@ -103,6 +151,8 @@ Stylesheet
 The default Qt stylesheet is located in ``<path/to/repo>/kalpana/data/qt.css``.
 If you want to override something there, create ``qt.css`` in Kalpana's
 config directory and override whatever you want.
+
+As mentioned before, formatting can not be styled yet.
 
 
 Key bindings
@@ -132,13 +182,3 @@ settings.**
 
 Traditional text editing keys (arrow keys, Ctrl+C/V, tab, etc) are not
 configurable.
-
-
-Chapters
---------
-*TODO: more documentation here*
-
-There is a chapter overview but at the moment a lot of it is hardcoded.
-Prefix your chapter titles with CHAPTER to let Kalpana recognize them as
-chapter titles. Then use the ``toggle-chapter-overview`` command to see the
-chapter overview.
