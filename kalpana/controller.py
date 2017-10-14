@@ -100,7 +100,7 @@ class Controller:
     def connect_objects(self) -> None:
         objects = [self.textarea, self.filehandler, self.spellchecker,
                    self.chapter_index, self.settings, self.terminal,
-                   self.mainwindow]  # type: List[KalpanaObject]
+                   self.mainwindow, self.highlighter]  # type: List[KalpanaObject]
         for obj in objects:
             if obj != self.terminal:
                 obj.log_signal.connect(self.terminal.print_)

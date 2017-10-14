@@ -27,7 +27,10 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
     def __init__(self, parent: QtWidgets.QWidget) -> None:
         super().__init__(parent)
-        self.kalpana_settings = ['show-line-numbers', 'max-textarea-width']
+        self.kalpana_settings = [
+                'show-line-numbers',
+                'max-textarea-width'
+        ]
         self.kalpana_commands = [
                 Command('go-to-line', '', self.go_to_line),
                 Command('set-textarea-max-width', 'Set the max width of the page',
@@ -221,7 +224,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
             self.setTextCursor(t)
             self.log('Replaced on line {}, pos {}'
-                             ''.format(t.blockNumber(), t.positionInBlock()))
+                     ''.format(t.blockNumber(), t.positionInBlock()))
         else:
             self.error('Text not found')
 
@@ -244,7 +247,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             else:
                 break
         if times:
-            self.log('{0} instance{1} replaced'.format(times, 's'*(times>0)))
+            self.log('{} instance{} replaced'.format(times, 's' * (times > 0)))
         else:
             self.error('Text not found')
         self.setTextCursor(temp_cursor)
@@ -257,17 +260,36 @@ class LineFormatData(QtGui.QTextBlockUserData):
         self.text = text
 
 
-class Highlighter(QtGui.QSyntaxHighlighter):
+class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
 
     def __init__(self, textarea: TextArea,
                  chapter_index=None, spellchecker=None) -> None:
         super().__init__(textarea.document())
+        self.kalpana_settings = [
+                'italic-marker',
+                'bold-marker',
+                'horizontal-ruler-marker'
+        ]
+        self.italic_marker = '/'
+        self.bold_marker = '*'
+        self.underline_marker = '_'
+        self.hr_marker = '*'
         self.textarea = textarea
         self.textarea.cursorPositionChanged.connect(self.new_cursor_position)
         self.chapter_index = chapter_index
         self.spellchecker = spellchecker
         self.active_block = self.textarea.document().firstBlock()
         self.last_block = self.active_block
+
+    def setting_changed(self, name: str, new_value: Any) -> None:
+        if name == 'italic-marker':
+            self.italic_marker = str(new_value)
+        elif name == 'bold-marker':
+            self.bold_marker = str(new_value)
+        elif name == 'underline-marker':
+            self.underline_marker = str(new_value)
+        elif name == 'horizontal-ruler-marker':
+            self.hr_marker = str(new_value)
 
     def new_cursor_position(self) -> None:
         """Make sure the horizontal rulers are drawn in the right place."""
@@ -276,21 +298,25 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         for block in [self.last_block, self.active_block]:
             self.rehighlightBlock(block)
             if block in self.textarea.hr_blocks:
-                self.document().markContentsDirty(block.position(), block.length())
+                self.document().markContentsDirty(block.position(),
+                                                  block.length())
 
     def utf16_len(self, text: str) -> int:
         """Adjust for the UTF-16 backend Qt uses."""
         return len(re.sub(r'[\uffff-\U0010ffff]', 'xx', text))
 
     def highlightBlock(self, text: str) -> None:
-        state, line_format = self.chapter_index.parse_line(text, self.previousBlockState())
+        state, line_format = self.chapter_index.parse_line(
+                text, self.previousBlockState())
         self.setCurrentBlockState(state)
         self.setCurrentBlockUserData(LineFormatData(line_format))
         fg = self.textarea.palette().windowText().color()
         if line_format:
             self.highlight_lines(text, line_format, fg)
             return
-        if '*' in text and text.strip(' \t*') == '':
+        # Horizontal ruler
+        if self.hr_marker in text and \
+                text.strip(' \t{}'.format(self.hr_marker)) == '':
             self.highlight_horizontal_ruler(text, fg)
             return
         elif self.currentBlock() in self.textarea.hr_blocks:
@@ -310,7 +336,8 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         if self.currentBlock() not in self.textarea.hr_blocks:
             self.textarea.hr_blocks.append(self.currentBlock())
 
-    def highlight_lines(self, text: str, line_format: str, fg: QtGui.QColor) -> None:
+    def highlight_lines(self, text: str, line_format: str,
+                        fg: QtGui.QColor) -> None:
         """Apply formatting to metadata lines (chapter headers, etc)."""
         f = QtGui.QTextCharFormat()
         if line_format == 'chapter':
@@ -334,18 +361,22 @@ class Highlighter(QtGui.QSyntaxHighlighter):
         faded = QtGui.QTextCharFormat()
         fg.setAlphaF(0.5)
         faded.setForeground(QtGui.QBrush(fg))
-        def set_format(chunk: Match[str], f: QtGui.QTextCharFormat) -> None:
-            self.setFormat(chunk.start(), chunk.end()-chunk.start(), faded)
-            self.setFormat(chunk.start()+1, chunk.end()-chunk.start()-2, f)
+        def set_format(marker: str, f: QtGui.QTextCharFormat) -> None:
+            for chunk in re.finditer(r'(?:\s|,|^)({0}[^{0}]*{0})(?:\s|,|$)'
+                                     .format(re.escape(marker)), text):
+                start, end = chunk.start(1), chunk.end(1)
+                self.setFormat(start, end - start, faded)
+                self.setFormat(start+1, end - start - 2, f)
         f = QtGui.QTextCharFormat()
-        if '/' in text:
+        if self.italic_marker in text:
             f.setFontItalic(True)
-            for chunk in re.finditer(r'/[^/]*/', text):
-                set_format(chunk, f)
-        if '*' in text:
+            set_format(self.italic_marker, f)
+        if self.bold_marker in text:
             f.setFontWeight(QtGui.QFont.Bold)
-            for chunk in re.finditer(r'\*[^\*]*\*', text):
-                set_format(chunk, f)
+            set_format(self.bold_marker, f)
+        if self.underline_marker in text:
+            f.setFontUnderline(True)
+            set_format(self.underline_marker, f)
 
     def highlight_spelling(self, text: str) -> None:
         """Highlight misspelled words."""

@@ -83,11 +83,20 @@ Despite its minimalistic nature, Kalpana does have simple formatting available.
 For example, if you surround a line or a part of a line with asterisks `*`, the
 text will be shown as bold.
 
-In later versions, this will be configurable, but as of this vesion, it is
-still hardcoded. Right now, formats also don't work over multiple lines.
+Bold, italic, and underline can be configured using `bold-marker`, `italic-marker`,
+and `underline-marker` respectively.
+
+Right now, formats don't work over multiple lines.
 Customizing the existing formatting in the stylesheet is not yet implemented
 either. (The few options that look relevant are for the chapter overview, not
 the main textarea.)
+
+**Inline formats**::
+
+  *word*                (bold)
+  /foo bar/             (italic)
+  _foo bar_             (underline)
+
 
 Chapter formatting
 ~~~~~~~~~~~~~~~~~~
@@ -95,11 +104,12 @@ Chapter syntax will be formatted as well, such as chapter titles, descriptions,
 and more. These lines are also used when generating the chapter overview.
 See the Chapter section below for more info.
 
-**Inline formats**::
+The horizontal line can be configured with `horizontal-ruler-marker`. Note that
+the horizontal line consists of one or more such characters (asterisk by default)
+and whitespace. For example, with `~` as the marker, the lines `~`, `~~~~` and
+`~ ~ ~ ~ ~ ~` would all be recognized as horizontal lines.
 
-  *word*                (bold)
-  /foo bar/             (italic)
-
+The chapter line can be configured with `chapter-keyword`.
 
 **Line formats** (have to be on their own lines)::
 
