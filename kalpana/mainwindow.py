@@ -15,11 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, List, Optional, Union
+from typing import cast, Dict, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from libsyntyche.cli import Command, ArgumentRules
 
-from kalpana.common import Command, KalpanaObject
+from kalpana.common import KalpanaObject
 from kalpana.chapteroverview import ChapterOverview
 from kalpana.terminal import Terminal
 from kalpana.textarea import TextArea
@@ -31,7 +32,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
     def __init__(self) -> None:
         super().__init__()
         self.kalpana_commands = [
-                Command('quit', '', self.close, accept_args=False)
+                Command('quit', '', self.close, args=ArgumentRules.NONE)
         ]
         self.title = 'New file'
         self.modified = False

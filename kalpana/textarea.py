@@ -20,7 +20,8 @@ import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from kalpana.common import Command, KalpanaObject
+from kalpana.common import KalpanaObject
+from libsyntyche.cli import Command, ArgumentRules
 
 
 class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
@@ -32,15 +33,17 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 'max-textarea-width'
         ]
         self.kalpana_commands = [
-                Command('go-to-line', '', self.go_to_line),
-                Command('set-textarea-max-width', 'Set the max width of the page',
-                        self.set_max_width),
+                Command('go-to-line', '', self.go_to_line,
+                        args=ArgumentRules.REQUIRED),
+                Command('set-textarea-max-width',
+                        'Set the max width of the page',
+                        self.set_max_width, args=ArgumentRules.REQUIRED),
                 Command('toggle-line-numbers', '', self.toggle_line_numbers,
-                        accept_args=False),
+                        args=ArgumentRules.NONE),
                 Command('insert-text', '', self.insertPlainText),
                 Command('search-and-replace', '', self.search_and_replace),
                 Command('search-next', '', self.search_next,
-                        accept_args=False),
+                        args=ArgumentRules.NONE),
         ]
         self.hr_blocks = []  # type: List[QtGui.QTextBlock]
         self.line_number_bar = LineNumberBar(self)

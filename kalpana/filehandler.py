@@ -21,9 +21,10 @@ import subprocess
 import sys
 
 from PyQt5 import QtCore
+from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
-from kalpana.common import AutocompletionPattern, Command, KalpanaObject
-from kalpana.textarea import TextArea
+from .common import autocomplete_file_path, KalpanaObject
+from .textarea import TextArea
 
 
 class FileHandler(QtCore.QObject, KalpanaObject):
@@ -43,28 +44,30 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 Command('new-file-in-new-window',
                         'Create a new file. Filename is optional.',
                         self.new_file_in_new_window),
-                Command('open-file', 'Open a file', self.open_file),
+                Command('open-file', 'Open a file', self.open_file,
+                        args=ArgumentRules.REQUIRED),
                 Command('open-file-in-new-window',
                         'Open a file in a new window',
-                        self.open_file_in_new_window),
+                        self.open_file_in_new_window,
+                        args=ArgumentRules.REQUIRED),
                 Command('save-file', 'Save the file', self.save_file),
         ]
         self.kalpana_autocompletion_patterns = [
-                AutocompletionPattern(name='new-file',
-                                      prefix=r'new-file\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='new-file-in-new-window',
-                                      prefix=r'new-file-in-new-window\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='open-file',
-                                      prefix=r'open-file\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='open-file-in-new-window',
-                                      prefix=r'open-file-in-new-window\s+',
-                                      is_file_path=True),
-                AutocompletionPattern(name='save-file',
-                                      prefix=r'save-file\s+',
-                                      is_file_path=True),
+                AutocompletionPattern('new-file',
+                                      autocomplete_file_path,
+                                      prefix=r'new-file\s+'),
+                AutocompletionPattern('new-file-in-new-window',
+                                      autocomplete_file_path,
+                                      prefix=r'new-file-in-new-window\s+'),
+                AutocompletionPattern('open-file',
+                                      autocomplete_file_path,
+                                      prefix=r'open-file\s+'),
+                AutocompletionPattern('open-file-in-new-window',
+                                      autocomplete_file_path,
+                                      prefix=r'open-file-in-new-window\s+'),
+                AutocompletionPattern('save-file',
+                                      autocomplete_file_path,
+                                      prefix=r'save-file\s+'),
         ]
 
     def load_file_at_startup(self, filepath: str) -> None:

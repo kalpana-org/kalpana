@@ -20,10 +20,11 @@ import re
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import pyqtSignal
+from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
 from kalpana.chapters import ChapterIndex
 from kalpana.chapteroverview import ChapterOverview
-from kalpana.common import AutocompletionPattern, Command, KalpanaObject, SuggestionListAlias
+from kalpana.common import KalpanaObject
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal
@@ -43,8 +44,10 @@ class Controller:
         self.chapter_overview = chapter_overview
         self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
-        self.spellchecker = Spellchecker(self.settings.config_dir, self.textarea)
-        self.highlighter = Highlighter(self.textarea, self.chapter_index, self.spellchecker)
+        self.spellchecker = Spellchecker(self.settings.config_dir,
+                                         self.textarea)
+        self.highlighter = Highlighter(self.textarea, self.chapter_index,
+                                       self.spellchecker)
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()
@@ -54,29 +57,34 @@ class Controller:
 
     def register_own_commands(self) -> None:
         commands = [
-                Command('go-to-chapter', 'Jump to a specified chapter', self.go_to_chapter),
-                Command('go-to-next-chapter', 'Jump to next chapter', self.go_to_next_chapter,
-                        accept_args=False),
+                Command('go-to-chapter', 'Jump to a specified chapter',
+                        self.go_to_chapter),
+                Command('go-to-next-chapter', 'Jump to next chapter',
+                        self.go_to_next_chapter,
+                        args=ArgumentRules.NONE),
                 Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
-                        accept_args=False),
+                        args=ArgumentRules.NONE),
                 Command('word-count-total', '', self.count_total_words,
-                        accept_args=False),
+                        args=ArgumentRules.NONE),
                 Command('word-count-chapter', '', self.count_chapter_words),
                 Command('reload-settings', '', self.settings.reload_settings,
-                        accept_args=False),
-                Command('reload-stylesheet', '', self.settings.reload_stylesheet,
-                        accept_args=False),
-                Command('show-info', 'Show information about the open file or the session.',
+                        args=ArgumentRules.NONE),
+                Command('reload-stylesheet', '',
+                        self.settings.reload_stylesheet,
+                        args=ArgumentRules.NONE),
+                Command('show-info',
+                        'Show information about the open file or the session.',
                         self.show_info),
-                Command('toggle-chapter-overview', '', self.toggle_chapter_overview,
-                        accept_args=False),
+                Command('toggle-chapter-overview', '',
+                        self.toggle_chapter_overview,
+                        args=ArgumentRules.NONE),
         ]
         self.terminal.register_commands(commands)
         autocompletion_patterns = [
-                AutocompletionPattern(name='show-info',
+                AutocompletionPattern('show-info',
+                                      self.get_show_info_suggestions,
                                       prefix=r'show-info\s+',
-                                      illegal_chars=' ',
-                                      get_suggestion_list=self.get_show_info_suggestions),
+                                      illegal_chars=' '),
         ]
         self.terminal.register_autocompletion_patterns(autocompletion_patterns)
 
@@ -125,11 +133,11 @@ class Controller:
 
     def toggle_terminal(self) -> None:
         if self.terminal.input_field.hasFocus():
-            if self.terminal.completer_popup.isVisible():
-                self.terminal.completer_popup.visible = False
-            else:
-                self.terminal.hide()
-                self.mainwindow.setFocus()
+            # if self.terminal.completer_popup.isVisible():
+            #    self.terminal.completer_popup.visible = False
+            # else:
+            self.terminal.hide()
+            self.mainwindow.setFocus()
         else:
             self.terminal.input_field.setFocus()
 
@@ -199,8 +207,9 @@ class Controller:
         else:
             self.terminal.error('Invalid argument')
 
-    def get_show_info_suggestions(self, name: str, text: str) -> SuggestionListAlias:
-        return [(item, None) for item in ['file', 'spellcheck', 'modified']
+    def get_show_info_suggestions(self, name: str, text: str
+                                  ) -> List[str]:
+        return [item for item in ['file', 'spellcheck', 'modified']
                 if item.startswith(text)]
 
     def go_to_chapter(self, arg: str) -> None:
@@ -240,7 +249,8 @@ class Controller:
         """
         current_line = self.textarea.textCursor().blockNumber()
         current_chapter = self.chapter_index.which_chapter(current_line)
-        target_chapter = max(0, min(len(self.chapter_index.chapters)-1, current_chapter+diff))
+        target_chapter = max(0, min(len(self.chapter_index.chapters) - 1,
+                                    current_chapter+diff))
         if current_chapter != target_chapter:
             line = self.chapter_index.get_chapter_line(target_chapter)
             self.textarea.center_on_line(line)

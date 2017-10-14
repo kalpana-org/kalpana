@@ -18,17 +18,18 @@
 import enchant
 import os
 from os.path import join
-from typing import Any
+from typing import Any, List
 
 from PyQt5 import QtCore
+from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
-from kalpana.common import AutocompletionPattern, Command, KalpanaObject, SuggestionListAlias
+from kalpana.common import KalpanaObject
 from kalpana.textarea import TextArea
 
 
-def get_spellcheck_languages(name: str, text: str) -> SuggestionListAlias:
+def get_spellcheck_languages(name: str, text: str) -> List[str]:
     """Return a list with the tags of all available spellcheck languages."""
-    return [(lang, None) for lang in sorted(enchant.list_languages())
+    return [lang for lang in sorted(enchant.list_languages())
             if lang.startswith(text)]
 
 
@@ -41,20 +42,20 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
                 Command('toggle-spellcheck', '', self.toggle_spellcheck,
-                        accept_args=False),
+                        args=ArgumentRules.NONE),
                 Command('set-spellcheck-language', '', self.set_language),
                 Command('suggest-spelling',
                         'Print a list of possible spellings for the argument '
                         'or the word under the cursor.',
                         self.suggest),
                 Command('add-word', 'Add word to the spellcheck word list.',
-                        self.add_word)
+                        self.add_word, args=ArgumentRules.REQUIRED)
         ]
         self.kalpana_autocompletion_patterns = [
-                AutocompletionPattern(name='set-spellcheck-language',
+                AutocompletionPattern('set-spellcheck-language',
+                                      get_spellcheck_languages,
                                       prefix=r'set-spellcheck-language\s+',
-                                      illegal_chars=' ',
-                                      get_suggestion_list=get_spellcheck_languages),
+                                      illegal_chars=' ')
         ]
         self.textarea = textarea
         self.language = 'en_US'

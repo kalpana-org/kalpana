@@ -20,12 +20,14 @@ LineNumberBar {
 
 QLineEdit {
   background: #111;
+  font-family: 'monospace';
   selection-color: #111;
 }
 
 QListView {
   alternate-background-color: #222;
   border: 2px solid black;
+  font-family: 'monospace';
 }
 
 /* ============= AUTOCOMPLETION POPUP LIST============= */
