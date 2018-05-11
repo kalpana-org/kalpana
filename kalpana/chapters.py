@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Any, List, Optional, Set, Sized, Tuple
+from typing import cast, Any, List, Optional, Set, Tuple
 
 from PyQt5 import QtCore, QtGui
 
@@ -23,21 +23,19 @@ from kalpana.textarea import LineFormatData
 from kalpana.settings import KalpanaObject
 
 
-class Section(Sized):
+class Section:
 
     def __init__(self, desc: Optional[str] = None) -> None:
         self.line_count = 0
+        self.word_count = 0
         self.desc = desc
-
-    def __len__(self) -> int:
-        """Return how many lines long the section is."""
-        return self.line_count
 
     def __eq__(self, other) -> bool:
         try:
-            return self.line_count == other.line_count and\
+            return self.line_count == other.line_count and \
+                   self.word_count == other.word_count and \
                    self.desc == other.desc
-        except:
+        except Exception:
             return False
 
     def __repr__(self) -> str:
@@ -45,9 +43,11 @@ class Section(Sized):
                 .format(self.__class__.__module__, self.__class__.__name__,
                         self.line_count, None, id(self))
 
-class Chapter(Sized):
 
-    def __init__(self, title: Optional[str] = None, complete: bool = False) -> None:
+class Chapter:
+
+    def __init__(self, title: Optional[str] = None,
+                 complete: bool = False) -> None:
         self.title = title
         self.complete = complete
         self.metadata_line_count = 0
@@ -56,9 +56,15 @@ class Chapter(Sized):
         self.tags = None  # type: Optional[Set[str]]
         self.sections = [Section()]  # type: List[Section]
 
-    def __len__(self) -> int:
+    @property
+    def line_count(self) -> int:
         """Return how many lines long the chapter is."""
-        return self.metadata_line_count + sum(map(len, self.sections))
+        return (self.metadata_line_count
+                + sum(s.line_count for s in self.sections))
+
+    @property
+    def word_count(self) -> int:
+        return sum(s.word_count for s in self.sections)
 
     def __repr__(self) -> str:
         def cap(text: Optional[str], length: int) -> str:
@@ -68,17 +74,20 @@ class Chapter(Sized):
                 return repr(text)
             else:
                 return repr(text[:length-1] + '…')
-        template = '<{module}.{cls} {complete}lines={lines} title={title} '\
-                   'desc={desc} time={time} tags={tags} sections={sections}>'
-        return template.format(module=self.__class__.__module__,
-                               cls=self.__class__.__name__,
-                               lines=len(self),
-                               complete='complete ' if self.complete else '',
-                               title=cap(self.title, 10),
-                               desc=cap(self.desc, 10),
-                               time=cap(self.time, 10),
-                               tags='' if self.tags is None else len(self.tags),
-                               sections=len(self.sections))
+        template = ('<{module}.{cls} {complete}lines={lines} words={words} '
+                    'title={title} desc={desc} time={time} tags={tags} '
+                    'sections={sections}>')
+        return template.format(
+            module=self.__class__.__module__,
+            cls=self.__class__.__name__,
+            lines=self.line_count,
+            complete='complete ' if self.complete else '',
+            title=cap(self.title, 10),
+            desc=cap(self.desc, 10),
+            time=cap(self.time, 10),
+            tags='' if self.tags is None else len(self.tags),
+            sections=len(self.sections)
+        )
 
     def __eq__(self, other) -> bool:
         try:
@@ -89,7 +98,7 @@ class Chapter(Sized):
                    self.time == other.time and\
                    self.tags == other.tags and\
                    self.sections == other.sections
-        except:
+        except Exception:
             return False
 
 
@@ -138,6 +147,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                 elif state == 'tags':
                     chapters[-1].tags = {tag.strip()[1:]
                                          for tag in line.split(',') if tag.strip()}
+            else:
+                chapters[-1].sections[-1].word_count += len(line.split())
             n += 1
             block = block.next()
         chapters[-1].sections[-1].line_count = n - current_chunk_start
@@ -149,7 +160,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         self.chapters = chapters
         self.chapter_line_numbers = chapter_line_numbers
 
-    def parse_line(self, text: str, previous_state: int) -> Tuple[int, Optional[str]]:
+    def parse_line(self, text: str,
+                   previous_state: int) -> Tuple[int, Optional[str]]:
         chapter = 0b00001
         section = 0b00010
         desc = 0b00100

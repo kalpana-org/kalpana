@@ -262,13 +262,12 @@ class Controller:
     def count_chapter_words(self, arg: str) -> None:
         if not self.chapter_index.chapters:
             self.terminal.error('No chapters detected!')
+        elif not arg:
+            self.terminal.error('No chapter specified!')
         elif not arg.isdecimal():
             self.terminal.error('Argument has to be a number!')
         elif int(arg) >= len(self.chapter_index.chapters):
             self.terminal.error('Invalid chapter!')
         else:
-            first_line = self.chapter_index.get_chapter_line(int(arg))
-            last_line = first_line + len(self.chapter_index.chapters[int(arg)])
-            lines = self.textarea.toPlainText().split('\n')[first_line:last_line]
-            words = len('\n'.join(lines).split())
+            words = self.chapter_index.chapters[int(arg)].word_count
             self.terminal.print_('Words in chapter {}: {}'.format(arg, words))

@@ -141,7 +141,7 @@ class ChapterOverview(QtWidgets.QScrollArea):
                     item = ChapterItem(self, n)
                     self.chapter_items.append(item)
                     cast(QtWidgets.QVBoxLayout, self.container.layout()).insertWidget(n, item)
-                item.set_data(chapter.title, len(chapter), chapter.time,
+                item.set_data(chapter.title, chapter.word_count, chapter.time,
                               chapter.tags, chapter.desc, chapter.sections,
                               chapter.complete)
                 item.show()
