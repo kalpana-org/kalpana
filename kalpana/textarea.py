@@ -369,8 +369,9 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
         faded = QtGui.QTextCharFormat()
         fg.setAlphaF(0.5)
         faded.setForeground(QtGui.QBrush(fg))
+
         def set_format(marker: str, f: QtGui.QTextCharFormat) -> None:
-            for chunk in re.finditer(r'(?:\s|,|^)({0}[^{0}]*{0})(?:\s|,|$)'
+            for chunk in re.finditer(r'(?:\W|^)({0}[^{0}]*{0})(?:\W|$)'
                                      .format(re.escape(marker)), text):
                 start, end = chunk.start(1), chunk.end(1)
                 self.setFormat(start, end - start, faded)
