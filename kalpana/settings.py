@@ -30,7 +30,7 @@ from kalpana.common import KalpanaObject
 
 
 def default_config_dir() -> str:
-    return join(os.getenv('HOME'), '.config', 'kalpana2')
+    return join(os.getenv('HOME', ''), '.config', 'kalpana2')
 
 
 def data_path(*path: str) -> str:
@@ -60,14 +60,15 @@ class CommandHistory:
 
     def __init__(self, config_dir: str) -> None:
         self._path = join(config_dir, 'command_history.json')
-        self.command_frequency = defaultdict(int)  # type: DefaultDict[str, int]
-        self.autocompletion_history = defaultdict(lambda: defaultdict(int))  # type: DefaultDict[str, DefaultDict[str, int]]
+        self.command_frequency: DefaultDict[str, int] = defaultdict(int)
+        self.autocompletion_history: DefaultDict[str, DefaultDict[str, int]] \
+            = defaultdict(lambda: defaultdict(int))
         try:
             with open(self._path) as f:
-                data = json.loads(f.read())  # type: Dict[str, Any]
+                data: Dict[str, Any] = json.loads(f.read())
                 autocompletion_history = data['autocompletion_history']
                 command_frequency = data['command_frequency']
-        except (IOError, json.JSONDecodeError):  # type: ignore
+        except (IOError, json.JSONDecodeError):
             pass
         else:
             self.command_frequency.update(command_frequency)
@@ -98,10 +99,10 @@ class Settings(QtCore.QObject, KalpanaObject):
             self.config_dir = config_dir
         os.makedirs(self.config_dir, exist_ok=True)
         self.active_file = ''
-        self.registered_settings = {}  # type: Dict[str, KalpanaObject]
+        self.registered_settings: Dict[str, KalpanaObject] = {}
         self.command_history = CommandHistory(self.config_dir)
-        self.settings = ChainMap()  # type: ChainMap
-        self.key_bindings = {}  # type: Dict[int, str]
+        self.settings: ChainMap = ChainMap()
+        self.key_bindings: Dict[int, str] = {}
         self.terminal_key = -1
         self.css = ''
 
@@ -182,13 +183,13 @@ class Settings(QtCore.QObject, KalpanaObject):
         with open(default_config_path) as f:
             default_config = cast(dict, yaml.load(f.read()))
         # Global config
-        global_config = {}  # type: Dict[str, Any]
+        global_config: Dict[str, Any] = {}
         try:
             global_config = self._load_yaml_file(global_config_path)
         except yaml.YAMLError as e:
             self.error('Invalid yaml in the global config: {}'.format(e))
         # File specific config
-        file_config = {}  # type: Dict[str, Any]
+        file_config: Dict[str, Any] = {}
         try:
             all_files_config = self._load_yaml_file(all_files_config_path)
             file_config = all_files_config.get(self.active_file, {})
@@ -201,11 +202,11 @@ class Settings(QtCore.QObject, KalpanaObject):
     def load_stylesheet(self, config_dir: str) -> str:
         """Read and return the stylesheet."""
         with open(data_path('qt.css')) as f:
-            default_css = cast(str, f.read())
+            default_css = f.read()
         css_path = join(config_dir, 'qt.css')
         try:
             with open(css_path) as f:
-                user_css = cast(str, f.read())
+                user_css = f.read()
         except OSError:
             # No file present which is perfectly fine
             user_css = ''

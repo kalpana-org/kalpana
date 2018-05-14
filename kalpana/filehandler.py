@@ -30,14 +30,14 @@ from .textarea import TextArea
 class FileHandler(QtCore.QObject, KalpanaObject):
     """Takes care of saving and opening files."""
     # file_opened(filepath, is new file)
-    file_opened = QtCore.pyqtSignal(str, bool)
+    file_opened_signal = QtCore.pyqtSignal(str, bool)
     # file_saved(filepath, new save name)
-    file_saved = QtCore.pyqtSignal(str, bool)
+    file_saved_signal = QtCore.pyqtSignal(str, bool)
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
         self.textarea = textarea
-        self.filepath = None  # type: Optional[str]
+        self.filepath: Optional[str] = None
         self.kalpana_commands = [
                 Command('new-file', 'Create a new file. Filename is optional.',
                         self.new_file),
@@ -105,11 +105,11 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         else:
             if filepath:
                 self.filepath = filepath
-                self.file_opened.emit(filepath, True)
+                self.file_opened_signal.emit(filepath, True)
                 self.log('New file: {}'.format(filepath))
             else:
                 self.filepath = None
-                self.file_opened.emit('', True)
+                self.file_opened_signal.emit('', True)
                 self.log('New file')
             self.textarea.setPlainText('')
             # For some reason this signal isn't triggered on its own
@@ -142,14 +142,14 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             for e in encodings:
                 try:
                     with open(filepath, encoding=e) as f:
-                        text = cast(str, f.read())
+                        text = f.read()
                 except UnicodeDecodeError:
                     continue
                 else:
                     self.textarea.setPlainText(text)
                     self.filepath = filepath
                     self.log('File opened: {}'.format(filepath))
-                    self.file_opened.emit(filepath, False)
+                    self.file_opened_signal.emit(filepath, False)
                     return
             else:
                 self.error('Unable to open the file: {}'.format(filepath))
@@ -176,7 +176,8 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         """
         if not filepath and self.filepath is None:
             self.error('No active file')
-        elif filepath != self.filepath and os.path.exists(filepath) and not force:
+        elif filepath and filepath != self.filepath \
+                and os.path.exists(filepath) and not force:
             self.confirm('File already exists. Overwrite?',
                          self.force_save_file, filepath)
         else:
@@ -194,8 +195,8 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             else:
                 self.log('File saved: {}'.format(file_to_save))
                 if file_to_save == self.filepath:
-                    self.file_saved.emit(file_to_save, False)
+                    self.file_saved_signal.emit(file_to_save, False)
                 else:
-                    self.file_saved.emit(file_to_save, True)
+                    self.file_saved_signal.emit(file_to_save, True)
                 self.filepath = file_to_save
                 self.textarea.document().setModified(False)

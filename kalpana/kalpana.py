@@ -53,7 +53,7 @@ class Kalpana(QtWidgets.QApplication):
         if file_to_open:
             self.controller.filehandler.load_file_at_startup(file_to_open)
 
-    def make_event_filter(self):
+    def make_event_filter(self) -> None:
         class MainWindowEventFilter(QtCore.QObject):
             def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
                 if event.type() == QtCore.QEvent.Close:

@@ -43,14 +43,15 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         layout.setSpacing(0)
         self.stack = QtWidgets.QStackedWidget(self)
         layout.addWidget(self.stack)
-        self.stack_wrappers = {}  # type: Dict[int, QtWidgets.QFrame]
-        self.terminal = None  # type: Optional[Terminal]
+        self.stack_wrappers: Dict[int, QtWidgets.QFrame] = {}
+        self.terminal: Optional[Terminal] = None
         self.show()
 
     @property
     def active_stack_widget(self) -> InnerStackWidget:
         """Return the stack's actual active widget (not the wrapper)."""
-        return cast(InnerStackWidget, self.stack.currentWidget().layout().itemAt(1).widget())
+        return cast(InnerStackWidget,
+                    self.stack.currentWidget().layout().itemAt(1).widget())
 
     @active_stack_widget.setter
     def active_stack_widget(self, widget: InnerStackWidget) -> None:

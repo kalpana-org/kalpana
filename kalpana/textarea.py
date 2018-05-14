@@ -20,7 +20,8 @@ import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from kalpana.common import KalpanaObject
+from kalpana.common import KalpanaObject, LineFormatData
+from kalpana.chapters import ChapterIndex
 from libsyntyche.cli import Command, ArgumentRules
 
 
@@ -45,9 +46,9 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 Command('search-next', '', self.search_next,
                         args=ArgumentRules.NONE),
         ]
-        self.hr_blocks = []  # type: List[QtGui.QTextBlock]
+        self.hr_blocks: List[QtGui.QTextBlock] = []
         self.line_number_bar = LineNumberBar(self)
-        self.search_buffer = None  # type: Optional[str]
+        self.search_buffer: Optional[str] = None
         self.search_flags = QtGui.QTextDocument.FindFlag()
 
     def setting_changed(self, name: str, new_value: Any) -> None:
@@ -150,22 +151,24 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             (?P<flags>[abiw]*)
             $
         """, re.VERBOSE)
-        if search_rx.match(text):
-            self.search_buffer = search_rx.match(text).group(0)[1:]
+        search_match = search_rx.match(text)
+        search_flags_match = search_flags_rx.match(text)
+        replace_match = replace_rx.match(text)
+        if search_match:
+            self.search_buffer = search_match.group(0)[1:]
             self.search_flags = QtGui.QTextDocument.FindCaseSensitively
             self.search_next()
-        elif search_flags_rx.match(text):
-            self.search_buffer, flags = search_flags_rx.match(text).group(0)[1:].rsplit('/', 1)
+        elif search_flags_match:
+            self.search_buffer, flags = search_flags_match.group(0)[1:].rsplit('/', 1)
             generate_flags(flags)
             self.search_next()
-        elif replace_rx.match(text):
-            match = replace_rx.match(text)
-            self.search_buffer = match.group('search')
-            generate_flags(match.group('flags'))
-            if 'a' in match.group('flags'):
-                self._replace_all(match.group('replace'))
+        elif replace_match:
+            self.search_buffer = replace_match.group('search')
+            generate_flags(replace_match.group('flags'))
+            if 'a' in replace_match.group('flags'):
+                self._replace_all(replace_match.group('replace'))
             else:
-                self._replace_next(match.group('replace'))
+                self._replace_next(replace_match.group('replace'))
         else:
             self.error('Malformed search/replace expression')
 
@@ -256,17 +259,11 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.setTextCursor(temp_cursor)
 
 
-class LineFormatData(QtGui.QTextBlockUserData):
-
-    def __init__(self, text: str) -> None:
-        super().__init__()
-        self.text = text
-
-
 class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
 
     def __init__(self, textarea: TextArea,
-                 chapter_index=None, spellchecker=None) -> None:
+                 chapter_index: ChapterIndex,
+                 spellchecker=None) -> None:
         super().__init__(textarea.document())
         self.kalpana_settings = [
                 'italic-marker',

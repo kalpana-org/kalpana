@@ -21,9 +21,10 @@ Classes and functions needed in multiple different modules.
 This is to avoid potential circular imports.
 """
 
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
 
 from PyQt5.QtCore import pyqtSignal, QVariant
+from PyQt5.QtGui import QTextBlockUserData
 
 from libsyntyche.cli import Command, AutocompletionPattern
 
@@ -39,9 +40,9 @@ class KalpanaObject:
     log_signal = pyqtSignal(str)
     confirm_signal = pyqtSignal(str, QVariant, str)
     change_setting_signal = pyqtSignal(str, QVariant)
-    kalpana_settings = []  # type: List[str]
-    kalpana_commands = []  # type: List[Command]
-    kalpana_autocompletion_patterns = []  # type: List[AutocompletionPattern]
+    kalpana_settings: List[str] = []
+    kalpana_commands: List[Command] = []
+    kalpana_autocompletion_patterns: List[AutocompletionPattern] = []
 
     def error(self, text: str) -> None:
         """Show an error in the terminal."""
@@ -81,6 +82,13 @@ class KalpanaObject:
         new_name - The file was saved with a new name. (aka Save As)
         """
         pass
+
+
+class LineFormatData(QTextBlockUserData):
+
+    def __init__(self, text: Optional[str]) -> None:
+        super().__init__()
+        self.text = text
 
 
 def autocomplete_file_path(name: str, text: str) -> List[str]:

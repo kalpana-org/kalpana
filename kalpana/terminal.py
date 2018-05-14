@@ -17,6 +17,7 @@
 
 from datetime import datetime
 from enum import IntEnum
+from typing import Iterable
 
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -38,9 +39,15 @@ class Terminal(terminal.Terminal, KalpanaObject):
     def __init__(self, parent: QtWidgets.QFrame,
                  command_history: CommandHistory) -> None:
         super().__init__(parent)
-        self.register_commands = lambda x: [self.add_command(y) for y in x]
-        self.register_autocompletion_patterns = lambda x: [
-                self.add_autocompletion_pattern(y) for y in x]
+
+    def register_commands(self, commands: Iterable[cli.Command]) -> None:
+        for command in commands:
+            self.add_command(command)
+
+    def register_autocompletion_patterns(
+                self, patterns: Iterable[cli.AutocompletionPattern]) -> None:
+        for pattern in patterns:
+            self.add_autocompletion_pattern(pattern)
 
 
 class LogHistory(QtWidgets.QListWidget):

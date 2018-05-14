@@ -67,7 +67,7 @@ class ChapterItem(QtWidgets.QFrame):
         self.time = label('time', layout)
         self.tags = label('tags', layout)
         self.desc = label('desc', layout)
-        self.section_items = []  # type: List[SectionItem]
+        self.section_items: List[SectionItem] = []
 
     def set_data(self, title: Optional[str], length: Optional[int],
                  time: Optional[str], tags: Optional[Set[str]],
@@ -100,7 +100,9 @@ class ChapterItem(QtWidgets.QFrame):
         else:
             self.desc.setText(str(desc))
             self.desc.show()
-        ziplist = enumerate(zip_longest(sections[1:], self.section_items))  # type: Iterable[Tuple[int, Tuple[Optional[Section], Optional[SectionItem]]]]
+        ziplist: Iterable[Tuple[int, Tuple[Optional[Section],
+                                           Optional[SectionItem]]]] \
+            = enumerate(zip_longest(sections[1:], self.section_items))
         for n, (section, item) in ziplist:
             if section is None:
                 if item:
@@ -126,12 +128,14 @@ class ChapterOverview(QtWidgets.QScrollArea):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addStretch(1)
-        self.chapter_items = []  # type: List[ChapterItem]
+        self.chapter_items: List[ChapterItem] = []
         self.show()
 
     def load_chapter_data(self, chapters: List[Chapter]) -> None:
         self.empty = not bool(chapters[1:])
-        ziplist = enumerate(zip_longest(chapters[1:], self.chapter_items))  # type: Iterable[Tuple[int, Tuple[Optional[Chapter], Optional[ChapterItem]]]]
+        ziplist: Iterable[Tuple[int, Tuple[Optional[Chapter],
+                                           Optional[ChapterItem]]]] \
+            = enumerate(zip_longest(chapters[1:], self.chapter_items))
         for n, (chapter, item) in ziplist:
             if chapter is None:
                 if item:

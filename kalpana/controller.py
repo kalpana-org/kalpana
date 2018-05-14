@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Callable, List, Tuple
+from typing import cast, Callable, List, Optional, Tuple
 import re
 
 from PyQt5 import QtCore, QtGui
@@ -106,9 +106,11 @@ class Controller:
         self.mainwindow.installEventFilter(self.key_binding_event_filter)
 
     def connect_objects(self) -> None:
-        objects = [self.textarea, self.filehandler, self.spellchecker,
-                   self.chapter_index, self.settings, self.terminal,
-                   self.mainwindow, self.highlighter]  # type: List[KalpanaObject]
+        objects: List[KalpanaObject] = [
+            self.textarea, self.filehandler, self.spellchecker,
+            self.chapter_index, self.settings, self.terminal,
+            self.mainwindow, self.highlighter
+        ]
         for obj in objects:
             if obj != self.terminal:
                 obj.log_signal.connect(self.terminal.print_)
@@ -120,14 +122,14 @@ class Controller:
                 obj.change_setting_signal.connect(self.settings.change_setting)
                 self.settings.register_settings(obj.kalpana_settings, obj)
             if obj != self.filehandler:
-                self.filehandler.file_saved.connect(obj.file_saved)
-                self.filehandler.file_opened.connect(obj.file_opened)
-        misc_signals = [
+                self.filehandler.file_saved_signal.connect(obj.file_saved)
+                self.filehandler.file_opened_signal.connect(obj.file_opened)
+        misc_signals: List[Tuple[pyqtSignal, Callable]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (self.textarea.textChanged, self.update_chapter_index),
             (self.textarea.modificationChanged, self.mainwindow.modification_changed),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
-        ]  # type: List[Tuple[pyqtSignal, Callable]]
+        ]
         for signal, slot in misc_signals:
             signal.connect(slot)
 
@@ -147,7 +149,7 @@ class Controller:
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,
-                        size: float = None) -> QtGui.QTextCharFormat:
+                        size: Optional[float] = None) -> QtGui.QTextCharFormat:
             char_format = QtGui.QTextCharFormat()
             if bold:
                 char_format.setFontWeight(QtGui.QFont.Bold)

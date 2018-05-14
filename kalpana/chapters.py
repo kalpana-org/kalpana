@@ -19,7 +19,7 @@ from typing import cast, Any, List, Optional, Set, Tuple
 
 from PyQt5 import QtCore, QtGui
 
-from kalpana.textarea import LineFormatData
+from kalpana.common import LineFormatData
 from kalpana.settings import KalpanaObject
 
 
@@ -30,11 +30,11 @@ class Section:
         self.word_count = 0
         self.desc = desc
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         try:
-            return self.line_count == other.line_count and \
-                   self.word_count == other.word_count and \
-                   self.desc == other.desc
+            return bool(self.line_count == other.line_count and
+                        self.word_count == other.word_count and
+                        self.desc == other.desc)
         except Exception:
             return False
 
@@ -51,10 +51,10 @@ class Chapter:
         self.title = title
         self.complete = complete
         self.metadata_line_count = 0
-        self.desc = None  # type: Optional[str]
-        self.time = None  # type: Optional[str]
-        self.tags = None  # type: Optional[Set[str]]
-        self.sections = [Section()]  # type: List[Section]
+        self.desc: Optional[str] = None
+        self.time: Optional[str] = None
+        self.tags: Optional[Set[str]] = None
+        self.sections: List[Section] = [Section()]
 
     @property
     def line_count(self) -> int:
@@ -89,15 +89,15 @@ class Chapter:
             sections=len(self.sections)
         )
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
         try:
-            return self.title == other.title and\
-                   self.complete == other.complete and\
-                   self.metadata_line_count == other.metadata_line_count and\
-                   self.desc == other.desc and\
-                   self.time == other.time and\
-                   self.tags == other.tags and\
-                   self.sections == other.sections
+            return bool(self.title == other.title and
+                        self.complete == other.complete and
+                        self.metadata_line_count == other.metadata_line_count and
+                        self.desc == other.desc and
+                        self.time == other.time and
+                        self.tags == other.tags and
+                        self.sections == other.sections)
         except Exception:
             return False
 
@@ -107,8 +107,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
     def __init__(self) -> None:
         super().__init__()
         self.kalpana_settings = ['chapter-keyword']
-        self.chapters = []  # type: List[Chapter]
-        self.chapter_line_numbers = []  # type: List[int]
+        self.chapters: List[Chapter] = []
+        self.chapter_line_numbers: List[int] = []
         self.chapter_keyword = 'CHAPTER'
 
     def setting_changed(self, name: str, new_value: Any) -> None:
