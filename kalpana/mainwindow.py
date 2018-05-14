@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.close()
 
     def update_window_title(self) -> None:
-        title = '*{}*'.format(self.title) if self.modified else self.title
+        title = f'*{self.title}*' if self.modified else self.title
         self.setWindowTitle(title)
 
     def modification_changed(self, modified: bool) -> None:
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.update_window_title()
 
     def file_opened(self, filepath: str, is_new: bool) -> None:
-        self.title = filepath if filepath else 'New file'
+        self.title = filepath or 'New file'
         self.update_window_title()
 
     def file_saved(self, filepath: str, new_name: bool) -> None:
@@ -113,6 +113,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         a.setEasingCurve(QtCore.QEasingCurve.InOutSine)
         a.setDuration(500)
         for step, offset in enumerate([0, 1, -2, 2, -1, 0]):
-            a.setKeyValueAt(step*0.2, self.stack.pos() + QtCore.QPoint(offset*40, 0))
+            a.setKeyValueAt(step * 0.2,
+                            self.stack.pos() + QtCore.QPoint(offset*40, 0))
         a.start(QtCore.QPropertyAnimation.DeleteWhenStopped)
         self.shakeanim = a

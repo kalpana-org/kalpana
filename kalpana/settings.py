@@ -20,7 +20,8 @@ import json
 import os
 from os.path import dirname, join, realpath
 import re
-from typing import cast, Any, DefaultDict, Dict, Iterable, Mapping, Match, MutableMapping, Optional
+from typing import (cast, Any, DefaultDict, Dict, Iterable, Mapping,
+                    Match, Optional)
 
 import yaml
 
@@ -39,7 +40,9 @@ def data_path(*path: str) -> str:
 
 
 def get_keycode(key_string: str) -> int:
-    """Return the key code (including modifiers) of a key combination string."""
+    """
+    Return the key code (including modifiers) of a key combination string.
+    """
     return QtGui.QKeySequence(key_string)[0]
 
 
@@ -136,7 +139,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         try:
             all_files_config = self._load_yaml_file(all_files_config_path)
         except yaml.YAMLError as e:
-            self.error('Invalid yaml in the file config: {}'.format(e))
+            self.error(f'Invalid yaml in the file config: {e}')
         else:
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
@@ -144,8 +147,11 @@ class Settings(QtCore.QObject, KalpanaObject):
             with open(all_files_config_path, 'w') as f:
                 f.write(yaml_data)
 
-    def register_settings(self, names: Iterable[str], obj: KalpanaObject) -> None:
-        """Register that an object is waiting for changes to a certain setting."""
+    def register_settings(self, names: Iterable[str],
+                          obj: KalpanaObject) -> None:
+        """
+        Register that an object is waiting for changes to a certain setting.
+        """
         for name in names:
             self.registered_settings[name] = obj
 
@@ -153,7 +159,8 @@ class Settings(QtCore.QObject, KalpanaObject):
         """Send changed settings to the objects that registered them."""
         if new_settings:
             for setting, obj in self.registered_settings.items():
-                if not self.settings or (new_settings[setting] != self.settings[setting]):
+                if not self.settings \
+                        or (new_settings[setting] != self.settings[setting]):
                     obj.setting_changed(setting, new_settings[setting])
 
     def _load_yaml_file(self, config_path: str) -> Dict[str, Any]:
@@ -174,7 +181,7 @@ class Settings(QtCore.QObject, KalpanaObject):
                 raise yaml.YAMLError('root type has to be a dict')
             return config
 
-    def load_settings(self, config_dir: str) -> ChainMap:#MutableMapping[str, Any]:
+    def load_settings(self, config_dir: str) -> ChainMap:  # MutableMapping[str, Any]:
         """Read and return the settings, with default values overriden."""
         default_config_path = data_path('default_settings.yaml')
         global_config_path = join(config_dir, 'settings.yaml')
@@ -187,14 +194,14 @@ class Settings(QtCore.QObject, KalpanaObject):
         try:
             global_config = self._load_yaml_file(global_config_path)
         except yaml.YAMLError as e:
-            self.error('Invalid yaml in the global config: {}'.format(e))
+            self.error(f'Invalid yaml in the global config: {e}')
         # File specific config
         file_config: Dict[str, Any] = {}
         try:
             all_files_config = self._load_yaml_file(all_files_config_path)
             file_config = all_files_config.get(self.active_file, {})
         except yaml.YAMLError as e:
-            self.error('Invalid yaml in the file config: {}'.format(e))
+            self.error(f'Invalid yaml in the file config: {e}')
         new_settings = ChainMap(file_config, global_config, default_config)
         self.notify_settings_changes(new_settings)
         return new_settings
@@ -214,7 +221,8 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.css_changed.emit(css)
         return css
 
-    def generate_key_bindings(self, settings: Mapping[str, Any]) -> Dict[int, str]:
+    def generate_key_bindings(self, settings: Mapping[str, Any]
+                              ) -> Dict[int, str]:
         """Return a dict with keycode and the command to run."""
         return {get_keycode(key): command
                 for key, command in settings['key-bindings'].items()}

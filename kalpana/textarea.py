@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Any, List, Match, Optional
+from typing import cast, Any, List, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -70,12 +70,13 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 self.error('Width has to be at least 1!')
             else:
                 self.setMaximumWidth(width)
-                self.log('Max textarea width set to {} px'.format(width))
+                self.log(f'Max textarea width set to {width} px')
                 self.change_setting('max-textarea-width', self.maximumWidth())
 
     def toggle_line_numbers(self) -> None:
         self.line_number_bar.setVisible(not self.line_number_bar.isVisible())
-        self.change_setting('show-line-numbers', self.line_number_bar.isVisible())
+        self.change_setting('show-line-numbers',
+                            self.line_number_bar.isVisible())
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
@@ -95,7 +96,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         fg.setAlphaF(0.4)
         painter.setPen(QtGui.QPen(QtGui.QBrush(fg), 2))
         while block.isValid():
-            rect = self.blockBoundingGeometry(block).translated(viewport_offset)
+            rect = self.blockBoundingGeometry(block)\
+                .translated(viewport_offset)
             if rect.y() > pagebottom:
                 break
             if block in self.hr_blocks and block != self.textCursor().block():
@@ -139,7 +141,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 search_flags |= QtGui.QTextDocument.FindCaseSensitively
             if 'w' in flagstr:
                 search_flags |= QtGui.QTextDocument.FindWholeWords
-            self.search_flags = cast(QtGui.QTextDocument.FindFlag, search_flags)
+            self.search_flags = cast(QtGui.QTextDocument.FindFlag,
+                                     search_flags)
         search_rx = re.compile(r'/([^/]|\\/)+$')
         search_flags_rx = re.compile(r'/([^/]|\\/)*?([^\\]/[biw]*)$')
         replace_rx = re.compile(r"""
@@ -159,7 +162,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             self.search_flags = QtGui.QTextDocument.FindCaseSensitively
             self.search_next()
         elif search_flags_match:
-            self.search_buffer, flags = search_flags_match.group(0)[1:].rsplit('/', 1)
+            self.search_buffer, flags = search_flags_match\
+                .group(0)[1:].rsplit('/', 1)
             generate_flags(flags)
             self.search_next()
         elif replace_match:
@@ -188,7 +192,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         found = self.find(self.search_buffer, self.search_flags)
         if not found:
             if not self.textCursor().atStart() \
-                        or (self._searching_backwards() and not self.textCursor().atEnd()):
+                        or (self._searching_backwards()
+                            and not self.textCursor().atEnd()):
                 if self._searching_backwards():
                     self.moveCursor(QtGui.QTextCursor.End)
                 else:
@@ -214,7 +219,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         found = self.find(self.search_buffer, self.search_flags)
         if not found:
             if not self.textCursor().atStart() \
-                        or (self._searching_backwards() and not self.textCursor().atEnd()):
+                        or (self._searching_backwards()
+                            and not self.textCursor().atEnd()):
                 if self._searching_backwards():
                     self.moveCursor(QtGui.QTextCursor.End)
                 else:
@@ -225,12 +231,12 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         if found:
             t = self.textCursor()
             t.insertText(replace_buffer)
-            l = len(replace_buffer)
-            t.setPosition(t.position() - l)
-            t.setPosition(t.position() + l, QtGui.QTextCursor.KeepAnchor)
+            repllen = len(replace_buffer)
+            t.setPosition(t.position() - repllen)
+            t.setPosition(t.position() + repllen, QtGui.QTextCursor.KeepAnchor)
             self.setTextCursor(t)
-            self.log('Replaced on line {}, pos {}'
-                     ''.format(t.blockNumber(), t.positionInBlock()))
+            self.log(f'Replaced on line {t.blockNumber()}, '
+                     f'pos {t.positionInBlock()}')
         else:
             self.error('Text not found')
 
@@ -253,7 +259,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             else:
                 break
         if times:
-            self.log('{} instance{} replaced'.format(times, 's' * (times > 0)))
+            self.log(f'{times} instance{"" if times == 1 else "s"} replaced')
         else:
             self.error('Text not found')
         self.setTextCursor(temp_cursor)
@@ -316,7 +322,7 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
             return
         # Horizontal ruler
         if self.hr_marker in text and \
-                text.strip(' \t{}'.format(self.hr_marker)) == '':
+                text.strip(f' \t{self.hr_marker}') == '':
             self.highlight_horizontal_ruler(text, fg)
             return
         elif self.currentBlock() in self.textarea.hr_blocks:
@@ -401,7 +407,9 @@ class LineNumberBar(QtWidgets.QFrame):
         font = self.font()
         font.setBold(True)
         font_metrics = QtGui.QFontMetricsF(font)
-        max_width = int(left_margin + right_margin + font_metrics.width(str(total_lines)) + 2*self.text_margin)
+        max_width = int(sum([left_margin, right_margin,
+                             font_metrics.width(str(total_lines)),
+                             2 * self.text_margin]))
         self.setFixedWidth(max_width)
         self.textarea.setViewportMargins(max_width, 0, 0, 0)
         super().update()
@@ -427,7 +435,8 @@ class LineNumberBar(QtWidgets.QFrame):
         text_align = QtGui.QTextOption(QtCore.Qt.AlignRight)
         font = painter.font()
         while block.isValid():
-            rect = self.textarea.blockBoundingGeometry(block).translated(viewport_offset)
+            rect = self.textarea.blockBoundingGeometry(block)\
+                .translated(viewport_offset)
             rect.setLeft(main_rect.left())
             rect.setWidth(main_rect.width())
             if rect.y() > page_bottom:

@@ -38,9 +38,11 @@ class Kalpana(QtWidgets.QApplication):
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
         self.chapter_overview = ChapterOverview(self.mainwindow)
-        self.terminal = Terminal(self.mainwindow, self.settings.command_history)
+        self.terminal = Terminal(self.mainwindow,
+                                 self.settings.command_history)
         self.mainwindow.set_terminal(self.terminal)
-        self.mainwindow.add_stack_widgets([self.textarea, self.chapter_overview])
+        self.mainwindow.add_stack_widgets([self.textarea,
+                                           self.chapter_overview])
         self.controller = Controller(self.mainwindow,
                                      self.textarea,
                                      self.terminal,
@@ -55,12 +57,14 @@ class Kalpana(QtWidgets.QApplication):
 
     def make_event_filter(self) -> None:
         class MainWindowEventFilter(QtCore.QObject):
-            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+            def eventFilter(self_, obj: QtCore.QObject,
+                            event: QtCore.QEvent) -> bool:
                 if event.type() == QtCore.QEvent.Close:
                     self.settings.save_settings()
                 return False
         self.close_filter = MainWindowEventFilter()
         self.mainwindow.installEventFilter(self.close_filter)
+
 
 def main() -> None:
     import argparse
@@ -79,10 +83,13 @@ def main() -> None:
                       silent_mode=args.silent_mode)
         for f in args.files[1:]:
             if args.silent_mode:
-                subprocess.Popen([sys.executable, sys.argv[0], '-s', f.encode('utf-8')])
+                subprocess.Popen([sys.executable, sys.argv[0],
+                                  '-s', f.encode('utf-8')])
             else:
-                subprocess.Popen([sys.executable, sys.argv[0], f.encode('utf-8')])
+                subprocess.Popen([sys.executable, sys.argv[0],
+                                  f.encode('utf-8')])
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()

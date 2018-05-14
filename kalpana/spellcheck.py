@@ -80,7 +80,8 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         """Print spelling suggestions for a certain word."""
         if not word:
             word = self.textarea.word_under_cursor()
-        self.log('{}: {}'.format(word, ', '.join(self.language_dict.suggest(word)[:5])))
+        suggestions = ', '.join(self.language_dict.suggest(word)[:5])
+        self.log(f'{word}: {suggestions}')
 
     def check_word(self, word: str) -> bool:
         """A callback for the highlighter to check a word's spelling."""
@@ -106,7 +107,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             pwl = join(self.pwl_path, language + '.pwl')
             self.language_dict = enchant.DictWithPWL(language, pwl=pwl)
         except enchant.errors.DictNotFoundError:
-            self.error('Invalid language: {}'.format(language))
+            self.error(f'Invalid language: {language}')
         else:
             self.language = language
             self.rehighlight.emit()

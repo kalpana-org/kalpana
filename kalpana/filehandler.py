@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Optional
+from typing import Optional
 import os.path
 import subprocess
 import sys
@@ -106,7 +106,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             if filepath:
                 self.filepath = filepath
                 self.file_opened_signal.emit(filepath, True)
-                self.log('New file: {}'.format(filepath))
+                self.log(f'New file: {filepath}')
             else:
                 self.filepath = None
                 self.file_opened_signal.emit('', True)
@@ -148,11 +148,11 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 else:
                     self.textarea.setPlainText(text)
                     self.filepath = filepath
-                    self.log('File opened: {}'.format(filepath))
+                    self.log(f'File opened: {filepath}')
                     self.file_opened_signal.emit(filepath, False)
                     return
             else:
-                self.error('Unable to open the file: {}'.format(filepath))
+                self.error(f'Unable to open the file: {filepath}')
 
     def open_file_in_new_window(self, filepath: str) -> None:
         """Open an existing file in a new instance of Kalpana."""
@@ -191,9 +191,9 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 with open(file_to_save, 'w', encoding='utf-8') as f:
                     f.write(self.textarea.toPlainText())
             except IOError:
-                self.error('Unable to save the file: {}'.format(file_to_save))
+                self.error(f'Unable to save the file: {file_to_save}')
             else:
-                self.log('File saved: {}'.format(file_to_save))
+                self.log(f'File saved: {file_to_save}')
                 if file_to_save == self.filepath:
                     self.file_saved_signal.emit(file_to_save, False)
                 else:

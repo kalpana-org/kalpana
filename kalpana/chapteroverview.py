@@ -38,13 +38,14 @@ class SectionItem(QtWidgets.QFrame):
         layout.addWidget(self.desc, stretch=1)
 
     def set_data(self, desc: Optional[str]) -> None:
-        self.desc.setText(desc if desc else '[no description]')
+        self.desc.setText(desc or '[no description]')
 
 
 class ChapterItem(QtWidgets.QFrame):
 
     def __init__(self, parent: 'ChapterOverview', num: int) -> None:
         super().__init__(parent)
+
         def label(name: str, layout: QtWidgets.QBoxLayout,
                   word_wrap: bool = True) -> QtWidgets.QLabel:
             widget = QtWidgets.QLabel(self)
@@ -77,22 +78,22 @@ class ChapterItem(QtWidgets.QFrame):
         self.setDisabled(complete)
         self.title.setDisabled(complete)
         # Top row
-        self.title.setText('Chapter {}'.format(title if title else self.index))
+        self.title.setText(f'Chapter {title or self.index}')
         if length is None:
             self.length.hide()
         else:
-            self.length.setText('({})'.format(length))
+            self.length.setText(f'({length})')
             self.length.show()
         # Second row
         if time is None:
             self.time.hide()
         else:
-            self.time.setText('🕑 {}'.format(time))
+            self.time.setText(f'🕑 {time}')
             self.time.show()
         if tags is None:
             self.tags.hide()
         else:
-            self.tags.setText(', '.join('#'+t for t in sorted(tags)))
+            self.tags.setText(', '.join('#' + t for t in sorted(tags)))
             self.tags.show()
         # The rest
         if desc is None:
@@ -144,7 +145,8 @@ class ChapterOverview(QtWidgets.QScrollArea):
                 if item is None:
                     item = ChapterItem(self, n)
                     self.chapter_items.append(item)
-                    cast(QtWidgets.QVBoxLayout, self.container.layout()).insertWidget(n, item)
+                    cast(QtWidgets.QVBoxLayout,
+                         self.container.layout()).insertWidget(n, item)
                 item.set_data(chapter.title, chapter.word_count, chapter.time,
                               chapter.tags, chapter.desc, chapter.sections,
                               chapter.complete)

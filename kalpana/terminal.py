@@ -20,7 +20,7 @@ from enum import IntEnum
 from typing import Iterable
 
 from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt
 from libsyntyche import cli, terminal
 
 from kalpana.common import KalpanaObject

@@ -90,10 +90,12 @@ class Controller:
 
     def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):
-            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+            def eventFilter(self_, obj: QtCore.QObject,
+                            event: QtCore.QEvent) -> bool:
                 if event.type() == QtCore.QEvent.KeyPress:
                     key_event = cast(QtGui.QKeyEvent, event)
-                    actual_key = key_event.key() | int(cast(int, key_event.modifiers()))
+                    actual_key = (key_event.key()
+                                  | int(cast(int, key_event.modifiers())))
                     if actual_key in self.settings.key_bindings:
                         command_string = self.settings.key_bindings[actual_key]
                         self.terminal.exec_command(command_string)
@@ -117,7 +119,8 @@ class Controller:
                 obj.error_signal.connect(self.terminal.error)
                 obj.confirm_signal.connect(self.terminal.confirm_command)
                 self.terminal.register_commands(obj.kalpana_commands)
-                self.terminal.register_autocompletion_patterns(obj.kalpana_autocompletion_patterns)
+                self.terminal.register_autocompletion_patterns(
+                        obj.kalpana_autocompletion_patterns)
             if obj != self.settings:
                 obj.change_setting_signal.connect(self.settings.change_setting)
                 self.settings.register_settings(obj.kalpana_settings, obj)
@@ -127,7 +130,8 @@ class Controller:
         misc_signals: List[Tuple[pyqtSignal, Callable]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (self.textarea.textChanged, self.update_chapter_index),
-            (self.textarea.modificationChanged, self.mainwindow.modification_changed),
+            (self.textarea.modificationChanged,
+             self.mainwindow.modification_changed),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]
         for signal, slot in misc_signals:
@@ -144,7 +148,8 @@ class Controller:
             self.terminal.input_field.setFocus()
 
     def update_chapter_index(self) -> None:
-        self.chapter_index.update_line_index(self.textarea.document().firstBlock())
+        self.chapter_index.update_line_index(
+            self.textarea.document().firstBlock())
         self.chapter_overview.load_chapter_data(self.chapter_index.chapters)
 
     def set_text_block_formats(self) -> None:
@@ -160,8 +165,11 @@ class Controller:
                 col.setAlphaF(alpha)
                 char_format.setForeground(QtGui.QBrush(col))
             return char_format
-        def set_line_format(line_number: int, format_: QtGui.QTextCharFormat) -> None:
-            block = QtGui.QTextCursor(self.textarea.document().findBlockByNumber(line_number))
+
+        def set_line_format(line_number: int,
+                            format_: QtGui.QTextCharFormat) -> None:
+            block = QtGui.QTextCursor(
+                self.textarea.document().findBlockByNumber(line_number))
             block.select(QtGui.QTextCursor.BlockUnderCursor)
             block.setCharFormat(format_)
         chapter_format = make_format(bold=True, size=16)
@@ -201,11 +209,14 @@ class Controller:
             else:
                 self.terminal.print_(self.filehandler.filepath)
         elif arg == 'modified':
-            self.terminal.print_('Modified' if self.textarea.document().isModified() else 'Not modified')
+            self.terminal.print_(
+                'Modified' if self.textarea.document().isModified()
+                else 'Not modified')
         elif arg == 'spellcheck':
-            active = 'Active' if self.spellchecker.spellcheck_active else 'Inactive'
+            active = ('Active' if self.spellchecker.spellcheck_active
+                      else 'Inactive')
             language = self.spellchecker.language
-            self.terminal.print_('{}, language: {}'.format(active, language))
+            self.terminal.print_(f'{active}, language: {language}')
         else:
             self.terminal.error('Invalid argument')
 
@@ -259,7 +270,7 @@ class Controller:
 
     def count_total_words(self) -> None:
         words = len(self.textarea.toPlainText().split())
-        self.terminal.print_('Total words: {}'.format(words))
+        self.terminal.print_(f'Total words: {words}')
 
     def count_chapter_words(self, arg: str) -> None:
         if not self.chapter_index.chapters:
@@ -272,4 +283,4 @@ class Controller:
             self.terminal.error('Invalid chapter!')
         else:
             words = self.chapter_index.chapters[int(arg)].word_count
-            self.terminal.print_('Words in chapter {}: {}'.format(arg, words))
+            self.terminal.print_(f'Words in chapter {arg}: {words}')

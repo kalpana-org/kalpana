@@ -91,13 +91,15 @@ class Chapter:
 
     def __eq__(self, other: Any) -> bool:
         try:
-            return bool(self.title == other.title and
-                        self.complete == other.complete and
-                        self.metadata_line_count == other.metadata_line_count and
-                        self.desc == other.desc and
-                        self.time == other.time and
-                        self.tags == other.tags and
-                        self.sections == other.sections)
+            return bool(
+                self.title == other.title
+                and self.complete == other.complete
+                and self.metadata_line_count == other.metadata_line_count
+                and self.desc == other.desc
+                and self.time == other.time
+                and self.tags == other.tags
+                and self.sections == other.sections
+            )
         except Exception:
             return False
 
@@ -146,7 +148,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                     chapters[-1].time = line[1:].strip()
                 elif state == 'tags':
                     chapters[-1].tags = {tag.strip()[1:]
-                                         for tag in line.split(',') if tag.strip()}
+                                         for tag in line.split(',')
+                                         if tag.strip()}
             else:
                 chapters[-1].sections[-1].word_count += len(line.split())
             n += 1
@@ -154,9 +157,10 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         chapters[-1].sections[-1].line_count = n - current_chunk_start
         # Shitty hack to fix the metadata line count
         for c in chapters:
-            l = sum(x is not None for x in [c.title, c.desc, c.tags, c.time])
-            c.metadata_line_count = l
-            c.sections[0].line_count -= l
+            metalines = sum(x is not None
+                            for x in [c.title, c.desc, c.tags, c.time])
+            c.metadata_line_count = metalines
+            c.sections[0].line_count -= metalines
         self.chapters = chapters
         self.chapter_line_numbers = chapter_line_numbers
 
@@ -169,14 +173,16 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         time = 0b10000
         meta = 0b100000
         ch_str = self.chapter_keyword
-        if text == ch_str or text.startswith(ch_str+' ') or text.startswith(ch_str+'\t'):
+        if text == ch_str or text.startswith(ch_str + ' ') \
+                or text.startswith(ch_str + '\t'):
             return chapter, 'chapter'
         elif text.startswith('<<') and text.rstrip().endswith('>>'):
             return section, 'section'
         elif text.startswith('%%'):
             return meta, 'meta'
         elif previous_state & chapter:
-            if not previous_state & desc and text.startswith('[[') and text.rstrip().endswith(']]'):
+            if not previous_state & desc and text.startswith('[[') \
+                    and text.rstrip().endswith(']]'):
                 return previous_state | desc, 'desc'
             elif not previous_state & tags and text.startswith('#'):
                 return previous_state | tags, 'tags'
