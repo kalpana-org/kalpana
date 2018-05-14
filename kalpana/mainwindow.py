@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import json
+from os.path import basename, dirname, isfile, join
 from typing import cast, Dict, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -35,6 +37,8 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
                 Command('quit', '', self.close, args=ArgumentRules.NONE)
         ]
         self.title = 'New file'
+        self.sapfo_title = ''
+        self.sapfo_filename = ''
         self.modified = False
         self.force_close_flag = False
         self.update_window_title()
@@ -70,6 +74,20 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.force_close_flag = True
         self.close()
 
+    def check_for_sapfo_title(self) -> None:
+        metadatafile = join(dirname(self.title),
+                            '.' + basename(self.title) + '.metadata')
+        if isfile(metadatafile):
+            if metadatafile != self.sapfo_filename:
+                self.sapfo_filename = metadatafile
+                try:
+                    with open(metadatafile) as f:
+                        metadata = json.load(f)
+                    self.sapfo_title = metadata['title']
+                except Exception:
+                    self.sapfo_title = "##metadata error##"
+            self.title = self.sapfo_title
+
     def update_window_title(self) -> None:
         title = f'*{self.title}*' if self.modified else self.title
         self.setWindowTitle(title)
@@ -80,10 +98,13 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
 
     def file_opened(self, filepath: str, is_new: bool) -> None:
         self.title = filepath or 'New file'
+        if filepath:
+            self.check_for_sapfo_title()
         self.update_window_title()
 
     def file_saved(self, filepath: str, new_name: bool) -> None:
         self.title = filepath
+        self.check_for_sapfo_title()
         self.update_window_title()
 
     def set_terminal(self, terminal: Terminal) -> None:
