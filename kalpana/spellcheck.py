@@ -42,19 +42,21 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
                 Command('toggle-spellcheck', '', self.toggle_spellcheck,
-                        args=ArgumentRules.NONE),
-                Command('set-spellcheck-language', '', self.set_language),
+                        args=ArgumentRules.NONE, short_name='&'),
+                Command('set-spellcheck-language', '', self.set_language,
+                        short_name='l'),
                 Command('suggest-spelling',
                         'Print a list of possible spellings for the argument '
                         'or the word under the cursor.',
-                        self.suggest),
+                        self.suggest, short_name='@'),
                 Command('add-word', 'Add word to the spellcheck word list.',
-                        self.add_word, args=ArgumentRules.REQUIRED)
+                        self.add_word, args=ArgumentRules.REQUIRED,
+                        short_name='+')
         ]
         self.kalpana_autocompletion_patterns = [
                 AutocompletionPattern('set-spellcheck-language',
                                       get_spellcheck_languages,
-                                      prefix=r'set-spellcheck-language\s+',
+                                      prefix=r'l\s*',
                                       illegal_chars=' ')
         ]
         self.textarea = textarea

@@ -34,11 +34,9 @@ class FocusWrapper(QtWidgets.QLineEdit):
 
 
 class Terminal(terminal.Terminal, KalpanaObject):
-    error_triggered = pyqtSignal()
-
     def __init__(self, parent: QtWidgets.QFrame,
                  command_history: CommandHistory) -> None:
-        super().__init__(parent)
+        super().__init__(parent, short_mode=True)
 
     def register_commands(self, commands: Iterable[cli.Command]) -> None:
         for command in commands:

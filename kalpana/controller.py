@@ -58,15 +58,16 @@ class Controller:
     def register_own_commands(self) -> None:
         commands = [
                 Command('go-to-chapter', 'Jump to a specified chapter',
-                        self.go_to_chapter),
+                        self.go_to_chapter, short_name='.'),
                 Command('go-to-next-chapter', 'Jump to next chapter',
                         self.go_to_next_chapter,
-                        args=ArgumentRules.NONE),
+                        args=ArgumentRules.NONE, short_name='>'),
                 Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
-                        args=ArgumentRules.NONE),
+                        args=ArgumentRules.NONE, short_name='<'),
                 Command('word-count-total', '', self.count_total_words,
-                        args=ArgumentRules.NONE),
-                Command('word-count-chapter', '', self.count_chapter_words),
+                        args=ArgumentRules.NONE, short_name='C'),
+                Command('word-count-chapter', '', self.count_chapter_words,
+                        short_name='c'),
                 Command('reload-settings', '', self.settings.reload_settings,
                         args=ArgumentRules.NONE),
                 Command('reload-stylesheet', '',
@@ -74,16 +75,16 @@ class Controller:
                         args=ArgumentRules.NONE),
                 Command('show-info',
                         'Show information about the open file or the session.',
-                        self.show_info),
+                        self.show_info, short_name='i'),
                 Command('toggle-chapter-overview', '',
                         self.toggle_chapter_overview,
-                        args=ArgumentRules.NONE),
+                        args=ArgumentRules.NONE, short_name='9'),
         ]
         self.terminal.register_commands(commands)
         autocompletion_patterns = [
                 AutocompletionPattern('show-info',
                                       self.get_show_info_suggestions,
-                                      prefix=r'show-info\s+',
+                                      prefix=r'i\s*',
                                       illegal_chars=' '),
         ]
         self.terminal.register_autocompletion_patterns(autocompletion_patterns)

@@ -35,16 +35,18 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         ]
         self.kalpana_commands = [
                 Command('go-to-line', '', self.go_to_line,
-                        args=ArgumentRules.REQUIRED),
+                        args=ArgumentRules.REQUIRED, short_name=':'),
                 Command('set-textarea-max-width',
                         'Set the max width of the page',
                         self.set_max_width, args=ArgumentRules.REQUIRED),
                 Command('toggle-line-numbers', '', self.toggle_line_numbers,
                         args=ArgumentRules.NONE),
-                Command('insert-text', '', self.insertPlainText),
-                Command('search-and-replace', '', self.search_and_replace),
+                Command('insert-text', '', self.insertPlainText,
+                        short_name='_'),
+                Command('search-and-replace', '', self.search_and_replace,
+                        short_name='/'),
                 Command('search-next', '', self.search_next,
-                        args=ArgumentRules.NONE),
+                        args=ArgumentRules.NONE, short_name='*'),
         ]
         self.hr_blocks: List[QtGui.QTextBlock] = []
         self.line_number_bar = LineNumberBar(self)
