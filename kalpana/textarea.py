@@ -31,7 +31,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         super().__init__(parent)
         self.kalpana_settings = [
                 'show-line-numbers',
-                'max-textarea-width'
+                'max-textarea-width',
+                'autohide-scrollbar'
         ]
         self.kalpana_commands = [
                 Command('go-to-line', '', self.go_to_line,
@@ -53,6 +54,35 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.search_buffer: Optional[str] = None
         self.search_flags = QtGui.QTextDocument.FindFlag()
 
+        # Scrollbar fadeout
+        self.autohide_scrollbar = False
+        self.hide_scrollbar_timer = QtCore.QTimer(self)
+        self.hide_scrollbar_timer.setInterval(1000)
+        self.hide_scrollbar_timer.setSingleShot(True)
+        self.hide_scrollbar_timer.timeout.connect(self.hide_scrollbar)
+        self.verticalScrollBar().valueChanged.connect(self.scrollbar_moved)
+        self.hide_scrollbar_effect = QtWidgets.QGraphicsOpacityEffect(
+                self.verticalScrollBar())
+        self.verticalScrollBar().setGraphicsEffect(self.hide_scrollbar_effect)
+        a = QtCore.QPropertyAnimation(self.hide_scrollbar_effect, b'opacity')
+        a.setEasingCurve(QtCore.QEasingCurve.InOutQuint)
+        a.setDuration(500)
+        a.setStartValue(1)
+        a.setEndValue(0)
+        self.hide_scrollbar_anim = a
+
+    def scrollbar_moved(self) -> None:
+        if not self.autohide_scrollbar:
+            return
+        # For some reason it really doesn't like it when set to 1
+        self.hide_scrollbar_effect.setOpacity(0.99)
+        self.hide_scrollbar_timer.start()
+
+    def hide_scrollbar(self) -> None:
+        if not self.autohide_scrollbar:
+            return
+        self.hide_scrollbar_anim.start()
+
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'show-line-numbers':
             self.line_number_bar.setVisible(bool(new_value))
@@ -62,6 +92,15 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 self.error('Width has to be at least 1!')
             else:
                 self.setMaximumWidth(width)
+        elif name == 'autohide-scrollbar':
+            if new_value:
+                self.autohide_scrollbar = True
+                self.scrollbar_moved()
+            else:
+                self.autohide_scrollbar = True
+                self.hide_scrollbar_anim.stop()
+                self.hide_scrollbar_timer.stop()
+                self.hide_scrollbar_effect.setOpacity(0.99)
 
     def set_max_width(self, arg: str) -> None:
         if not arg.isdecimal():

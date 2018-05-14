@@ -14,3 +14,4 @@ bold-marker: "*"
 italic-marker: "/"
 underline-marker: "_"
 horizontal-ruler-marker: "*"
+autohide-scrollbar: true
