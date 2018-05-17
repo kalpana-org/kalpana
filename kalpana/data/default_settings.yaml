@@ -4,6 +4,9 @@ terminal-key: escape
 # (command is prompted if it starts with a space, otherwise it's run)
 key-bindings: {}
 
+# format: [{pattern: '', repl: ''\}, {pattern: '', repl: '', selection_pattern: ''}, ...]
+export_formats: {}
+
 show-line-numbers: false
 chapter-keyword: CHAPTER
 visible-autocompletion-items: 6

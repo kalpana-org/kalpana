@@ -15,7 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Callable, List, Optional, Tuple
+from typing import cast, Callable, Dict, List, Optional, Tuple
+from mypy_extensions import TypedDict
 import re
 
 from PyQt5 import QtCore, QtGui
@@ -76,6 +77,9 @@ class Controller:
                 Command('show-info',
                         'Show information about the open file or the session.',
                         self.show_info, short_name='i'),
+                Command('export-chapter', '',
+                        self.export_chapter,
+                        args=ArgumentRules.REQUIRED, short_name='e'),
                 Command('toggle-chapter-overview', '',
                         self.toggle_chapter_overview,
                         args=ArgumentRules.NONE, short_name='9'),
@@ -285,3 +289,64 @@ class Controller:
         else:
             words = self.chapter_index.chapters[int(arg)].word_count
             self.terminal.print_(f'Words in chapter {arg}: {words}')
+
+    def export_chapter(self, arg: str) -> None:
+        # TODO: unify the whole chapter arg thingy
+        args = arg.split(None, 1)
+        if not len(args) == 2:
+            self.terminal.error('Specify both chapter and format!')
+        elif not self.chapter_index.chapters:
+            self.terminal.error('No chapters detected!')
+        elif not args[0]:
+            self.terminal.error('No chapter specified!')
+        elif not args[0].isdecimal():
+            self.terminal.error('Argument has to be a number!')
+        elif int(args[0]) >= len(self.chapter_index.chapters):
+            self.terminal.error('Invalid chapter!')
+        else:
+            chapter = self.chapter_index.chapters[int(args[0])]
+            start = (self.chapter_index.get_chapter_line(int(args[0]))
+                     + chapter.metadata_line_count)
+            end = start + chapter.line_count - chapter.metadata_line_count
+            lines = self.textarea.toPlainText().split('\n')[start:end]
+            # Get rid of irrelevant stuff
+            text = '\n'.join(t for t in lines if not t.startswith('<<')
+                             and not t.startswith('%%'))
+            # settings = self.settings.settings
+            # italic_marker = settings['italic-marker']
+            # bold_marker = settings['bold-marker']
+            # hr_marker = settings['horizontal-ruler-marker']
+            ExportFormat = TypedDict('ExportFormat',
+                                     {'pattern': str, 'repl': str,
+                                      'selection_pattern': str}, total=False)
+            export_formats: Dict[str, List[ExportFormat]] \
+                = self.settings.settings['export_formats']
+            # TODO: unify this with highlighter in textarea.py
+            # for marker in (italic_marker, bold_marker):
+                # for chunk in re.finditer(r'(?:\W|^)({0}[^{0}]*{0})(?:\W|$)'
+                                         # .format(re.escape(marker)), text):
+            fmt = args[1]
+            if fmt not in export_formats:
+                self.terminal.error('Export format not recognized!')
+                return
+            for x in export_formats[fmt]:
+                if 'selection_pattern' in x:
+                    text = replace_in_selection(text, x['pattern'], x['repl'],
+                                                x['selection_pattern'])
+                else:
+                    text = re.sub(x['pattern'], x['repl'], text)
+            text = text.strip('\n\t ')
+            clipboard = QtGui.QGuiApplication.clipboard()
+            clipboard.setText(text)
+
+
+def replace_in_selection(text: str, rx: str, rep: str, selrx: str) -> str:
+    chunks = []
+    selections = re.finditer(selrx, text)
+    for sel in selections:
+        x = re.sub(rx, rep, sel.group(0))
+        chunks.append((sel.start(), sel.end(), x))
+    # Do this backwards to avoid messing up the positions of the chunks
+    for start, end, payload in chunks[::-1]:
+        text = text[:start] + payload + text[end:]
+    return text
