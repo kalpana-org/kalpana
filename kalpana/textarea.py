@@ -345,10 +345,12 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
         self.last_block = self.active_block
         self.active_block = self.textarea.textCursor().block()
         for block in [self.last_block, self.active_block]:
-            self.rehighlightBlock(block)
-            if block in self.textarea.hr_blocks:
-                self.document().markContentsDirty(block.position(),
-                                                  block.length())
+            if block.userState() & TBS.LINEFORMATS \
+                    or block in self.textarea.hr_blocks:
+                self.rehighlightBlock(block)
+                if block in self.textarea.hr_blocks:
+                    self.document().markContentsDirty(block.position(),
+                                                      block.length())
 
     @staticmethod
     def utf16_len(text: str) -> int:
