@@ -20,11 +20,10 @@ Classes and functions needed in multiple different modules.
 
 This is to avoid potential circular imports.
 """
-
-from typing import Any, Callable, List, Optional
+from enum import IntFlag
+from typing import Any, Callable, List
 
 from PyQt5.QtCore import pyqtSignal, QVariant
-from PyQt5.QtGui import QTextBlockUserData
 
 from libsyntyche.cli import Command, AutocompletionPattern
 
@@ -84,11 +83,22 @@ class KalpanaObject:
         pass
 
 
-class LineFormatData(QTextBlockUserData):
-
-    def __init__(self, text: Optional[str]) -> None:
-        super().__init__()
-        self.text = text
+class TextBlockState(IntFlag):
+    # Lines related to the chapter heading
+    CHAPTER = 0x1
+    DESC = 0x2
+    TAGS = 0x4
+    TIME = 0x8
+    CHAPTERMETA = 0x2 | 0x4 | 0x8
+    # Misc special lines
+    META = 0x100
+    SECTION = 0x1000
+    LINEFORMATS = 0x1 | 0x2 | 0x4 | 0x8 | 0x1100
+    # Formatting
+    BOLD = 0x10000
+    ITALIC = 0x20000
+    UNDERLINE = 0x40000
+    FORMATTING = 0x70000
 
 
 def autocomplete_file_path(name: str, text: str) -> List[str]:

@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import cast, Any, List, Optional, Set, Tuple
+from typing import Any, List, Optional, Set
 
 from PyQt5 import QtCore, QtGui
 
-from kalpana.common import LineFormatData
+from kalpana.common import TextBlockState
 from kalpana.settings import KalpanaObject
 
 
@@ -125,9 +125,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         n = 0
         while block.isValid():
             line = block.text()
-            user_data = cast(LineFormatData, block.userData())
-            state = user_data.text if user_data is not None else ''
-            if state == 'chapter':
+            state = block.userState()
+            if state & TextBlockState.CHAPTER:
                 chapters[-1].sections[-1].line_count = n - current_chunk_start
                 chapters.append(Chapter(
                     title=line[len(ch_str):].strip('✓ \t'),
@@ -135,21 +134,20 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                 ))
                 chapter_line_numbers.append(n)
                 current_chunk_start = n
-            elif state == 'section':
+            elif state & TextBlockState.SECTION:
                 chapters[-1].sections[-1].line_count = n - current_chunk_start
                 chapters[-1].sections.append(Section(
                     desc=line.rstrip()[2:-2].strip()
                 ))
                 current_chunk_start = n
-            elif state in ('desc', 'time', 'tags'):
-                if state == 'desc':
-                    chapters[-1].desc = line.rstrip()[2:-2].strip()
-                elif state == 'time':
-                    chapters[-1].time = line[1:].strip()
-                elif state == 'tags':
-                    chapters[-1].tags = {tag.strip()[1:]
-                                         for tag in line.split(',')
-                                         if tag.strip()}
+            elif state & TextBlockState.DESC:
+                chapters[-1].desc = line.rstrip()[2:-2].strip()
+            elif state & TextBlockState.TIME:
+                chapters[-1].time = line[1:].strip()
+            elif state & TextBlockState.TAGS:
+                chapters[-1].tags = {tag.strip()[1:]
+                                     for tag in line.split(',')
+                                     if tag.strip()}
             else:
                 chapters[-1].sections[-1].word_count += len(line.split())
             n += 1
@@ -163,32 +161,6 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
             c.sections[0].line_count -= metalines
         self.chapters = chapters
         self.chapter_line_numbers = chapter_line_numbers
-
-    def parse_line(self, text: str,
-                   previous_state: int) -> Tuple[int, Optional[str]]:
-        chapter = 0b00001
-        section = 0b00010
-        desc = 0b00100
-        tags = 0b01000
-        time = 0b10000
-        meta = 0b100000
-        ch_str = self.chapter_keyword
-        if text == ch_str or text.startswith(ch_str + ' ') \
-                or text.startswith(ch_str + '\t'):
-            return chapter, 'chapter'
-        elif text.startswith('<<') and text.rstrip().endswith('>>'):
-            return section, 'section'
-        elif text.startswith('%%'):
-            return meta, 'meta'
-        elif previous_state & chapter:
-            if not previous_state & desc and text.startswith('[[') \
-                    and text.rstrip().endswith(']]'):
-                return previous_state | desc, 'desc'
-            elif not previous_state & tags and text.startswith('#'):
-                return previous_state | tags, 'tags'
-            elif not previous_state & time and text.startswith('🕑'):
-                return previous_state | time, 'time'
-        return 0, None
 
     def get_chapter_line(self, num: int) -> int:
         """Return what line a given chapter begins on."""
