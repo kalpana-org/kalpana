@@ -271,6 +271,11 @@ class Controller:
                                     current_chapter+diff))
         if current_chapter != target_chapter:
             line = self.chapter_index.get_chapter_line(target_chapter)
+            current_chapter_line = self.chapter_index.get_chapter_line(
+                current_chapter)
+            # Go to the top of the current chapter if going up and not there
+            if diff == -1 and current_line != current_chapter_line:
+                line = current_chapter_line
             self.textarea.center_on_line(line)
 
     def count_total_words(self) -> None:
