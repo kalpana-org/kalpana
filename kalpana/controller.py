@@ -134,7 +134,8 @@ class Controller:
                 self.filehandler.file_opened_signal.connect(obj.file_opened)
         misc_signals: List[Tuple[pyqtSignal, Callable]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
-            (self.textarea.textChanged, self.update_chapter_index),
+            (self.textarea.document().contentsChange,
+             self.update_chapter_index),
             (self.textarea.modificationChanged,
              self.mainwindow.modification_changed),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
@@ -152,10 +153,13 @@ class Controller:
         else:
             self.terminal.input_field.setFocus()
 
-    def update_chapter_index(self) -> None:
-        self.chapter_index.update_line_index(
-            self.textarea.document().firstBlock())
-        self.chapter_overview.load_chapter_data(self.chapter_index.chapters)
+    def update_chapter_index(self, pos: int, removed: int, added: int) -> None:
+        new_index = self.chapter_index.update_line_index(
+            self.textarea.document(), self.textarea.textCursor(),
+            pos, removed, added)
+        if new_index:
+            self.chapter_overview.load_chapter_data(
+                self.chapter_index.chapters)
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,
