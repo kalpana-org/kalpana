@@ -134,7 +134,7 @@ class Controller:
                 self.filehandler.file_opened_signal.connect(obj.file_opened)
         misc_signals: List[Tuple[pyqtSignal, Callable]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
-            (self.textarea.document().contentsChange,
+            (cast(pyqtSignal, self.textarea.document().contentsChange),
              self.update_chapter_index),
             (self.textarea.modificationChanged,
              self.mainwindow.modification_changed),

@@ -458,7 +458,7 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
                 else:
                     fmt.setFontWeight(QtGui.QFont.Bold)
 
-        def is_clean(fmt) -> bool:
+        def is_clean(fmt: QtGui.QTextCharFormat) -> bool:
             return not fmt.fontItalic() and not fmt.fontUnderline() \
                 and fmt.fontWeight() == QtGui.QFont.Normal
 
