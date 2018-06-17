@@ -116,5 +116,9 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def toggle_spellcheck(self) -> None:
         self.spellcheck_active = not self.spellcheck_active
+        if self.spellcheck_active:
+            self.log('Spellcheck activated')
+        else:
+            self.log('Spellcheck deactivated')
         self.change_setting('spellcheck-active', self.spellcheck_active)
         self.rehighlight.emit()
