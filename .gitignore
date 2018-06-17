@@ -41,3 +41,4 @@ thoughts
 
 # mypy
 mypy-report
+.mypy_cache/
