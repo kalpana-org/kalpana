@@ -15,8 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from itertools import accumulate
 import re
-from typing import Any, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from PyQt5 import QtCore, QtGui
 
@@ -56,6 +57,23 @@ class Chapter:
         self.time: Optional[str] = None
         self.tags: Optional[Set[str]] = None
         self.sections: List[Section] = [Section()]
+
+    def update_line(self, state: int, line: str, ch_str: str,
+                    line_num: int) -> None:
+        if state & TextBlockState.CHAPTER:
+            self.title = line[len(ch_str):].strip('✓ \t')
+            self.complete = line.rstrip().endswith('✓')
+        elif state & TextBlockState.SECTION:
+            section_lines = list(accumulate([self.metadata_line_count]
+                                            + [s.line_count for s in self.sections]))
+            self.sections[section_lines.index(line_num)].desc = line.rstrip()[2:-2].strip()
+        elif state & TextBlockState.DESC:
+            self.desc = line.rstrip()[2:-2].strip()
+        elif state & TextBlockState.TIME:
+            self.time = line[1:].strip()
+        elif state & TextBlockState.TAGS:
+            self.tags = {tag.strip()[1:] for tag in line.split(',')
+                         if tag.strip()}
 
     @property
     def line_count(self) -> int:
@@ -117,9 +135,10 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         super().__init__()
         self.kalpana_settings = ['chapter-keyword']
         self.chapters: List[Chapter] = []
-        self.chapter_line_numbers: List[int] = []
         self.chapter_keyword = 'CHAPTER'
         self._block_count = -1
+        # TODO: maybe actually use TextBlockState here?
+        self._block_states: Dict[int, int] = {}
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'chapter-keyword':
@@ -128,78 +147,85 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
     def update_line_index(self, document: QtGui.QTextDocument,
                           cursor: QtGui.QTextCursor,
                           pos: int, removed: int, added: int) -> bool:
+        if not self.chapters:
+            return self.full_line_index_update(document)
+
+        def doc_text() -> str:
+            # Dump this here to fix the UTF-16 garbage
+            return re.sub(r'[\uffff-\U0010ffff]', 'xx', document.toPlainText())
         old_block_count = self._block_count
         new_block_count = self._block_count = document.blockCount()
+        line_diff = new_block_count - old_block_count
+        special_lines = self.special_lines()
+        block = document.findBlock(pos)
+        state = block.userState() & TextBlockState.LINEFORMATS
+        line_num = block.blockNumber()
+        # If only one line has been modified, try to update that data
+        if not line_diff \
+                and ((added and not removed) or (removed and not added)
+                     or (added and removed
+                         and '\n' not in doc_text()[pos:pos+added])):
+            if state and state == self._block_states[line_num]:
+                chapter_num = self.which_chapter(line_num)
+                offset = line_num - self.get_chapter_line(chapter_num)
+                # TODO: recalc word count?
+                # or just make it lazy maybe
+                self.chapters[chapter_num].update_line(
+                    state, block.text(), self.chapter_keyword, offset)
+                return True
+            elif not state and not self._block_states[line_num]:
+                return False
+        # One line is shifted down irrelevantly
+        if line_diff == 1 and added == 1 and line_num in special_lines:
+            new_state = block.next().userState() & TextBlockState.LINEFORMATS
+            if not state and new_state == self._block_states[line_num] \
+                and (new_state & TextBlockState.CHAPTER
+                     or new_state & TextBlockState.SECTION):
+                success = self.add_remove_lines(line_num, line_diff)
+                if success:
+                    return True
         # Only added stuff which means we don't have to care about unknowns
-        if added and not removed and self.chapters:
-            new_text = re.sub(r'[\uffff-\U0010ffff]', 'xx',
-                              document.toPlainText())[pos: pos+added]
-            # No new blocks
-            if '\n' not in new_text:
-                block = cursor.block()
-                state = block.userState()
-                # No relevant state and no relevant new state
-                if not state & TextBlockState.LINEFORMATS \
-                        and not block.text().startswith(self.chapter_keyword) \
-                        and not (block.text().startswith('<<')
-                                 and block.text().endswith('>>')):
-                    return False
-            # Simply update line numbers if the added lines are regular text
-            else:
-                start_block = document.findBlock(pos)
-                clean = True
-                block = start_block
-                while block.isValid():
-                    if block.position() > pos + added:
-                        break
-                    if block.userState() & TextBlockState.LINEFORMATS:
-                        clean = False
-                        break
-                    block = block.next()
-                # No fancy lines found, good
-                if clean:
-                    line_num = start_block.blockNumber()
-                    line_diff = new_block_count - old_block_count
-                    self.insert_lines(line_num, line_diff)
+        if added and not removed \
+                and line_diff and line_num not in special_lines:
+            start_block = document.findBlock(pos)
+            clean = True
+            block = start_block
+            while block.isValid():
+                if block.position() >= pos + added:
+                    break
+                if block.userState() & TextBlockState.LINEFORMATS:
+                    clean = False
+                    break
+                block = block.next()
+            # No fancy lines found, good
+            if clean:
+                success = self.add_remove_lines(line_num, line_diff)
+                if success:
                     return True
         # Prolly spamming backspace, nbd
-        elif removed and not added and self.chapters:
-            block = cursor.block()
-            line_num = block.blockNumber()
-            chapter = self.which_chapter(line_num)
-            chapter_start = self.chapter_line_numbers[chapter]
-            line_diff = old_block_count - new_block_count
-            if line_num not in self.chapter_line_numbers \
-                    and line_num not in self.chapters[chapter].section_line_offsets(chapter_start) \
-                    and not (chapter_start <= line_num < chapter_start + self.chapters[chapter].metadata_line_count):
-                # All in one line, nothing fancy going on here
-                if not line_diff:
-                    state = block.userState()
-                    if not state & TextBlockState.LINEFORMATS:
-                        return False
-                else:
-                    success = self.remove_lines(line_num, line_diff)
-                    if success:
-                        return True
+        if removed and not added and line_diff:
+            removed_lines = set(range(line_num, line_num + 1 - line_diff))
+            if not state and not removed_lines.intersection(special_lines):
+                success = self.add_remove_lines(line_num, line_diff)
+                if success:
+                    return True
         return self.full_line_index_update(document)
 
     def full_line_index_update(self, document: QtGui.QTextDocument) -> bool:
         block = document.firstBlock()
         ch_str = self.chapter_keyword
         chapters = [Chapter()]
-        chapter_line_numbers = [0]
         current_chunk_start = 0
         n = 0
+        self._block_states.clear()
         while block.isValid():
             line = block.text()
             state = block.userState()
+            self._block_states[n] = state & TextBlockState.LINEFORMATS
             if state & TextBlockState.CHAPTER:
                 chapters[-1].sections[-1].line_count = n - current_chunk_start
-                chapters.append(Chapter(
-                    title=line[len(ch_str):].strip('✓ \t'),
-                    complete=line.rstrip().endswith('✓')
-                ))
-                chapter_line_numbers.append(n)
+                chapters.append(Chapter())
+                chapters[-1].update_line(state, line, ch_str, -1)
                 current_chunk_start = n
             elif state & TextBlockState.SECTION:
                 chapters[-1].sections[-1].line_count = n - current_chunk_start
@@ -207,14 +233,8 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                     desc=line.rstrip()[2:-2].strip()
                 ))
                 current_chunk_start = n
-            elif state & TextBlockState.DESC:
-                chapters[-1].desc = line.rstrip()[2:-2].strip()
-            elif state & TextBlockState.TIME:
-                chapters[-1].time = line[1:].strip()
-            elif state & TextBlockState.TAGS:
-                chapters[-1].tags = {tag.strip()[1:]
-                                     for tag in line.split(',')
-                                     if tag.strip()}
+            elif state & TextBlockState.CHAPTERMETA:
+                chapters[-1].update_line(state, line, ch_str, -1)
             else:
                 chapters[-1].sections[-1].word_count += len(line.split())
             n += 1
@@ -227,12 +247,27 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
             c.metadata_line_count = metalines
             c.sections[0].line_count -= metalines
         self.chapters = chapters
-        self.chapter_line_numbers = chapter_line_numbers
         return True
+
+    @property
+    def chapter_line_numbers(self) -> List[int]:
+        return [0] + list(accumulate(chapter.line_count
+                                     for chapter in self.chapters))[:-1]
 
     def get_chapter_line(self, num: int) -> int:
         """Return what line a given chapter begins on."""
         return self.chapter_line_numbers[num]
+
+    def special_lines(self) -> List[int]:
+        lines: List[int] = []
+        pos = 0
+        for chapter in self.chapters:
+            lines.extend(range(pos, pos + chapter.metadata_line_count))
+            pos += chapter.metadata_line_count
+            for section in chapter.sections:
+                lines.append(pos)
+                pos += section.line_count
+        return lines
 
     def which_chapter(self, line: int) -> int:
         """Return which chapter a given line is in."""
@@ -242,39 +277,21 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                     in reversed(list(enumerate(self.chapter_line_numbers)))
                     if line >= chapter_line)
 
-    def insert_lines(self, line: int, count: int) -> None:
+    def add_remove_lines(self, line: int, count: int) -> bool:
         if not self.chapters:
-            return
+            return False
         pos = 0
-        found = False
         for n, chapter in enumerate(self.chapters):
-            if not found:
-                pos += chapter.metadata_line_count
-                for section in chapter.sections:
-                    if pos + section.line_count >= line:
-                        section.line_count += count
-                        found = True
-                        break
-                    pos += section.line_count
-            else:
-                self.chapter_line_numbers[n] += count
-
-    def remove_lines(self, line: int, count: int) -> bool:
-        if not self.chapters:
-            return True
-        pos = 0
-        found = False
-        for n, chapter in enumerate(self.chapters):
-            if not found:
-                pos += chapter.metadata_line_count
-                for section in chapter.sections:
-                    if pos + section.line_count >= line:
-                        if count >= section.line_count:
-                            return False
-                        section.line_count -= count
-                        found = True
-                        break
-                    pos += section.line_count
-            else:
-                self.chapter_line_numbers[n] -= count
-        return True
+            pos += chapter.metadata_line_count
+            for section in chapter.sections:
+                if pos + section.line_count >= line:
+                    if count < 0 and count <= -section.line_count:
+                        return False
+                    section.line_count += count
+                    self._block_states = {
+                        k + (count if k >= line else 0): v
+                        for k, v in self._block_states.items()
+                    }
+                    return True
+                pos += section.line_count
+        return False
