@@ -110,15 +110,19 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.css = ''
 
     def save_settings(self) -> None:
-        self.command_history.save()
+        with self.try_it("Couldn't save settings"):
+            self.command_history.save()
 
     def reload_settings(self) -> None:
-        self.settings = self.load_settings(self.config_dir)
-        self.key_bindings = self.generate_key_bindings(self.settings)
-        self.terminal_key = get_keycode(self.settings['terminal-key'])
+        with self.try_it("Couldn't reload settings"):
+            self.settings = self.load_settings(self.config_dir)
+            self.key_bindings = self.generate_key_bindings(self.settings)
+            self.terminal_key = get_keycode(self.settings['terminal-key'])
 
     def reload_stylesheet(self) -> None:
-        self.css = self.load_stylesheet(self.config_dir)
+        with self.try_it("Couldn't reload stylesheet"):
+            self.css = self.load_stylesheet(self.config_dir)
+            self.css_changed.emit(self.css)
 
     def file_opened(self, filepath: str, is_new: bool) -> None:
         if filepath:
@@ -143,9 +147,11 @@ class Settings(QtCore.QObject, KalpanaObject):
         else:
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
-            yaml_data = yaml.dump(all_files_config, default_flow_style=False)
-            with open(all_files_config_path, 'w') as f:
-                f.write(yaml_data)
+            with self.try_it("Couldn't save yaml settings to disk"):
+                yaml_data = yaml.dump(all_files_config,
+                                      default_flow_style=False)
+                with open(all_files_config_path, 'w') as f:
+                    f.write(yaml_data)
 
     def register_settings(self, names: Iterable[str],
                           obj: KalpanaObject) -> None:
@@ -161,7 +167,8 @@ class Settings(QtCore.QObject, KalpanaObject):
             for setting, obj in self.registered_settings.items():
                 if not self.settings \
                         or (new_settings[setting] != self.settings[setting]):
-                    obj.setting_changed(setting, new_settings[setting])
+                    with obj.try_it(f"Couldn't update setting {setting!r}"):
+                        obj.setting_changed(setting, new_settings[setting])
 
     def _load_yaml_file(self, config_path: str) -> Dict[str, Any]:
         """
@@ -206,7 +213,8 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.notify_settings_changes(new_settings)
         return new_settings
 
-    def load_stylesheet(self, config_dir: str) -> str:
+    @staticmethod
+    def load_stylesheet(config_dir: str) -> str:
         """Read and return the stylesheet."""
         with open(data_path('qt.css')) as f:
             default_css = f.read()
@@ -217,11 +225,10 @@ class Settings(QtCore.QObject, KalpanaObject):
         except OSError:
             # No file present which is perfectly fine
             user_css = ''
-        css = default_css + '\n' + user_css
-        self.css_changed.emit(css)
-        return css
+        return default_css + '\n' + user_css
 
-    def generate_key_bindings(self, settings: Mapping[str, Any]
+    @staticmethod
+    def generate_key_bindings(settings: Mapping[str, Any]
                               ) -> Dict[int, str]:
         """Return a dict with keycode and the command to run."""
         return {get_keycode(key): command

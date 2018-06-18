@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
@@ -70,6 +71,8 @@ def main() -> None:
     import argparse
     import subprocess
     import sys
+    logging.basicConfig(format='%(asctime)s - %(name)s - '
+                               '%(levelname)s - %(msg)s')
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config-directory')
     parser.add_argument('-s', '--silent-mode', action='store_true',

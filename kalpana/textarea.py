@@ -16,6 +16,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from itertools import chain
+import logging
 from typing import cast, Any, List, Optional
 import re
 
@@ -25,6 +26,9 @@ from kalpana.common import KalpanaObject
 from kalpana.common import TextBlockState as TBS
 from kalpana.chapters import ChapterIndex
 from libsyntyche.cli import Command, ArgumentRules
+
+
+logger = logging.getLogger(__name__)
 
 
 class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
@@ -125,7 +129,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         if not self.line_number_bar.isVisible():
             self.setViewportMargins(0, 0, 0, 0)
         super().paintEvent(event)
-        self.draw_horizontal_ruler()
+        with self.try_it("horizontal ruler couldn't be drawn"):
+            self.draw_horizontal_ruler()
         if self.line_number_bar.isVisible():
             self.line_number_bar.update()
 
@@ -379,30 +384,31 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
         return prev_state & TBS.FORMATTING
 
     def highlightBlock(self, text: str) -> None:
-        prev_state = self.previousBlockState()
-        # Default state is -1 which is Not Good
-        if prev_state < 0:
-            prev_state = 0
-        new_state = self.get_line_format(
-            text, self.chapter_index.chapter_keyword, prev_state)
-        fg = self.textarea.palette().windowText().color()
-        # Chapter/meta lines
-        line_state = new_state & TBS.LINEFORMATS
-        if line_state:
-            self.highlight_lines(text, line_state, fg)
-            self.setCurrentBlockState(line_state)
-            return
-        # Horizontal ruler
-        if self.hr_marker in text and text.strip(f' \t{self.hr_marker}') == '':
-            self.highlight_horizontal_ruler(text, fg)
+        with self.try_it(f"Highlighting this block ({text!r}) failed"):
+            prev_state = self.previousBlockState()
+            # Default state is -1 which is Not Good
+            if prev_state < 0:
+                prev_state = 0
+            new_state = self.get_line_format(
+                text, self.chapter_index.chapter_keyword, prev_state)
+            fg = self.textarea.palette().windowText().color()
+            # Chapter/meta lines
+            line_state = new_state & TBS.LINEFORMATS
+            if line_state:
+                self.highlight_lines(text, line_state, fg)
+                self.setCurrentBlockState(line_state)
+                return
+            # Horizontal ruler
+            if self.hr_marker in text and text.strip(f' \t{self.hr_marker}') == '':
+                self.highlight_horizontal_ruler(text, fg)
+                self.setCurrentBlockState(new_state)
+                return
+            elif self.currentBlock() in self.textarea.hr_blocks:
+                self.textarea.hr_blocks.remove(self.currentBlock())
+            new_state = self.highlight_text_formatting(text, fg, new_state)
             self.setCurrentBlockState(new_state)
-            return
-        elif self.currentBlock() in self.textarea.hr_blocks:
-            self.textarea.hr_blocks.remove(self.currentBlock())
-        new_state = self.highlight_text_formatting(text, fg, new_state)
-        self.setCurrentBlockState(new_state)
-        if self.spellchecker.spellcheck_active:
-            self.highlight_spelling(text)
+            if self.spellchecker.spellcheck_active:
+                self.highlight_spelling(text)
 
     def highlight_horizontal_ruler(self, text: str, fg: QtGui.QColor) -> None:
         """Hide the asterisks where the horizontal ruler should be."""

@@ -20,15 +20,42 @@ Classes and functions needed in multiple different modules.
 
 This is to avoid potential circular imports.
 """
+from contextlib import contextmanager
 from enum import IntFlag
-from typing import Any, Callable, List
+import logging
+from typing import Any, Callable, cast, Iterator, List, TypeVar
 
 from PyQt5.QtCore import pyqtSignal, QVariant
 
 from libsyntyche.cli import Command, AutocompletionPattern
 
 
-class KalpanaObject:
+T = TypeVar('T', bound=Callable)
+
+
+def command_callback(func: T) -> T:
+    def wrapper(self: 'FailSafeBase', *args, **kwargs):  # type: ignore
+        with self.try_it(f'command with callback '
+                         f'{func.__name__!r} failed'):
+            return func(self, *args, **kwargs)
+    return cast(T, wrapper)
+
+
+class FailSafeBase:
+    def error(self, text: str) -> None:
+        raise NotImplementedError()
+
+    @contextmanager
+    def try_it(self, msg: str) -> Iterator[None]:
+        try:
+            yield
+        except Exception as e:
+            full_msg = f'{msg}, due to exception: {e!r}'
+            logging.getLogger(self.__class__.__module__).exception(full_msg)
+            self.error(full_msg)
+
+
+class KalpanaObject(FailSafeBase):
     """
     An interface that all main objects should implement.
 

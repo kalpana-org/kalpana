@@ -20,7 +20,7 @@ from typing import Iterable
 from PyQt5 import QtWidgets
 from libsyntyche import cli, terminal
 
-from kalpana.common import KalpanaObject
+from kalpana.common import command_callback, KalpanaObject
 from kalpana.settings import CommandHistory
 
 
@@ -38,7 +38,7 @@ class Terminal(terminal.Terminal, KalpanaObject):
                 'toggle-log',
                 ('Show or hide the log of all input '
                  'and output in the terminal.'),
-                self.log_history.toggle_visibility,
+                self.toggle_log,
                 args=cli.ArgumentRules.NONE, short_name='t')
         )
 
@@ -50,3 +50,7 @@ class Terminal(terminal.Terminal, KalpanaObject):
                 self, patterns: Iterable[cli.AutocompletionPattern]) -> None:
         for pattern in patterns:
             self.add_autocompletion_pattern(pattern)
+
+    @command_callback
+    def toggle_log(self) -> None:
+        self.log_history.toggle_visibility()

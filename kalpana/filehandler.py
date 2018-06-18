@@ -23,7 +23,7 @@ import sys
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
-from .common import autocomplete_file_path, KalpanaObject
+from .common import autocomplete_file_path, command_callback, KalpanaObject
 from .textarea import TextArea
 
 
@@ -87,6 +87,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
     def force_new_file(self, filepath: str) -> None:
         self.new_file(filepath, force=True)
 
+    @command_callback
     def new_file(self, filepath: str, force: bool = False) -> None:
         """
         Clear the textarea and filepath unless there are unsaved changes.
@@ -116,6 +117,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             # For some reason this signal isn't triggered on its own
             self.textarea.document().modificationChanged.emit(False)
 
+    @command_callback
     def new_file_in_new_window(self, filepath: str) -> None:
         """Open a new file in a new instance of Kalpana."""
         if os.path.exists(filepath):
@@ -127,6 +129,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
     def force_open_file(self, filepath: str) -> None:
         self.open_file(filepath, force=True)
 
+    @command_callback
     def open_file(self, filepath: str, force: bool = False) -> None:
         """
         Open a file, unless there are unsaved changes.
@@ -155,6 +158,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             else:
                 self.error(f'Unable to open the file: {filepath}')
 
+    @command_callback
     def open_file_in_new_window(self, filepath: str) -> None:
         """Open an existing file in a new instance of Kalpana."""
         if not filepath:
@@ -165,6 +169,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
     def force_save_file(self, filepath: str) -> None:
         self.save_file(filepath, force=True)
 
+    @command_callback
     def save_file(self, filepath: str, force: bool = False) -> None:
         """
         Save the file to the disk.

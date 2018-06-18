@@ -76,16 +76,14 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
 
     def check_for_sapfo_title(self) -> None:
         metadatafile = join(dirname(self.title),
-                            '.' + basename(self.title) + '.metadata')
+                            f'.{basename(self.title)}.metadata')
         if isfile(metadatafile):
-            if metadatafile != self.sapfo_filename:
-                self.sapfo_filename = metadatafile
-                try:
+            with self.try_it('failed checking for sapfo title'):
+                if metadatafile != self.sapfo_filename:
+                    self.sapfo_filename = metadatafile
                     with open(metadatafile) as f:
                         metadata = json.load(f)
                     self.sapfo_title = metadata['title']
-                except Exception:
-                    self.sapfo_title = "##metadata error##"
             self.title = self.sapfo_title
 
     def update_window_title(self) -> None:

@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 from typing import cast, Callable, Dict, List, Optional, Tuple
 from mypy_extensions import TypedDict
 import re
@@ -25,7 +26,7 @@ from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
 from kalpana.chapters import ChapterIndex
 from kalpana.chapteroverview import ChapterOverview
-from kalpana.common import KalpanaObject
+from kalpana.common import command_callback, FailSafeBase, KalpanaObject
 from kalpana.filehandler import FileHandler
 from kalpana.mainwindow import MainWindow
 from kalpana.terminal import Terminal
@@ -34,7 +35,10 @@ from kalpana.settings import Settings
 from kalpana.spellcheck import Spellchecker
 
 
-class Controller:
+logger = logging.getLogger(__name__)
+
+
+class Controller(FailSafeBase):
     def __init__(self, mainwindow: MainWindow, textarea: TextArea,
                  terminal: Terminal, settings: Settings,
                  chapter_overview: ChapterOverview) -> None:
@@ -52,6 +56,9 @@ class Controller:
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()
+
+    def error(self, text: str) -> None:
+        self.terminal.error(text)
 
     def update_style(self) -> None:
         pass
@@ -154,12 +161,13 @@ class Controller:
             self.terminal.input_field.setFocus()
 
     def update_chapter_index(self, pos: int, removed: int, added: int) -> None:
-        new_index = self.chapter_index.update_line_index(
-            self.textarea.document(), self.textarea.textCursor(),
-            pos, removed, added)
-        if new_index:
-            self.chapter_overview.load_chapter_data(
-                self.chapter_index.chapters)
+        with self.try_it("chapter index couldn't be updated"):
+            new_index = self.chapter_index.update_line_index(
+                self.textarea.document(), self.textarea.textCursor(),
+                pos, removed, added)
+            if new_index:
+                self.chapter_overview.load_chapter_data(
+                    self.chapter_index.chapters)
 
     def set_text_block_formats(self) -> None:
         def make_format(alpha: float = 1, bold: bool = False,
@@ -202,6 +210,7 @@ class Controller:
 
     # =========== COMMANDS ================================
 
+    @command_callback
     def toggle_chapter_overview(self) -> None:
         if self.mainwindow.active_stack_widget == self.textarea:
             if not self.chapter_overview.empty:
@@ -211,6 +220,7 @@ class Controller:
         elif self.mainwindow.active_stack_widget == self.chapter_overview:
             self.mainwindow.active_stack_widget = self.textarea
 
+    @command_callback
     def show_info(self, arg: str) -> None:
         if arg == 'file':
             if self.filehandler.filepath is None:
@@ -234,6 +244,7 @@ class Controller:
         return [item for item in ['file', 'spellcheck', 'modified']
                 if item.startswith(text)]
 
+    @command_callback
     def go_to_chapter(self, arg: str) -> None:
         """
         Go to the chapter specified in arg.
@@ -257,9 +268,11 @@ class Controller:
                 line = self.chapter_index.get_chapter_line(chapter)
                 self.textarea.center_on_line(line)
 
+    @command_callback
     def go_to_next_chapter(self) -> None:
         self.go_to_chapter_incremental(1)
 
+    @command_callback
     def go_to_prev_chapter(self) -> None:
         self.go_to_chapter_incremental(-1)
 
@@ -282,10 +295,12 @@ class Controller:
                 line = current_chapter_line
             self.textarea.center_on_line(line)
 
+    @command_callback
     def count_total_words(self) -> None:
         words = len(self.textarea.toPlainText().split())
         self.terminal.print_(f'Total words: {words}')
 
+    @command_callback
     def count_chapter_words(self, arg: str) -> None:
         if not self.chapter_index.chapters:
             self.terminal.error('No chapters detected!')
@@ -299,6 +314,7 @@ class Controller:
             words = self.chapter_index.chapters[int(arg)].word_count
             self.terminal.print_(f'Words in chapter {arg}: {words}')
 
+    @command_callback
     def export_chapter(self, arg: str) -> None:
         # TODO: unify the whole chapter arg thingy
         args = arg.split(None, 1)

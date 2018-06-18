@@ -23,7 +23,7 @@ from typing import Any, List
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
-from kalpana.common import KalpanaObject
+from kalpana.common import command_callback, KalpanaObject
 from kalpana.textarea import TextArea
 
 
@@ -67,6 +67,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         self.language_dict = enchant.DictWithPWL(self.language, pwl=pwl)
         self.spellcheck_active = False
 
+    @command_callback
     def add_word(self, word: str) -> None:
         """
         Add a word to the spellcheck dictionary.
@@ -78,6 +79,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         self.language_dict.add_to_pwl(word)
         self.rehighlight.emit()
 
+    @command_callback
     def suggest(self, word: str) -> None:
         """Print spelling suggestions for a certain word."""
         if not word:
@@ -96,6 +98,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         elif name == 'spellcheck-language':
             self._change_language(str(new_value))
 
+    @command_callback
     def set_language(self, language: str) -> None:
         """Set the language. (callback for the terminal command)"""
         self._change_language(language)
@@ -114,6 +117,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             self.language = language
             self.rehighlight.emit()
 
+    @command_callback
     def toggle_spellcheck(self) -> None:
         self.spellcheck_active = not self.spellcheck_active
         if self.spellcheck_active:
