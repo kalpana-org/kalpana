@@ -17,7 +17,7 @@
 
 import enchant
 import os
-from os.path import join
+from pathlib import Path
 from typing import Any, List
 
 from PyQt5 import QtCore
@@ -37,7 +37,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     rehighlight = QtCore.pyqtSignal()
 
-    def __init__(self, config_dir: str, textarea: TextArea) -> None:
+    def __init__(self, config_dir: Path, textarea: TextArea) -> None:
         super().__init__()
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
@@ -61,10 +61,10 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         ]
         self.textarea = textarea
         self.language = 'en_US'
-        self.pwl_path = join(config_dir, 'spellcheck-pwl')
-        os.makedirs(self.pwl_path, exist_ok=True)
-        pwl = join(self.pwl_path, self.language + '.pwl')
-        self.language_dict = enchant.DictWithPWL(self.language, pwl=pwl)
+        self.pwl_path = config_dir / 'spellcheck-pwl'
+        self.pwl_path.mkdir(exist_ok=True, parents=True)
+        pwl = self.pwl_path / (self.language + '.pwl')
+        self.language_dict = enchant.DictWithPWL(self.language, pwl=str(pwl))
         self.spellcheck_active = False
 
     @command_callback
@@ -109,8 +109,8 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             self.error('No language specified')
             return
         try:
-            pwl = join(self.pwl_path, language + '.pwl')
-            self.language_dict = enchant.DictWithPWL(language, pwl=pwl)
+            pwl = self.pwl_path / (language + '.pwl')
+            self.language_dict = enchant.DictWithPWL(language, pwl=str(pwl))
         except enchant.errors.DictNotFoundError:
             self.error(f'Invalid language: {language}')
         else:

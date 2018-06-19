@@ -17,6 +17,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
@@ -31,11 +32,11 @@ from kalpana.settings import Settings
 
 class Kalpana(QtWidgets.QApplication):
 
-    def __init__(self, config_dir: str,
+    def __init__(self, config_dir: Optional[str],
                  silent_mode: bool = False,
                  file_to_open: Optional[str] = None) -> None:
         super().__init__(['kalpana2'])
-        self.settings = Settings(config_dir)
+        self.settings = Settings(Path(config_dir) if config_dir else None)
         self.mainwindow = MainWindow()
         self.textarea = TextArea(self.mainwindow)
         self.chapter_overview = ChapterOverview(self.mainwindow)

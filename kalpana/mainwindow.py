@@ -16,7 +16,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import json
-from os.path import basename, dirname, isfile, join
+from pathlib import Path
 from typing import cast, Dict, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -38,7 +38,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         ]
         self.title = 'New file'
         self.sapfo_title = ''
-        self.sapfo_filename = ''
+        self.sapfo_filename: Optional[Path] = None
         self.modified = False
         self.force_close_flag = False
         self.update_window_title()
@@ -75,9 +75,9 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.close()
 
     def check_for_sapfo_title(self) -> None:
-        metadatafile = join(dirname(self.title),
-                            f'.{basename(self.title)}.metadata')
-        if isfile(metadatafile):
+        p = Path(self.title)
+        metadatafile = p.with_name(f'.{p.name}.metadata')
+        if metadatafile.is_file():
             with self.try_it('failed checking for sapfo title'):
                 if metadatafile != self.sapfo_filename:
                     self.sapfo_filename = metadatafile
@@ -85,6 +85,8 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
                         metadata = json.load(f)
                     self.sapfo_title = metadata['title']
             self.title = self.sapfo_title
+        else:
+            self.sapfo_filename = None
 
     def update_window_title(self) -> None:
         title = f'*{self.title}*' if self.modified else self.title
