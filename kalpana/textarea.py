@@ -76,6 +76,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         a.setStartValue(1)
         a.setEndValue(0)
         self.hide_scrollbar_anim = a
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
     def scrollbar_moved(self) -> None:
         if not self.autohide_scrollbar:
