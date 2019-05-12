@@ -32,6 +32,15 @@ class Section:
         self.word_count = 0
         self.desc = desc
 
+    def update_word_count(self, block: QtGui.QTextBlock) -> None:
+        offset = block.blockNumber()
+        block = block.next()
+        self.word_count = 0
+        while block.isValid() \
+                and block.blockNumber() < offset + self.line_count:
+            self.word_count += len(block.text().split())
+            block = block.next()
+
     def __eq__(self, other: Any) -> bool:
         try:
             return bool(self.line_count == other.line_count and

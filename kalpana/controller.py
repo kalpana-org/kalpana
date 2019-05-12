@@ -214,6 +214,10 @@ class Controller(FailSafeBase):
     def toggle_chapter_overview(self) -> None:
         if self.mainwindow.active_stack_widget == self.textarea:
             if not self.chapter_overview.empty:
+                self.chapter_index.full_line_index_update(
+                    self.textarea.document())
+                self.chapter_overview.load_chapter_data(
+                    self.chapter_index.chapters)
                 self.mainwindow.active_stack_widget = self.chapter_overview
             else:
                 self.terminal.error('No chapters to show')
@@ -305,12 +309,18 @@ class Controller(FailSafeBase):
         if not self.chapter_index.chapters:
             self.terminal.error('No chapters detected!')
         elif not arg:
-            self.terminal.error('No chapter specified!')
+            self.chapter_index.full_line_index_update(self.textarea.document())
+            current_line = self.textarea.textCursor().blockNumber()
+            current_chapter = self.chapter_index.which_chapter(current_line)
+            words = self.chapter_index.chapters[current_chapter].word_count
+            self.terminal.print_(f'Words in chapter {current_chapter}: {words}')
         elif not arg.isdecimal():
             self.terminal.error('Argument has to be a number!')
         elif int(arg) >= len(self.chapter_index.chapters):
             self.terminal.error('Invalid chapter!')
         else:
+            # yes this is an ugly hack
+            self.chapter_index.full_line_index_update(self.textarea.document())
             words = self.chapter_index.chapters[int(arg)].word_count
             self.terminal.print_(f'Words in chapter {arg}: {words}')
 
