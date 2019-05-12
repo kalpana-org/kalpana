@@ -21,7 +21,7 @@ Classes and functions needed in multiple different modules.
 This is to avoid potential circular imports.
 """
 from contextlib import contextmanager
-from enum import IntFlag
+import enum
 import logging
 from typing import Any, Callable, cast, Iterator, List, TypeVar
 
@@ -110,7 +110,8 @@ class KalpanaObject(FailSafeBase):
         pass
 
 
-class TextBlockState(IntFlag):
+@enum.unique
+class TextBlockState(enum.IntFlag):
     # Lines related to the chapter heading
     CHAPTER = 0x1
     DESC = 0x2
@@ -118,14 +119,15 @@ class TextBlockState(IntFlag):
     TIME = 0x8
     CHAPTERMETA = 0x2 | 0x4 | 0x8
     # Misc special lines
-    META = 0x100
-    SECTION = 0x1000
-    LINEFORMATS = 0x1 | 0x2 | 0x4 | 0x8 | 0x1100
+    SECTION = 0x100
+    META = 0x1000
+    TODO = 0x2000
+    LINEFORMATS = 0x1 | 0x2 | 0x4 | 0x8 | 0x100 | 0x1000 | 0x2000
     # Formatting
-    BOLD = 0x10000
-    ITALIC = 0x20000
-    UNDERLINE = 0x40000
-    FORMATTING = 0x70000
+    BOLD = 0x100000
+    ITALIC = 0x200000
+    UNDERLINE = 0x400000
+    FORMATTING = 0x700000
 
 
 def autocomplete_file_path(name: str, text: str) -> List[str]:

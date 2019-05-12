@@ -374,6 +374,8 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
             return TBS.SECTION
         elif prefix('%%'):
             return TBS.META
+        elif prefix('!!TODO'):
+            return TBS.TODO
         elif prev_state & (TBS.CHAPTER | TBS.CHAPTERMETA):
             if not prev_state & TBS.DESC and prefix('[[') and suffix(']]'):
                 return TBS.DESC
@@ -436,6 +438,12 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
         elif state & TBS.META:
             if not self.currentBlock() == self.active_block:
                 fg.setAlphaF(0.15)
+        elif state & TBS.TODO:
+            f.setFontWeight(QtGui.QFont.Bold)
+            f.setFontOverline(True)
+            f.setFontUnderline(True)
+            f.setFontCapitalization(QtGui.QFont.SmallCaps)
+            # fg = QtGui.QColor('#d8a200')
         # Keep this last to not override the others
         elif state & TBS.CHAPTER:
             f.setFontPointSize(16)

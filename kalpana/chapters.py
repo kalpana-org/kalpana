@@ -174,7 +174,7 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                 and ((added and not removed) or (removed and not added)
                      or (added and removed
                          and '\n' not in doc_text()[pos:pos+added])):
-            if state and state == self._block_states[line_num]:
+            if state and state == self._block_states.get(line_num):
                 chapter_num = self.which_chapter(line_num)
                 offset = line_num - self.get_chapter_line(chapter_num)
                 # TODO: recalc word count?
@@ -182,12 +182,12 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
                 self.chapters[chapter_num].update_line(
                     state, block.text(), self.chapter_keyword, offset)
                 return True
-            elif not state and not self._block_states[line_num]:
+            elif state == self._block_states.get(line_num) == 0:
                 return False
         # One line is shifted down irrelevantly
         if line_diff == 1 and added == 1 and line_num in special_lines:
             new_state = block.next().userState() & TextBlockState.LINEFORMATS
-            if not state and new_state == self._block_states[line_num] \
+            if not state and new_state == self._block_states.get(line_num) \
                 and (new_state & TextBlockState.CHAPTER
                      or new_state & TextBlockState.SECTION):
                 success = self.add_remove_lines(line_num, line_diff)
