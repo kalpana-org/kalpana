@@ -53,6 +53,7 @@ class ChapterItem(QtWidgets.QFrame):
             widget.setObjectName(name)
             layout.addWidget(widget)
             return widget
+        self.expanded = True
         self.complete = False
         self.index = num
         layout = QtWidgets.QVBoxLayout(self)
@@ -62,23 +63,37 @@ class ChapterItem(QtWidgets.QFrame):
         self.num.setText(str(num))
         self.title = label('title', top_row, word_wrap=False)
         self.length = label('length', top_row)
+        self.expand_button = QtWidgets.QPushButton('[...]', self)
+        self.expand_button.setCheckable(True)
+        self.expand_button.setChecked(True)
+        self.expand_button.toggled.connect(self.toggle)
+        top_row.addWidget(self.expand_button)
         top_row.addStretch(1)
         layout.addLayout(top_row)
         # The rest
+        self.desc = label('desc', layout)
         self.time = label('time', layout)
         self.tags = label('tags', layout)
-        self.desc = label('desc', layout)
         self.section_items: List[SectionItem] = []
+
+    def toggle(self, expand: bool) -> None:
+        self.expanded = expand
+        for item in [self.tags, self.time] + self.section_items:
+            if expand:
+                item.show()
+            else:
+                item.hide()
 
     def set_data(self, title: Optional[str], length: Optional[int],
                  time: Optional[str], tags: Optional[Set[str]],
                  desc: Optional[str], sections: List[Section],
                  complete: bool) -> None:
         self.complete = complete
-        self.setDisabled(complete)
-        self.title.setDisabled(complete)
+        # self.setDisabled(complete)
+        # self.title.setDisabled(complete)
+        complete_text = ' [done]' if complete else ''
         # Top row
-        self.title.setText(f'Chapter {title or self.index}')
+        self.title.setText(f'Chapter {title or self.index}{complete_text}')
         if length is None:
             self.length.hide()
         else:
