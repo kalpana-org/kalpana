@@ -38,7 +38,8 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.kalpana_settings = [
                 'show-line-numbers',
                 'max-textarea-width',
-                'autohide-scrollbar'
+                'autohide-scrollbar',
+                'start-at-pos',
         ]
         self.kalpana_commands = [
                 Command('go-to-line', '', self.go_to_line,
@@ -59,6 +60,21 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.line_number_bar = LineNumberBar(self)
         self.search_buffer: Optional[str] = None
         self.search_flags = QtGui.QTextDocument.FindFlag()
+        self.saved_position = (self.textCursor().position(),
+                               self.verticalScrollBar().value())
+
+        def update_cursor_position() -> None:
+            new_pos = (self.textCursor().position(),
+                       self.verticalScrollBar().value())
+            if self.saved_position != new_pos:
+                self.saved_position = new_pos
+                self.change_setting('start-at-pos', list(new_pos))
+
+        self.cursor_timer = QtCore.QTimer()
+        self.cursor_timer.setInterval(5000)
+        self.cursor_timer.setSingleShot(False)
+        self.cursor_timer.timeout.connect(update_cursor_position)
+        self.cursor_timer.start()
 
         # Scrollbar fadeout
         self.autohide_scrollbar = False
@@ -108,6 +124,13 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 self.hide_scrollbar_anim.stop()
                 self.hide_scrollbar_timer.stop()
                 self.hide_scrollbar_effect.setOpacity(0.99)
+        elif name == 'start-at-pos':
+            if new_value != self.saved_position:
+                cursor_pos, sb_pos = new_value
+                tc = self.textCursor()
+                tc.setPosition(cursor_pos)
+                self.setTextCursor(tc)
+                self.verticalScrollBar().setValue(sb_pos)
 
     def set_max_width(self, arg: str) -> None:
         if not arg.isdecimal():

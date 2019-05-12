@@ -18,3 +18,4 @@ italic-marker: "/"
 underline-marker: "_"
 horizontal-ruler-marker: "*"
 autohide-scrollbar: true
+start-at-pos: [0, 0]

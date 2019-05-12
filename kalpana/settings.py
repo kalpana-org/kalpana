@@ -93,7 +93,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         super().__init__()
         self.config_dir = config_dir or default_config_dir()
         self.config_dir.mkdir(parents=True, exist_ok=True)
-        self.active_file: Optional[Path] = None
+        self.active_file: str = ''
         self.registered_settings: Dict[str, KalpanaObject] = {}
         self.command_history = CommandHistory(self.config_dir)
         self.settings: ChainMap = ChainMap()
@@ -118,12 +118,12 @@ class Settings(QtCore.QObject, KalpanaObject):
 
     def file_opened(self, filepath: str, is_new: bool) -> None:
         if filepath:
-            self.active_file = Path(filepath).resolve()
+            self.active_file = str(Path(filepath).resolve())
             self.reload_settings()
 
     def file_saved(self, filepath: str, new_name: bool) -> None:
         if new_name:
-            self.active_file = Path(filepath).resolve()
+            self.active_file = str(Path(filepath).resolve())
             self.reload_settings()
 
     def change_setting(self, name: str, new_value: Any) -> None:
