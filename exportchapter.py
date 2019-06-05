@@ -19,7 +19,7 @@ def yaml_escape_unicode(text: str) -> str:
 def load_config():
     with open(os.path.expanduser('~/.config/kalpana2/settings.yaml')) as f:
         raw_config = f.read()
-        config = yaml.load(yaml_escape_unicode(raw_config))
+        config = yaml.safe_load(yaml_escape_unicode(raw_config))
     return config
 
 

@@ -140,8 +140,8 @@ class Settings(QtCore.QObject, KalpanaObject):
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
             with self.try_it("Couldn't save yaml settings to disk"):
-                yaml_data = yaml.dump(all_files_config,
-                                      default_flow_style=False)
+                yaml_data = yaml.safe_dump(all_files_config,
+                                           default_flow_style=False)
                 with open(all_files_config_path, 'w') as f:
                     f.write(yaml_data)
 
@@ -174,7 +174,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         except OSError:
             return {}
         else:
-            config = yaml.load(yaml_escape_unicode(raw_config))
+            config = yaml.safe_load(yaml_escape_unicode(raw_config))
             if not isinstance(config, dict):
                 raise yaml.YAMLError('root type has to be a dict')
             return config
@@ -183,7 +183,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         """Read and return the settings, with default values overriden."""
         # Default config
         default_config_path = LOCAL_DATA_DIR / 'default_settings.yaml'
-        default_config = cast(dict, yaml.load(default_config_path.read_text()))
+        default_config = cast(dict, yaml.safe_load(default_config_path.read_text()))
         # Global config
         global_config_path = config_dir / 'settings.yaml'
         global_config: Dict[str, Any] = {}
