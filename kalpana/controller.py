@@ -16,7 +16,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-from typing import cast, Callable, Dict, List, Optional, Tuple
+from typing import Any, cast, Callable, Dict, List, Optional, Tuple
 from mypy_extensions import TypedDict
 import re
 
@@ -50,7 +50,7 @@ class Controller(FailSafeBase):
         self.filehandler = FileHandler(self.textarea)
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.settings.config_dir,
-                                         self.textarea)
+                                         self.textarea.word_under_cursor)
         self.highlighter = Highlighter(self.textarea, self.chapter_index,
                                        self.spellchecker)
         self.set_keybindings()
@@ -65,17 +65,38 @@ class Controller(FailSafeBase):
 
     def register_own_commands(self) -> None:
         commands = [
-                Command('go-to-chapter', 'Jump to a specified chapter',
-                        self.go_to_chapter, short_name='.'),
-                Command('go-to-next-chapter', 'Jump to next chapter',
+                Command('go-to-chapter', 'Jump to a specified chapter.',
+                        self.go_to_chapter,
+                        short_name='.',
+                        category='movement',
+                        arg_help=(('0', 'Jump to the start of the file.'),
+                                  ('1', 'Jump to the first chapter.'),
+                                  ('n', 'Jump to the nth chapter '
+                                   '(has to be a number).'),
+                                  ('-1', 'Jump to last chapter.'),
+                                  ('-n', 'Jump to nth to last chapter '
+                                   '(has to be a number).'))),
+                Command('go-to-next-chapter', 'Jump to the next chapter.',
                         self.go_to_next_chapter,
-                        args=ArgumentRules.NONE, short_name='>'),
-                Command('go-to-prev-chapter', '', self.go_to_prev_chapter,
-                        args=ArgumentRules.NONE, short_name='<'),
-                Command('word-count-total', '', self.count_total_words,
+                        args=ArgumentRules.NONE,
+                        short_name='>',
+                        category='movement'),
+                Command('go-to-prev-chapter', 'Jump to the previous chapter.',
+                        self.go_to_prev_chapter,
+                        args=ArgumentRules.NONE,
+                        short_name='<',
+                        category='movement'),
+                Command('word-count-total', 'Print the total word count.',
+                        self.count_total_words,
                         args=ArgumentRules.NONE, short_name='C'),
-                Command('word-count-chapter', '', self.count_chapter_words,
-                        short_name='c'),
+                Command('word-count-chapter',
+                        'Print the word count of a chapter',
+                        self.count_chapter_words,
+                        short_name='c',
+                        arg_help=(('', 'Print the word count of the chapter '
+                                   'your cursor is in.'),
+                                  ('7', 'Print the word count of '
+                                   'chapter 7.'))),
                 Command('reload-settings', '', self.settings.reload_settings,
                         args=ArgumentRules.NONE),
                 Command('reload-stylesheet', '',
@@ -83,11 +104,20 @@ class Controller(FailSafeBase):
                         args=ArgumentRules.NONE),
                 Command('show-info',
                         'Show information about the open file or the session.',
-                        self.show_info, short_name='i'),
-                Command('export-chapter', '',
+                        self.show_info, short_name='i',
+                        arg_help=((' file', 'Print the path of the open file.'),
+                                  (' modified', 'Print whether the file is '
+                                   'modified or not.'),
+                                  (' spellcheck', 'Print whether spellcheck '
+                                   'is currently active and with which '
+                                   'language.'))),
+                Command('export-chapter', 'Export a chapter',
                         self.export_chapter,
-                        args=ArgumentRules.REQUIRED, short_name='e'),
-                Command('toggle-chapter-overview', '',
+                        args=ArgumentRules.REQUIRED, short_name='e',
+                        arg_help=(('3fmt', 'Export chapter 3 with the '
+                                   'format "fmt".'),)),
+                Command('toggle-chapter-overview',
+                        'Toggle the chapter overview',
                         self.toggle_chapter_overview,
                         args=ArgumentRules.NONE, short_name='9'),
         ]
@@ -139,7 +169,8 @@ class Controller(FailSafeBase):
             if obj != self.filehandler:
                 self.filehandler.file_saved_signal.connect(obj.file_saved)
                 self.filehandler.file_opened_signal.connect(obj.file_opened)
-        misc_signals: List[Tuple[pyqtSignal, Callable]] = [
+        misc_signals: List[Tuple[pyqtSignal,
+                                 Callable[..., Any]]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
             (cast(pyqtSignal, self.textarea.document().contentsChange),
              self.update_chapter_index),

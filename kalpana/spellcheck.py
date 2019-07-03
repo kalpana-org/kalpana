@@ -16,15 +16,13 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import enchant
-import os
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Callable, List
 
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
 from kalpana.common import command_callback, KalpanaObject
-from kalpana.textarea import TextArea
 
 
 def get_spellcheck_languages(name: str, text: str) -> List[str]:
@@ -37,21 +35,42 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     rehighlight = QtCore.pyqtSignal()
 
-    def __init__(self, config_dir: Path, textarea: TextArea) -> None:
+    def __init__(self, config_dir: Path,
+                 word_under_cursor: Callable[[], str]) -> None:
         super().__init__()
+        self.word_under_cursor = word_under_cursor
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
-                Command('toggle-spellcheck', '', self.toggle_spellcheck,
-                        args=ArgumentRules.NONE, short_name='&'),
-                Command('set-spellcheck-language', '', self.set_language,
-                        short_name='l'),
+                Command('toggle-spellcheck', 'Toggle the spellcheck.',
+                        self.toggle_spellcheck,
+                        args=ArgumentRules.NONE,
+                        short_name='&',
+                        category='spellcheck'),
+                Command('set-spellcheck-language',
+                        'Set the spellcheck language',
+                        self.set_language,
+                        short_name='l',
+                        category='spellcheck',
+                        arg_help=((' en-US',
+                                   'Set the language to English.'),)),
                 Command('suggest-spelling',
-                        'Print a list of possible spellings for the argument '
-                        'or the word under the cursor.',
-                        self.suggest, short_name='@'),
+                        'Suggest spelling corrections for a word.',
+                        self.suggest,
+                        short_name='@',
+                        category='spellcheck',
+                        arg_help=(('', 'Suggest spelling corrections for '
+                                   'the word under the cursor.'),
+                                  ('foo', 'Suggest spelling corrections for '
+                                   'the word "foo".'))),
                 Command('add-word', 'Add word to the spellcheck word list.',
-                        self.add_word, args=ArgumentRules.REQUIRED,
-                        short_name='+')
+                        self.add_word,
+                        args=ArgumentRules.REQUIRED,
+                        short_name='+',
+                        category='spellcheck',
+                        arg_help=(('', 'Add the word under the cursor to the '
+                                   'dictionary.'),
+                                  ('foo', 'Add the word "foo" to the '
+                                   'dictionary.')))
         ]
         self.kalpana_autocompletion_patterns = [
                 AutocompletionPattern('set-spellcheck-language',
@@ -59,7 +78,6 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
                                       prefix=r'l\s*',
                                       illegal_chars=' ')
         ]
-        self.textarea = textarea
         self.language = 'en_US'
         self.pwl_path = config_dir / 'spellcheck-pwl'
         self.pwl_path.mkdir(exist_ok=True, parents=True)
@@ -75,7 +93,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         This automatically saves the word to the wordlist file as well.
         """
         if not word:
-            word = self.textarea.word_under_cursor()
+            word = self.word_under_cursor()
         self.language_dict.add_to_pwl(word)
         self.rehighlight.emit()
 
@@ -83,7 +101,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
     def suggest(self, word: str) -> None:
         """Print spelling suggestions for a certain word."""
         if not word:
-            word = self.textarea.word_under_cursor()
+            word = self.word_under_cursor()
         suggestions = ', '.join(self.language_dict.suggest(word)[:5])
         self.log(f'{word}: {suggestions}')
 

@@ -39,19 +39,48 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         self.textarea = textarea
         self.filepath: Optional[str] = None
         self.kalpana_commands = [
-                Command('new-file', 'Create a new file. Filename is optional.',
-                        self.new_file, short_name='n'),
+                Command('new-file', 'Create a new file.',
+                        self.new_file,
+                        short_name='n',
+                        category='file',
+                        arg_help=(('', 'Create a new unnamed file.'),
+                                  (' path/to/file', 'Create a new file with '
+                                   'the specified path and name. It will not '
+                                   'be created on disk until you save it, '
+                                   'but you can\'t use a file that already '
+                                   'exists.'))),
                 Command('new-file-in-new-window',
-                        'Create a new file. Filename is optional.',
-                        self.new_file_in_new_window, short_name='N'),
+                        'Create a new file in a new window',
+                        self.new_file_in_new_window,
+                        short_name='N',
+                        category='file',
+                        arg_help=(('', 'Create a new unnamed file.'),
+                                  (' path/to/file', 'Create a new file with '
+                                   'the specified path and name. It will not '
+                                   'be created on disk until you save it, '
+                                   'but you can\'t use a file that already '
+                                   'exists.'))),
                 Command('open-file', 'Open a file', self.open_file,
-                        args=ArgumentRules.REQUIRED, short_name='o'),
+                        args=ArgumentRules.REQUIRED,
+                        short_name='o',
+                        category='file',
+                        arg_help=((' path/to/file',
+                                   'Open the specified file.'),)),
                 Command('open-file-in-new-window',
                         'Open a file in a new window',
                         self.open_file_in_new_window,
-                        args=ArgumentRules.REQUIRED, short_name='O'),
+                        args=ArgumentRules.REQUIRED,
+                        short_name='O',
+                        category='file',
+                        arg_help=((' path/to/file', 'Open the specified file '
+                                   'in a new window.'),)),
                 Command('save-file', 'Save the file', self.save_file,
-                        short_name='s'),
+                        short_name='s',
+                        category='file',
+                        arg_help=(('', 'Save the file. (Can\'t be a new and '
+                                   'unnamed file.)'),
+                                  (' path/to/file', 'Save the file to the '
+                                   'specified path.'))),
         ]
         self.kalpana_autocompletion_patterns = [
                 AutocompletionPattern('new-file',
@@ -88,7 +117,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         self.new_file(filepath, force=True)
 
     @command_callback
-    def new_file(self, filepath: str, force: bool = False) -> None:
+    def new_file(self, filepath: Optional[str], force: bool = False) -> None:
         """
         Clear the textarea and filepath unless there are unsaved changes.
 
@@ -101,8 +130,8 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         """
         if self.textarea.document().isModified() and not force:
             self.confirm('There are unsaved changes. Discard them?',
-                         self.force_new_file, filepath)
-        elif os.path.exists(filepath):
+                         self.force_new_file, filepath or '')
+        elif filepath and os.path.exists(filepath):
             self.error('File already exists, open it instead')
         else:
             if filepath:
@@ -118,9 +147,9 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             self.textarea.document().modificationChanged.emit(False)
 
     @command_callback
-    def new_file_in_new_window(self, filepath: str) -> None:
+    def new_file_in_new_window(self, filepath: Optional[str]) -> None:
         """Open a new file in a new instance of Kalpana."""
-        if os.path.exists(filepath):
+        if filepath and os.path.exists(filepath):
             self.error('File already exists, open it instead')
         else:
             subprocess.Popen([sys.executable, sys.argv[0]] +
@@ -170,7 +199,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         self.save_file(filepath, force=True)
 
     @command_callback
-    def save_file(self, filepath: str, force: bool = False) -> None:
+    def save_file(self, filepath: Optional[str], force: bool = False) -> None:
         """
         Save the file to the disk.
 
@@ -180,7 +209,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
 
         Note that this always saves in utf-8, no matter the original encoding.
         """
-        if not filepath and self.filepath is None:
+        if not filepath and not self.filepath:
             self.error('No active file')
         elif filepath and filepath != self.filepath \
                 and os.path.exists(filepath) and not force:

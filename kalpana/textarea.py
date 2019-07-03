@@ -25,6 +25,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from kalpana.common import KalpanaObject
 from kalpana.common import TextBlockState as TBS
 from kalpana.chapters import ChapterIndex
+from kalpana.spellcheck import Spellchecker
 from libsyntyche.cli import Command, ArgumentRules
 
 
@@ -42,18 +43,47 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 'start-at-pos',
         ]
         self.kalpana_commands = [
-                Command('go-to-line', '', self.go_to_line,
-                        args=ArgumentRules.REQUIRED, short_name=':'),
+                Command('go-to-line', 'Go to line', self.go_to_line,
+                        args=ArgumentRules.REQUIRED,
+                        short_name=':',
+                        category='movement',
+                        arg_help=(('123', 'Center the view on line 123.'),)),
                 Command('set-textarea-max-width',
                         'Set the max width of the page',
-                        self.set_max_width, args=ArgumentRules.REQUIRED),
+                        self.set_max_width,
+                        args=ArgumentRules.REQUIRED,
+                        arg_help=(('800', 'Set the max width to 800'),)),
                 Command('toggle-line-numbers', '', self.toggle_line_numbers,
                         args=ArgumentRules.NONE),
-                Command('insert-text', '', self.insertPlainText,
-                        short_name='_'),
-                Command('search-and-replace', '', self.search_and_replace,
-                        short_name='/'),
-                Command('search-next', '', self.search_next,
+                Command('insert-text', 'Insert text', self.insertPlainText,
+                        short_name='_',
+                        arg_help=(('_foo', 'Insert the text "foo" in the '
+                                   'document as if you had typed it. (Mostly '
+                                   'intended for keybindings.'),)),
+                Command('search-and-replace',
+                        'Search or replace', self.search_and_replace,
+                        short_name='/',
+                        strip_input=False,
+                        arg_help=(('foo', 'Search for "foo".'),
+                                  ('foo/b', 'Search backwards for "foo". '
+                                   '(Can be combined with the other flags '
+                                   'in any order.)'),
+                                  ('foo/i', 'Search case-insensitively for '
+                                   '"foo". (Can be combined with the other '
+                                   'flags in any order.)'),
+                                  ('foo/w', 'Search for "foo", only matching '
+                                   'whole words. (Can be combined with the '
+                                   'other flags in any order.)'),
+                                  ('foo/bar/', 'Replace the first instance '
+                                   'of "foo" with "bar", starting from the '
+                                   'cursor\'s position.'),
+                                  ('foo/bar/[biw]', 'The flags works just '
+                                   'like in the search action.'),
+                                  ('foo/bar/a', 'Replace all instances '
+                                   'of "foo" with "bar". (Can be combined '
+                                   'with the other flags in any order.)'))),
+                Command('search-next', 'Go to the next search hit',
+                        self.search_next,
                         args=ArgumentRules.NONE, short_name='*'),
         ]
         self.hr_blocks: List[QtGui.QTextBlock] = []
@@ -215,10 +245,9 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                 search_flags |= QtGui.QTextDocument.FindWholeWords
             self.search_flags = cast(QtGui.QTextDocument.FindFlag,
                                      search_flags)
-        search_rx = re.compile(r'/([^/]|\\/)+$')
-        search_flags_rx = re.compile(r'/([^/]|\\/)*?([^\\]/[biw]*)$')
+        search_rx = re.compile(r'([^/]|\\/)+$')
+        search_flags_rx = re.compile(r'([^/]|\\/)*?([^\\]/[biw]*)$')
         replace_rx = re.compile(r"""
-            /
             (?P<search>([^/]|\\/)*?[^\\])
             /
             (?P<replace>(([^/]|\\/)*[^\\])?)
@@ -230,12 +259,12 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         search_flags_match = search_flags_rx.match(text)
         replace_match = replace_rx.match(text)
         if search_match:
-            self.search_buffer = search_match.group(0)[1:]
+            self.search_buffer = search_match.group(0)
             self.search_flags = QtGui.QTextDocument.FindCaseSensitively
             self.search_next()
         elif search_flags_match:
             self.search_buffer, flags = search_flags_match\
-                .group(0)[1:].rsplit('/', 1)
+                .group(0).rsplit('/', 1)
             generate_flags(flags)
             self.search_next()
         elif replace_match:
@@ -341,7 +370,7 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
 
     def __init__(self, textarea: TextArea,
                  chapter_index: ChapterIndex,
-                 spellchecker=None) -> None:
+                 spellchecker: Spellchecker) -> None:
         super().__init__(textarea.document())
         self.kalpana_settings = [
                 'italic-marker',
@@ -425,7 +454,8 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
                 self.setCurrentBlockState(line_state)
                 return
             # Horizontal ruler
-            if self.hr_marker in text and text.strip(f' \t{self.hr_marker}') == '':
+            if self.hr_marker in text \
+                    and text.strip(f' \t{self.hr_marker}') == '':
                 self.highlight_horizontal_ruler(text, fg)
                 self.setCurrentBlockState(new_state)
                 return

@@ -107,6 +107,15 @@ SectionItem {
 #time {
   color: rgba(255, 255, 255, 120);
 }
+/* ================= HELP VIEW ======================== */
+HelpView {
+    background: #333;
+    color: #ddd;
+    font-family: "Monospace";
+    font-size: 12px;
+    padding: 10px 6px;
+    border-top: 2px solid #111;
+}
 
 /* ================= SCROLLBARS ======================= */
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {

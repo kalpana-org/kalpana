@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from collections import ChainMap, defaultdict
+from collections import defaultdict
 import json
 from pathlib import Path
 import re
-from typing import (cast, Any, DefaultDict, Dict, Iterable, Mapping,
+from typing import (cast, Any, ChainMap, DefaultDict, Dict, Iterable, Mapping,
                     Match, Optional)
 
 import yaml
@@ -96,7 +96,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.active_file: str = ''
         self.registered_settings: Dict[str, KalpanaObject] = {}
         self.command_history = CommandHistory(self.config_dir)
-        self.settings: ChainMap = ChainMap()
+        self.settings: ChainMap[str, Any] = ChainMap()
         self.key_bindings: Dict[int, str] = {}
         self.terminal_key = -1
         self.css = ''
@@ -179,11 +179,12 @@ class Settings(QtCore.QObject, KalpanaObject):
                 raise yaml.YAMLError('root type has to be a dict')
             return config
 
-    def load_settings(self, config_dir: Path) -> ChainMap:  # MutableMapping[str, Any]:
+    def load_settings(self, config_dir: Path) -> ChainMap[str, Any]:
         """Read and return the settings, with default values overriden."""
         # Default config
         default_config_path = LOCAL_DATA_DIR / 'default_settings.yaml'
-        default_config = cast(dict, yaml.safe_load(default_config_path.read_text()))
+        default_config = cast(Dict[str, Any],
+                              yaml.safe_load(default_config_path.read_text()))
         # Global config
         global_config_path = config_dir / 'settings.yaml'
         global_config: Dict[str, Any] = {}

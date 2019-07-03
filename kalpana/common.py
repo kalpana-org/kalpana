@@ -78,7 +78,8 @@ class KalpanaObject(FailSafeBase):
         """Show a regular message in the terminal."""
         self.log_signal.emit(text)
 
-    def confirm(self, text: str, callback: Callable, arg: str = '') -> None:
+    def confirm(self, text: str, callback: Callable[..., Any],
+                arg: str = '') -> None:
         self.confirm_signal.emit(text, callback, arg)
 
     def change_setting(self, name: str, new_value: Any) -> None:
