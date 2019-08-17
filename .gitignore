@@ -35,6 +35,7 @@ pip-log.txt
 
 # Kalpana specific
 thoughts
+/untracked/
 
 # pytest
 .cache

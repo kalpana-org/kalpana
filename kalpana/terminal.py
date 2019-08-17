@@ -16,12 +16,12 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from typing import Any, cast, Dict, Iterable, List, Tuple
+from typing import cast, Dict, Iterable
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from libsyntyche import cli, terminal
 
-from kalpana.common import command_callback, KalpanaObject
+from kalpana.common import command_callback, KalpanaObject, Signal0
 from kalpana.settings import CommandHistory
 
 
@@ -42,7 +42,7 @@ class MessageTrayItem(QtWidgets.QLabel):
         a1.setDuration(500)
         a1.setStartValue(1)
         a1.setEndValue(0)
-        a1.finished.connect(self.deleteLater)
+        cast(Signal0, a1.finished).connect(self.deleteLater)
         self.fade_animation = a1
         # Move animation
         a2 = QtCore.QPropertyAnimation(self, b'pos')

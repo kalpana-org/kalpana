@@ -23,14 +23,53 @@ This is to avoid potential circular imports.
 from contextlib import contextmanager
 import enum
 import logging
-from typing import Any, Callable, cast, Iterator, List, TypeVar
+from typing import (Any, Callable, cast, Generic, Iterator, List,
+                    Type, TypeVar)
 
 from PyQt5.QtCore import pyqtSignal, QVariant
 
 from libsyntyche.cli import Command, AutocompletionPattern
 
 
-T = TypeVar('T', bound=Callable)
+T = TypeVar('T', bound=Callable[..., Any])
+
+
+_T1 = TypeVar('_T1')
+_T2 = TypeVar('_T2')
+_T3 = TypeVar('_T3')
+
+
+class Signal0:
+    def __init__(self) -> None: ...
+
+    def emit(self) -> None: ...
+
+    def connect(self, slot: Callable[[], None]) -> None: ...
+
+
+class Signal1(Generic[_T1]):
+    def __init__(self, arg_type: Type[_T1]) -> None: ...
+
+    def emit(self, arg: _T1) -> None: ...
+
+    def connect(self, slot: Callable[[_T1], None]) -> None: ...
+
+
+class Signal2(Generic[_T1, _T2]):
+    def __init__(self, arg1_type: Type[_T1], arg2_type: Type[_T2]) -> None: ...
+
+    def emit(self, arg1: _T1, arg2: _T2) -> None: ...
+
+    def connect(self, slot: Callable[[_T1, _T2], None]) -> None: ...
+
+
+class Signal3(Generic[_T1, _T2, _T3]):
+    def __init__(self, arg1_type: Type[_T1], arg2_type: Type[_T2],
+                 arg3_type: Type[_T3]) -> None: ...
+
+    def emit(self, arg1: _T1, arg2: _T2, arg3: _T3) -> None: ...
+
+    def connect(self, slot: Callable[[_T1, _T2, _T3], None]) -> None: ...
 
 
 def command_callback(func: T) -> T:

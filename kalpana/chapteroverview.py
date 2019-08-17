@@ -20,6 +20,7 @@ from typing import cast, Iterable, List, Optional, Set, Tuple
 
 from PyQt5 import QtWidgets
 
+from kalpana import common
 from kalpana.chapters import Chapter, Section
 
 
@@ -66,7 +67,8 @@ class ChapterItem(QtWidgets.QFrame):
         self.expand_button = QtWidgets.QPushButton('[...]', self)
         self.expand_button.setCheckable(True)
         self.expand_button.setChecked(True)
-        self.expand_button.toggled.connect(self.toggle)
+        cast(common.Signal1[bool],
+             self.expand_button.toggled).connect(self.toggle)
         top_row.addWidget(self.expand_button)
         top_row.addStretch(1)
         layout.addLayout(top_row)
