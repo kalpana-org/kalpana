@@ -26,6 +26,7 @@ from kalpana.common import KalpanaObject
 from kalpana.common import TextBlockState as TBS
 from kalpana.chapters import ChapterIndex
 from kalpana.spellcheck import Spellchecker
+from kalpana.terminal import MessageTray
 from libsyntyche.cli import Command, ArgumentRules
 
 

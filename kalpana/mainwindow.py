@@ -15,19 +15,30 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+from datetime import datetime
 import json
 from pathlib import Path
 from typing import cast, Dict, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 from libsyntyche.cli import Command, ArgumentRules
+from libsyntyche.terminal import MessageType
 
 from kalpana.common import KalpanaObject
 from kalpana.chapteroverview import ChapterOverview
-from kalpana.terminal import Terminal
+from kalpana.terminal import MessageTray, Terminal
 from kalpana.textarea import TextArea
 
 InnerStackWidget = Union[ChapterOverview, TextArea]
+
+
+class Stack(QtWidgets.QStackedWidget):
+    resized = QtCore.pyqtSignal()
+
+    def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(ev)
+        self.resized.emit()
 
 
 class MainWindow(QtWidgets.QFrame, KalpanaObject):
@@ -45,11 +56,23 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        self.stack = QtWidgets.QStackedWidget(self)
+        self.stack = Stack(self)
         layout.addWidget(self.stack)
         self.stack_wrappers: Dict[int, QtWidgets.QFrame] = {}
         self.terminal: Optional[Terminal] = None
+        self.message_tray = MessageTray(self)
+        self.stack.resized.connect(self.adjust_tray)
         self.show()
+
+    def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(ev)
+        self.adjust_tray()
+
+    def adjust_tray(self) -> None:
+        if self.message_tray is None:
+            return
+        rect = self.stack.geometry()
+        self.message_tray.setGeometry(rect)
 
     @property
     def active_stack_widget(self) -> InnerStackWidget:

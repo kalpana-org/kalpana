@@ -176,6 +176,8 @@ class Controller(FailSafeBase):
              self.update_chapter_index),
             (self.textarea.modificationChanged,
              self.mainwindow.modification_changed),
+            (self.terminal.show_message,
+             self.mainwindow.message_tray.add_message),
             (self.terminal.error_triggered, self.mainwindow.shake_screen),
         ]
         for signal, slot in misc_signals:

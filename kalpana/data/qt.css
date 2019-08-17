@@ -117,6 +117,33 @@ HelpView {
     border-top: 2px solid #111;
 }
 
+/* ================= MESSAGE TRAY ===================== */
+MessageTray {
+  background-color: transparent;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+
+#terminal_print, #terminal_error {
+  background-color: #cc0a0a0a;
+  border: 1px solid #cc000000;
+  border-radius: 3px;
+  color: white;
+  font-family: monospace;
+  font-size: 14px;
+  margin-top: 10px;
+  padding: 4px;
+}
+
+#terminal_error {
+  border-color: #99aa0000;
+  background-color: #99660000;
+  color: white;
+}
+InputField {
+  padding: 4px;
+}
+
 /* ================= SCROLLBARS ======================= */
 QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
   background: black;
