@@ -17,7 +17,7 @@
 
 from itertools import chain
 import logging
-from typing import cast, Any, List, Optional
+from typing import Any, List, Optional
 import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -76,6 +76,10 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                                   ('foo/w', 'Search for "foo", only matching '
                                    'whole words. (Can be combined with the '
                                    'other flags in any order.)'),
+                                  ('foo/#', 'Print the number of instances '
+                                   'found instead of moving the cursor. '
+                                   '(Can be combined with the other flags in '
+                                   'any order.)'),
                                   ('foo/bar/', 'Replace the first instance '
                                    'of "foo" with "bar", starting from the '
                                    'cursor\'s position.'),
@@ -91,7 +95,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.hr_blocks: List[QtGui.QTextBlock] = []
         self.line_number_bar = LineNumberBar(self)
         self.search_buffer: Optional[str] = None
-        self.search_flags = QtGui.QTextDocument.FindFlag()
+        self.search_flags = QtGui.QTextDocument.FindFlags()
         self.saved_position = (self.textCursor().position(),
                                self.verticalScrollBar().value())
 
@@ -242,20 +246,19 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.line_number_bar.setFixedHeight(self.height())
 
     def search_and_replace(self, text: str) -> None:
-        def generate_flags(flagstr: str) -> None:
+        def generate_flags(flagstr: str) -> QtGui.QTextDocument.FindFlags:
             # self.search_flags is automatically generated and does not
             # need to be initialized in __init__()
-            search_flags = 0
+            search_flags = QtGui.QTextDocument.FindFlags()
             if 'b' in flagstr:
                 search_flags |= QtGui.QTextDocument.FindBackward
             if 'i' not in flagstr:
                 search_flags |= QtGui.QTextDocument.FindCaseSensitively
             if 'w' in flagstr:
                 search_flags |= QtGui.QTextDocument.FindWholeWords
-            self.search_flags = cast(QtGui.QTextDocument.FindFlag,
-                                     search_flags)
+            return search_flags
         search_rx = re.compile(r'([^/]|\\/)+$')
-        search_flags_rx = re.compile(r'([^/]|\\/)*?([^\\]/[biw]*)$')
+        search_flags_rx = re.compile(r'([^/]|\\/)*?([^\\]/[biw#]*)$')
         replace_rx = re.compile(r"""
             (?P<search>([^/]|\\/)*?[^\\])
             /
@@ -272,10 +275,13 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             self.search_flags = QtGui.QTextDocument.FindCaseSensitively
             self.search_next()
         elif search_flags_match:
-            self.search_buffer, flags = search_flags_match\
-                .group(0).rsplit('/', 1)
-            generate_flags(flags)
-            self.search_next()
+            search_buffer, flags = search_flags_match.group(0).rsplit('/', 1)
+            if '#' in flags:
+                self._count_hits(search_buffer, generate_flags(flags))
+            else:
+                self.search_buffer = search_buffer
+                self.search_flags = generate_flags(flags)
+                self.search_next()
         elif replace_match:
             self.search_buffer = replace_match.group('search')
             generate_flags(replace_match.group('flags'))
@@ -286,7 +292,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         else:
             self.error('Malformed search/replace expression')
 
-    def _searching_backwards(self) -> int:
+    def _searching_backwards(self) -> QtGui.QTextDocument.FindFlags:
         return QtGui.QTextDocument.FindBackward & self.search_flags
 
     def search_next(self) -> None:
@@ -349,6 +355,28 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                      f'pos {t.positionInBlock()}')
         else:
             self.error('Text not found')
+
+    def _count_hits(self, target: str,
+                    flags: QtGui.QTextDocument.FindFlags) -> None:
+        """
+        Replace all strings found with the replace_buffer.
+
+        As with replace_next, you probably don't want to call this manually.
+        """
+        times = 0
+        cursor = QtGui.QTextCursor(self.document())
+        # Don't use the backwards flag
+        flags &= ~QtGui.QTextDocument.FindBackward
+        while True:
+            cursor = self.document().find(target, cursor, flags)
+            if not cursor.isNull():
+                times += 1
+            else:
+                break
+        if times:
+            self.log(f'The word "{target}" is used {times} times')
+        else:
+            self.log(f'The word "{target}" is not used')
 
     def _replace_all(self, replace_buffer: str) -> None:
         """
