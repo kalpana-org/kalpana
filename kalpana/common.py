@@ -89,7 +89,7 @@ class FailSafeBase:
         try:
             yield
         except Exception as e:
-            full_msg = f'{msg}, due to exception: {e!r}'
+            full_msg = f'[UNHANDLED EXCEPTION] {msg}, due to exception: {e!r}'
             logging.getLogger(self.__class__.__module__).exception(full_msg)
             self.error(full_msg)
 
