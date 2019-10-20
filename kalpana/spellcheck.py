@@ -64,7 +64,6 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
                                    'the word "foo".'))),
                 Command('add-word', 'Add word to the spellcheck word list.',
                         self.add_word,
-                        args=ArgumentRules.REQUIRED,
                         short_name='+',
                         category='spellcheck',
                         arg_help=(('', 'Add the word under the cursor to the '
@@ -96,6 +95,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
             word = self.word_under_cursor()
         self.language_dict.add_to_pwl(word)
         self.rehighlight.emit()
+        self.log(f'Added "{word}" to dictionary')
 
     @command_callback
     def suggest(self, word: str) -> None:

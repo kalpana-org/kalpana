@@ -572,8 +572,12 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
     def highlight_spelling(self, text: str) -> None:
         """Highlight misspelled words."""
         for chunk in re.finditer(r"[\w-]+(?:'\w+)?", text):
-            if chunk and re.search(r'\w', chunk.group()):
-                if not self.spellchecker.check_word(chunk.group()):
+            # Skip chunks only consisting of dashes
+            if chunk and chunk.group().strip('-'):
+                word = chunk.group()
+                if word.endswith("'s"):
+                    word = word[:-2]
+                if not self.spellchecker.check_word(word):
                     f = self.format(self.utf16_len(text[:chunk.start()]))
                     f.setUnderlineColor(QtCore.Qt.red)
                     f.setUnderlineStyle(QtGui.QTextCharFormat.WaveUnderline)
