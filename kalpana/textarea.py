@@ -211,10 +211,17 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
             block = block.next()
         painter.end()
 
-    def word_under_cursor(self) -> str:
+    def word_under_cursor(self) -> Optional[str]:
         cursor = self.textCursor()
-        cursor.select(QtGui.QTextCursor.WordUnderCursor)
-        return cursor.selectedText()
+        text = cursor.block().text()
+        pos = cursor.positionInBlock()
+        prefix = re.search(r"[\w'-]*$", text[:pos])
+        suffix = re.search(r"^[\w'-]*", text[pos:])
+        word = (('' if prefix is None else prefix[0])
+                + ('' if suffix is None else suffix[0]))
+        if not word.strip("'-"):
+            return None
+        return word
 
     def go_to_line(self, arg: str) -> None:
         if not arg.isdecimal():

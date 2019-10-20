@@ -15,10 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-import enchant
 from pathlib import Path
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
 
+import enchant
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
 
@@ -31,12 +31,25 @@ def get_spellcheck_languages(name: str, text: str) -> List[str]:
             if lang.startswith(text)]
 
 
+def _get_word_if_missing(word_command: Callable[['Spellchecker', str], None]
+                         ) -> Callable[['Spellchecker', str], None]:
+    def wrapper(self: 'Spellchecker', word: str) -> None:
+        if not word:
+            new_word = self.word_under_cursor()
+            if new_word is None:
+                self.error('No word under the cursor')
+                return
+            word = new_word
+        return word_command(self, word)
+    return wrapper
+
+
 class Spellchecker(QtCore.QObject, KalpanaObject):
 
     rehighlight = QtCore.pyqtSignal()
 
     def __init__(self, config_dir: Path,
-                 word_under_cursor: Callable[[], str]) -> None:
+                 word_under_cursor: Callable[[], Optional[str]]) -> None:
         super().__init__()
         self.word_under_cursor = word_under_cursor
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
@@ -85,23 +98,21 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         self.spellcheck_active = False
 
     @command_callback
+    @_get_word_if_missing
     def add_word(self, word: str) -> None:
         """
         Add a word to the spellcheck dictionary.
 
         This automatically saves the word to the wordlist file as well.
         """
-        if not word:
-            word = self.word_under_cursor()
         self.language_dict.add_to_pwl(word)
         self.rehighlight.emit()
         self.log(f'Added "{word}" to dictionary')
 
     @command_callback
+    @_get_word_if_missing
     def suggest(self, word: str) -> None:
         """Print spelling suggestions for a certain word."""
-        if not word:
-            word = self.word_under_cursor()
         suggestions = ', '.join(self.language_dict.suggest(word)[:5])
         self.log(f'{word}: {suggestions}')
 
