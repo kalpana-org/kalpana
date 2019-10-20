@@ -65,6 +65,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
                         'Search or replace', self.search_and_replace,
                         short_name='/',
                         strip_input=False,
+                        args=ArgumentRules.REQUIRED,
                         arg_help=(('foo', 'Search for "foo".'),
                                   ('foo/b', 'Search backwards for "foo". '
                                    '(Can be combined with the other flags '
