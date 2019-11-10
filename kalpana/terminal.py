@@ -20,8 +20,9 @@ from typing import cast, Dict, Iterable
 
 from PyQt5 import QtCore, QtWidgets
 from libsyntyche import cli, terminal
+from libsyntyche.widgets import Signal0
 
-from kalpana.common import command_callback, KalpanaObject, Signal0
+from kalpana.common import command_callback, KalpanaObject
 from kalpana.settings import CommandHistory
 
 
