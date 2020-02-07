@@ -17,7 +17,11 @@
 
 import logging
 from typing import Any, cast, Callable, Dict, List, Optional, Tuple
-from mypy_extensions import TypedDict
+try:
+    # This works in 3.8+
+    from typing import TypedDict
+except ImportError:
+    from typing_extensions import TypedDict
 import re
 
 from PyQt5 import QtCore, QtGui
