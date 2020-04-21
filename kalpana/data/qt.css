@@ -72,14 +72,34 @@ ChapterOverview {
 }
 ChapterItem {
   margin-top: 0px;
-  padding: 5px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid rgba(255, 255, 255, 30);
+  qproperty-complete_color: rgba(220, 255, 230, 128);
+  qproperty-wip_color: rgba(255, 255, 255, 255);
+  qproperty-not_started_color: rgba(255, 255, 255, 128);
+  border-bottom: 1px solid rgba(255, 255, 255, 10);
 }
-/* Disabled chapters means they're completed. thx qt for hardcoding pseudo-states */
 ChapterItem QLabel {
   background: rgba(0, 0, 0, 0);
 }
+
+#chapter_expand_button {
+  background: rgba(255, 255, 255, 20);
+  font-family: monospace;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px 6px;
+  margin-right: 6px;
+  border-radius: 3px;
+}
+#chapter_expand_button:hover {
+  background: rgba(255, 255, 255, 40);
+}
+#chapter_expand_button:pressed {
+  background: rgba(0, 0, 0, 80);
+}
+#chapter_expand_button:checked {
+  background: rgba(0, 0, 0, 40);
+}
+
 SectionItem {
   background: rgba(255, 255, 255, 10);
   margin: 4px;

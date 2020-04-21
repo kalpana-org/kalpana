@@ -18,7 +18,8 @@
 from itertools import zip_longest
 from typing import cast, Iterable, List, Optional, Set, Tuple
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import pyqtProperty, Qt
 
 from kalpana.chapters import Chapter, Section
 
@@ -55,22 +56,27 @@ class ChapterItem(QtWidgets.QFrame):
             widget.setObjectName(name)
             layout.addWidget(widget)
             return widget
-        self.expanded = True
+        self.expanded = False
         self.complete = False
+        self._complete_color = QtGui.QColor(Qt.white)
+        self._wip_color = QtGui.QColor(Qt.white)
+        self._not_started_color = QtGui.QColor(Qt.white)
         self.index = num
         layout = QtWidgets.QVBoxLayout(self)
         # Top row
         top_row = QtWidgets.QHBoxLayout()
         self.num = label('num', top_row)
-        self.num.setText(str(num))
-        self.title = label('title', top_row, word_wrap=False)
-        self.length = label('length', top_row)
-        self.expand_button = QtWidgets.QPushButton('[...]', self)
+        self.expand_button = QtWidgets.QPushButton('+', self)
+        self.expand_button.setObjectName('chapter_expand_button')
         self.expand_button.setCheckable(True)
-        self.expand_button.setChecked(True)
+        self.expand_button.setChecked(self.expanded)
+        self.expand_button.setCursor(Qt.PointingHandCursor)
         cast(Signal1[bool],
              self.expand_button.toggled).connect(self.toggle)
         top_row.addWidget(self.expand_button)
+        self.num.setText(str(num))
+        self.title = label('title', top_row, word_wrap=False)
+        self.length = label('length', top_row)
         top_row.addStretch(1)
         layout.addLayout(top_row)
         # The rest
@@ -79,22 +85,53 @@ class ChapterItem(QtWidgets.QFrame):
         self.tags = label('tags', layout)
         self.section_items: List[SectionItem] = []
 
+    @pyqtProperty(QtGui.QColor)
+    def complete_color(self) -> QtGui.QColor:
+        return self._complete_color
+
+    @complete_color.setter
+    def complete_color(self, color: QtGui.QColor) -> None:
+        self._complete_color = color
+
+    @pyqtProperty(QtGui.QColor)
+    def wip_color(self) -> QtGui.QColor:
+        return self._wip_color
+
+    @wip_color.setter
+    def wip_color(self, color: QtGui.QColor) -> None:
+        self._wip_color = color
+
+    @pyqtProperty(QtGui.QColor)
+    def not_started_color(self) -> QtGui.QColor:
+        return self._not_started_color
+
+    @not_started_color.setter
+    def not_started_color(self, color: QtGui.QColor) -> None:
+        self._not_started_color = color
+
+
     def toggle(self, expand: bool) -> None:
         self.expanded = expand
-        for item in [self.tags, self.time] + self.section_items:
-            if expand:
-                item.show()
-            else:
-                item.hide()
+        self.expand_button.setText('-' if expand else '+')
+        for label in [self.desc, self.tags, self.time]:
+            label.setVisible(expand and bool(label.text().strip()))
+        for item in self.section_items:
+            item.setVisible(expand)
 
     def set_data(self, title: Optional[str], length: Optional[int],
                  time: Optional[str], tags: Optional[Set[str]],
                  desc: Optional[str], sections: List[Section],
                  complete: bool) -> None:
         self.complete = complete
-        # self.setDisabled(complete)
-        # self.title.setDisabled(complete)
-        complete_text = ' [done]' if complete else ''
+        self.expand_button.setChecked(self.expanded)
+        if complete:
+            c = self._complete_color
+        elif length:
+            c = self._wip_color
+        else:
+            c = self._not_started_color
+        self.setStyleSheet(f'color: rgba({c.red()}, {c.green()}, {c.blue()}, {c.alpha()});')
+        complete_text = ' ✓' if complete else ''
         # Top row
         self.title.setText(f'Chapter {title or self.index}{complete_text}')
         if length is None:
@@ -133,6 +170,7 @@ class ChapterItem(QtWidgets.QFrame):
                     self.layout().addWidget(item)
                 item.set_data(section.desc)
                 item.show()
+        self.toggle(self.expanded)
 
 
 class ChapterOverview(QtWidgets.QScrollArea):
