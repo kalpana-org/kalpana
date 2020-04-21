@@ -470,7 +470,8 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
                 return TBS.DESC
             elif not prev_state & TBS.TAGS and prefix('#'):
                 return TBS.TAGS
-            elif not prev_state & TBS.TIME and prefix('🕑'):
+            elif not prev_state & TBS.TIME \
+                    and any(prefix(x) for x in ['🕑', '[time] ', '[date] ']):
                 return TBS.TIME
         # Keep only formatting if not in a chapter line
         return prev_state & TBS.FORMATTING
