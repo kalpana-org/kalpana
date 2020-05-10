@@ -56,6 +56,7 @@ class ChapterItem(QtWidgets.QFrame):
             widget.setObjectName(name)
             layout.addWidget(widget)
             return widget
+        self.chapter: Optional[Chapter] = None
         self.expanded = False
         self.complete = False
         self._complete_color = QtGui.QColor(Qt.white)
@@ -109,7 +110,6 @@ class ChapterItem(QtWidgets.QFrame):
     def not_started_color(self, color: QtGui.QColor) -> None:
         self._not_started_color = color
 
-
     def toggle(self, expand: bool) -> None:
         self.expanded = expand
         self.expand_button.setText('-' if expand else '+')
@@ -118,19 +118,32 @@ class ChapterItem(QtWidgets.QFrame):
         for item in self.section_items:
             item.setVisible(expand)
 
-    def set_data(self, title: Optional[str], length: Optional[int],
-                 time: Optional[str], tags: Optional[Set[str]],
-                 desc: Optional[str], sections: List[Section],
-                 complete: bool) -> None:
+    def set_data(self, chapter: Chapter, update_stylesheet: bool) -> None:
+        if update_stylesheet:
+            # This needs to be here to hack in colors for the various
+            # chapter states, but it's a slow operation and it gets
+            # overwritten so it should only be run when entering the
+            # chapter overview.
+            if chapter.complete:
+                c = self._complete_color
+            elif chapter.word_count:
+                c = self._wip_color
+            else:
+                c = self._not_started_color
+            self.setStyleSheet(f'color: rgba({c.red()}, {c.green()}, '
+                               f'{c.blue()}, {c.alpha()});')
+        if self.chapter == chapter:
+            return
+        self.chapter = chapter
+        title = chapter.title
+        length = chapter.word_count
+        time = chapter.time
+        tags = chapter.tags
+        desc = chapter.desc
+        sections = chapter.sections
+        complete = chapter.complete
         self.complete = complete
         self.expand_button.setChecked(self.expanded)
-        if complete:
-            c = self._complete_color
-        elif length:
-            c = self._wip_color
-        else:
-            c = self._not_started_color
-        self.setStyleSheet(f'color: rgba({c.red()}, {c.green()}, {c.blue()}, {c.alpha()});')
         complete_text = ' ✓' if complete else ''
         # Top row
         self.title.setText(f'Chapter {title or self.index}{complete_text}')
@@ -188,7 +201,8 @@ class ChapterOverview(QtWidgets.QScrollArea):
         self.chapter_items: List[ChapterItem] = []
         self.show()
 
-    def load_chapter_data(self, chapters: List[Chapter]) -> None:
+    def load_chapter_data(self, chapters: List[Chapter],
+                          update_stylesheet: bool = False) -> None:
         self.empty = not bool(chapters[1:])
         ziplist: Iterable[Tuple[int, Tuple[Optional[Chapter],
                                            Optional[ChapterItem]]]] \
@@ -203,7 +217,5 @@ class ChapterOverview(QtWidgets.QScrollArea):
                     self.chapter_items.append(item)
                     cast(QtWidgets.QVBoxLayout,
                          self.container.layout()).insertWidget(n, item)
-                item.set_data(chapter.title, chapter.word_count, chapter.time,
-                              chapter.tags, chapter.desc, chapter.sections,
-                              chapter.complete)
+                item.set_data(chapter, update_stylesheet=update_stylesheet)
                 item.show()

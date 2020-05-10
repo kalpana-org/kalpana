@@ -254,7 +254,7 @@ class Controller(FailSafeBase):
                 self.chapter_index.full_line_index_update(
                     self.textarea.document())
                 self.chapter_overview.load_chapter_data(
-                    self.chapter_index.chapters)
+                    self.chapter_index.chapters, update_stylesheet=True)
                 self.mainwindow.active_stack_widget = self.chapter_overview
             else:
                 self.terminal.error('No chapters to show')
