@@ -173,17 +173,21 @@ class ChapterItem(QtWidgets.QFrame):
         ziplist: Iterable[Tuple[int, Tuple[Optional[Section],
                                            Optional[SectionItem]]]] \
             = enumerate(zip_longest(sections[1:], self.section_items))
+        clear_from = len(self.section_items) + 1
         for n, (section, item) in ziplist:
             if section is None:
-                if item:
-                    item.hide()
-            else:
-                if item is None:
-                    item = SectionItem(self, n)
-                    self.section_items.append(item)
-                    self.layout().addWidget(item)
-                item.set_data(section.desc)
-                item.show()
+                clear_from = n
+                break
+            if item is None:
+                item = SectionItem(self, n)
+                self.section_items.append(item)
+                self.layout().addWidget(item)
+            item.set_data(section.desc)
+            item.show()
+        while len(self.section_items) > clear_from:
+            item = self.section_items.pop()
+            self.layout().removeWidget(item)
+            item.deleteLater()
         self.toggle(self.expanded)
 
 
