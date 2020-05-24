@@ -411,6 +411,8 @@ class Controller(FailSafeBase):
             text = text.strip('\n\t ')
             clipboard = QtGui.QGuiApplication.clipboard()
             clipboard.setText(text)
+            self.terminal.print_('The exported text was successfully '
+                                 'copied to the clipboard')
 
 
 def replace_in_selection(text: str, rx: str, rep: str, selrx: str) -> str:
