@@ -118,7 +118,8 @@ class ChapterItem(QtWidgets.QFrame):
         for item in self.section_items:
             item.setVisible(expand)
 
-    def set_data(self, chapter: Chapter, update_stylesheet: bool) -> None:
+    def set_data(self, chapter: Chapter, update_stylesheet: bool,
+                 force_refresh: bool) -> None:
         if update_stylesheet:
             # This needs to be here to hack in colors for the various
             # chapter states, but it's a slow operation and it gets
@@ -132,7 +133,7 @@ class ChapterItem(QtWidgets.QFrame):
                 c = self._not_started_color
             self.setStyleSheet(f'color: rgba({c.red()}, {c.green()}, '
                                f'{c.blue()}, {c.alpha()});')
-        if self.chapter == chapter:
+        if not force_refresh and self.chapter == chapter:
             return
         self.chapter = chapter
         title = chapter.title
@@ -202,7 +203,8 @@ class ChapterOverview(QtWidgets.QScrollArea):
         self.show()
 
     def load_chapter_data(self, chapters: List[Chapter],
-                          update_stylesheet: bool = False) -> None:
+                          update_stylesheet: bool = False,
+                          force_refresh: bool = False) -> None:
         self.empty = not bool(chapters[1:])
         ziplist: Iterable[Tuple[int, Tuple[Optional[Chapter],
                                            Optional[ChapterItem]]]] \
@@ -217,5 +219,6 @@ class ChapterOverview(QtWidgets.QScrollArea):
                     self.chapter_items.append(item)
                     cast(QtWidgets.QVBoxLayout,
                          self.container.layout()).insertWidget(n, item)
-                item.set_data(chapter, update_stylesheet=update_stylesheet)
+                item.set_data(chapter, update_stylesheet=update_stylesheet,
+                              force_refresh=force_refresh)
                 item.show()
