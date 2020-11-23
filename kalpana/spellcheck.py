@@ -107,7 +107,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         This automatically saves the word to the wordlist file as well.
         """
         self.language_dict.add_to_pwl(word)
-        self.word_cache[word] = False
+        self.word_cache[word] = True
         self.rehighlight.emit()
         self.log(f'Added "{word}" to dictionary')
 
