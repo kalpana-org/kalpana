@@ -16,7 +16,7 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import enchant
 from PyQt5 import QtCore
@@ -51,6 +51,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
     def __init__(self, config_dir: Path,
                  word_under_cursor: Callable[[], Optional[str]]) -> None:
         super().__init__()
+        self.word_cache: Dict[str, bool] = {}
         self.word_under_cursor = word_under_cursor
         self.kalpana_settings = ['spellcheck-active', 'spellcheck-language']
         self.kalpana_commands = [
@@ -106,6 +107,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         This automatically saves the word to the wordlist file as well.
         """
         self.language_dict.add_to_pwl(word)
+        self.word_cache[word] = False
         self.rehighlight.emit()
         self.log(f'Added "{word}" to dictionary')
 
@@ -118,7 +120,11 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
 
     def check_word(self, word: str) -> bool:
         """A callback for the highlighter to check a word's spelling."""
-        return self.language_dict.check(word)
+        if word in self.word_cache:
+            return self.word_cache[word]
+        result = self.language_dict.check(word)
+        self.word_cache[word] = result
+        return result
 
     def setting_changed(self, name: str, new_value: Any) -> None:
         if name == 'spellcheck-active':
