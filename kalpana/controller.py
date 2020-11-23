@@ -176,6 +176,7 @@ class Controller(FailSafeBase):
         misc_signals: List[Tuple[pyqtSignal,
                                  Callable[..., Any]]] = [
             (self.spellchecker.rehighlight, self.highlighter.rehighlight),
+            (self.spellchecker.rehighlight_word, self.highlighter.rehighlight_word),
             (cast(pyqtSignal, self.textarea.document().contentsChange),
              self.update_chapter_index),
             (self.textarea.modificationChanged,

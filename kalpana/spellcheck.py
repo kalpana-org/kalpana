@@ -47,6 +47,7 @@ def _get_word_if_missing(word_command: Callable[['Spellchecker', str], None]
 class Spellchecker(QtCore.QObject, KalpanaObject):
 
     rehighlight = QtCore.pyqtSignal()
+    rehighlight_word = QtCore.pyqtSignal(str)
 
     def __init__(self, config_dir: Path,
                  word_under_cursor: Callable[[], Optional[str]]) -> None:
@@ -108,7 +109,7 @@ class Spellchecker(QtCore.QObject, KalpanaObject):
         """
         self.language_dict.add_to_pwl(word)
         self.word_cache[word] = True
-        self.rehighlight.emit()
+        self.rehighlight_word.emit(word)
         self.log(f'Added "{word}" to dictionary')
 
     @command_callback

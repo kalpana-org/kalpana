@@ -447,6 +447,13 @@ class Highlighter(QtGui.QSyntaxHighlighter, KalpanaObject):
                     self.document().markContentsDirty(block.position(),
                                                       block.length())
 
+    def rehighlight_word(self, word: str) -> None:
+        block = self.textarea.document().firstBlock()
+        while block.isValid():
+            if word in block.text():
+                self.rehighlightBlock(block)
+            block = block.next()
+
     @staticmethod
     def utf16_len(text: str) -> int:
         """Adjust for the UTF-16 backend Qt uses."""
