@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -16,12 +16,12 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from itertools import zip_longest
-from typing import cast, Iterable, List, Optional, Set, Tuple
+from typing import cast, Iterable, List, Optional, Tuple
 
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import pyqtProperty, Qt
 
-from kalpana.chapters import Chapter, Section
+from .chapters import Chapter, Section
 
 from libsyntyche.widgets import Signal1
 
@@ -90,7 +90,7 @@ class ChapterItem(QtWidgets.QFrame):
     def complete_color(self) -> QtGui.QColor:
         return self._complete_color
 
-    @complete_color.setter
+    @complete_color.setter  # type: ignore
     def complete_color(self, color: QtGui.QColor) -> None:
         self._complete_color = color
 
@@ -98,7 +98,7 @@ class ChapterItem(QtWidgets.QFrame):
     def wip_color(self) -> QtGui.QColor:
         return self._wip_color
 
-    @wip_color.setter
+    @wip_color.setter  # type: ignore
     def wip_color(self, color: QtGui.QColor) -> None:
         self._wip_color = color
 
@@ -106,7 +106,7 @@ class ChapterItem(QtWidgets.QFrame):
     def not_started_color(self) -> QtGui.QColor:
         return self._not_started_color
 
-    @not_started_color.setter
+    @not_started_color.setter  # type: ignore
     def not_started_color(self, color: QtGui.QColor) -> None:
         self._not_started_color = color
 
@@ -148,11 +148,8 @@ class ChapterItem(QtWidgets.QFrame):
         complete_text = ' ✓' if complete else ''
         # Top row
         self.title.setText(f'Chapter {title or self.index}{complete_text}')
-        if length is None:
-            self.length.hide()
-        else:
-            self.length.setText(f'({length})')
-            self.length.show()
+        self.length.setText(f'({length})')
+        self.length.show()
         # Second row
         if time is None:
             self.time.hide()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -22,12 +22,12 @@ from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 
-from kalpana.chapteroverview import ChapterOverview
-from kalpana.textarea import TextArea
-from kalpana.terminal import Terminal
-from kalpana.controller import Controller
-from kalpana.mainwindow import MainWindow
-from kalpana.settings import Settings
+from .chapteroverview import ChapterOverview
+from .textarea import TextArea
+from .terminal import Terminal
+from .controller import Controller
+from .mainwindow import MainWindow
+from .settings import Settings
 
 
 class Kalpana(QtWidgets.QApplication):

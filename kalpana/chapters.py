@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -21,8 +21,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set
 
 from PyQt5 import QtCore, QtGui
 
-from kalpana.common import TextBlockState
-from kalpana.settings import KalpanaObject
+from .common import KalpanaObject, TextBlockState
 
 
 class Section:

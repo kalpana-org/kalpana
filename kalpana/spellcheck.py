@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -21,8 +21,9 @@ from typing import Any, Callable, Dict, List, Optional
 import enchant
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
+from libsyntyche.widgets import mk_signal0, mk_signal1
 
-from kalpana.common import command_callback, KalpanaObject
+from .common import command_callback, KalpanaObject
 
 
 def get_spellcheck_languages(name: str, text: str) -> List[str]:
@@ -46,8 +47,8 @@ def _get_word_if_missing(word_command: Callable[['Spellchecker', str], None]
 
 class Spellchecker(QtCore.QObject, KalpanaObject):
 
-    rehighlight = QtCore.pyqtSignal()
-    rehighlight_word = QtCore.pyqtSignal(str)
+    rehighlight = mk_signal0()
+    rehighlight_word = mk_signal1(str)
 
     def __init__(self, config_dir: Path,
                  word_under_cursor: Callable[[], Optional[str]]) -> None:

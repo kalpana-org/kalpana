@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -15,26 +15,24 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from datetime import datetime
 import json
 from pathlib import Path
 from typing import cast, Dict, List, Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
 from libsyntyche.cli import Command, ArgumentRules
-from libsyntyche.terminal import MessageType
+from libsyntyche.widgets import mk_signal0
 
-from kalpana.common import KalpanaObject
-from kalpana.chapteroverview import ChapterOverview
-from kalpana.terminal import MessageTray, Terminal
-from kalpana.textarea import TextArea
+from .common import KalpanaObject
+from .chapteroverview import ChapterOverview
+from .terminal import MessageTray, Terminal
+from .textarea import TextArea
 
 InnerStackWidget = Union[ChapterOverview, TextArea]
 
 
 class Stack(QtWidgets.QStackedWidget):
-    resized = QtCore.pyqtSignal()
+    resized = mk_signal0()
 
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:
         super().resizeEvent(ev)
@@ -69,16 +67,16 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.adjust_tray()
 
     def adjust_tray(self) -> None:
-        if self.message_tray is None:
-            return
         rect = self.stack.geometry()
         self.message_tray.setGeometry(rect)
 
     @property
     def active_stack_widget(self) -> InnerStackWidget:
         """Return the stack's actual active widget (not the wrapper)."""
-        return cast(InnerStackWidget,
-                    self.stack.currentWidget().layout().itemAt(1).widget())
+        active_item = self.stack.currentWidget().layout().itemAt(1)
+        # They can only be one of these so lets make everyone realize that thx
+        assert active_item is not None
+        return cast(InnerStackWidget, active_item.widget())
 
     @active_stack_widget.setter
     def active_stack_widget(self, widget: InnerStackWidget) -> None:
@@ -146,7 +144,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
             self.stack_wrappers[id(widget)] = wrapper
             self.stack.addWidget(wrapper)
 
-    def setFocus(self) -> None:
+    def setFocus(self) -> None:  # type: ignore
         if self.stack.count() > 0:
             self.active_stack_widget.setFocus()
         else:

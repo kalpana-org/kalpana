@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -25,8 +25,9 @@ from typing import (cast, Any, ChainMap, DefaultDict, Dict, Iterable, Mapping,
 import yaml
 
 from PyQt5 import QtCore, QtGui
+from libsyntyche.widgets import mk_signal1
 
-from kalpana.common import KalpanaObject
+from .common import KalpanaObject
 
 
 LOCAL_DATA_DIR = Path(__file__).resolve().parent / 'data'
@@ -86,7 +87,7 @@ class CommandHistory:
 class Settings(QtCore.QObject, KalpanaObject):
     """Loads and takes care of settings and stylesheets."""
 
-    css_changed = QtCore.pyqtSignal(str)
+    css_changed = mk_signal1(str)
 
     def __init__(self, config_dir: Optional[Path]) -> None:
         """Initiate the class. Note that this won't load any files."""

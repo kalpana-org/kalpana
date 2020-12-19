@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -28,6 +28,7 @@ from typing import Any, Callable, cast, Iterator, List, TypeVar
 from PyQt5.QtCore import pyqtSignal, QVariant
 
 from libsyntyche.cli import Command, AutocompletionPattern
+from libsyntyche.widgets import mk_signal1, Signal2, Signal3
 
 
 T = TypeVar('T', bound=Callable[..., Any])
@@ -62,10 +63,10 @@ class KalpanaObject(FailSafeBase):
     Subclassing this class means the object will be able to register commands,
     settings, autocompletion patterns, and print to the terminal.
     """
-    error_signal = pyqtSignal(str)
-    log_signal = pyqtSignal(str)
-    confirm_signal = pyqtSignal(str, QVariant, str)
-    change_setting_signal = pyqtSignal(str, QVariant)
+    error_signal = mk_signal1(str)
+    log_signal = mk_signal1(str)
+    confirm_signal = cast(Signal3[str, Any, str], pyqtSignal(str, QVariant, str))
+    change_setting_signal = cast(Signal2[str, Any], pyqtSignal(str, QVariant))
     kalpana_settings: List[str] = []
     kalpana_commands: List[Command] = []
     kalpana_autocompletion_patterns: List[AutocompletionPattern] = []

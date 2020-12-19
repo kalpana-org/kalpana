@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -16,27 +16,27 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-from typing import Any, cast, Callable, Dict, List, Optional, Tuple
-try:
-    # This works in 3.8+
+import sys
+from typing import cast, Dict, List, Optional
+if sys.version_info >= (3, 8):
     from typing import TypedDict
-except ImportError:
+else:
     from typing_extensions import TypedDict
 import re
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtCore import pyqtSignal
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
+from libsyntyche.widgets import Signal1, Signal3
 
-from kalpana.chapters import ChapterIndex
-from kalpana.chapteroverview import ChapterOverview
-from kalpana.common import command_callback, FailSafeBase, KalpanaObject
-from kalpana.filehandler import FileHandler
-from kalpana.mainwindow import MainWindow
-from kalpana.terminal import Terminal
-from kalpana.textarea import TextArea, Highlighter
-from kalpana.settings import Settings
-from kalpana.spellcheck import Spellchecker
+from .chapters import ChapterIndex
+from .chapteroverview import ChapterOverview
+from .common import command_callback, FailSafeBase, KalpanaObject
+from .filehandler import FileHandler
+from .mainwindow import MainWindow
+from .terminal import Terminal
+from .textarea import TextArea, Highlighter
+from .settings import Settings
+from .spellcheck import Spellchecker
 
 
 logger = logging.getLogger(__name__)
@@ -173,26 +173,17 @@ class Controller(FailSafeBase):
             if obj != self.filehandler:
                 self.filehandler.file_saved_signal.connect(obj.file_saved)
                 self.filehandler.file_opened_signal.connect(obj.file_opened)
-        misc_signals: List[Tuple[pyqtSignal,
-                                 Callable[..., Any]]] = [
-            (self.spellchecker.rehighlight, self.highlighter.rehighlight),
-            (self.spellchecker.rehighlight_word, self.highlighter.rehighlight_word),
-            (cast(pyqtSignal, self.textarea.document().contentsChange),
-             self.update_chapter_index),
-            (self.textarea.modificationChanged,
-             self.mainwindow.modification_changed),
-            (self.terminal.show_message,
-             self.mainwindow.message_tray.add_message),
-            (self.terminal.error_triggered, self.mainwindow.shake_screen),
-        ]
-        for signal, slot in misc_signals:
-            signal.connect(slot)
+        self.spellchecker.rehighlight.connect(self.highlighter.rehighlight)
+        self.spellchecker.rehighlight_word.connect(self.highlighter.rehighlight_word)
+        cast(Signal3[int, int, int], self.textarea.document().contentsChange
+             ).connect(self.update_chapter_index)
+        cast(Signal1[bool], self.textarea.modificationChanged
+             ).connect(self.mainwindow.modification_changed)
+        self.terminal.show_message.connect(self.mainwindow.message_tray.add_message)
+        self.terminal.error_triggered.connect(self.mainwindow.shake_screen)
 
     def toggle_terminal(self) -> None:
         if self.terminal.input_field.hasFocus():
-            # if self.terminal.completer_popup.isVisible():
-            #    self.terminal.completer_popup.visible = False
-            # else:
             self.terminal.hide()
             self.mainwindow.setFocus()
         else:
@@ -390,9 +381,13 @@ class Controller(FailSafeBase):
             # italic_marker = settings['italic-marker']
             # bold_marker = settings['bold-marker']
             # hr_marker = settings['horizontal-ruler-marker']
-            ExportFormat = TypedDict('ExportFormat',
-                                     {'pattern': str, 'repl': str,
-                                      'selection_pattern': str}, total=False)
+            ExportFormat = TypedDict(
+                'ExportFormat',
+                {'pattern': str,
+                 'repl': str,
+                 'selection_pattern': str},
+                total=False
+            )
             export_formats: Dict[str, List[ExportFormat]] \
                 = self.settings.settings['export_formats']
             # TODO: unify this with highlighter in textarea.py

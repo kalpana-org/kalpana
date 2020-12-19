@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -22,11 +22,10 @@ import re
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from kalpana.common import KalpanaObject
-from kalpana.common import TextBlockState as TBS
-from kalpana.chapters import ChapterIndex
-from kalpana.spellcheck import Spellchecker
-from kalpana.terminal import MessageTray
+from .common import KalpanaObject
+from .common import TextBlockState as TBS
+from .chapters import ChapterIndex
+from .spellcheck import Spellchecker
 from libsyntyche.cli import Command, ArgumentRules
 
 

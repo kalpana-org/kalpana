@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -22,8 +22,8 @@ from PyQt5 import QtCore, QtWidgets
 from libsyntyche import cli, terminal
 from libsyntyche.widgets import Signal0
 
-from kalpana.common import KalpanaObject
-from kalpana.settings import CommandHistory
+from .common import KalpanaObject
+from .settings import CommandHistory
 
 
 class MessageTrayItem(QtWidgets.QLabel):

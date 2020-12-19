@@ -1,4 +1,4 @@
-# Copyright nycz 2011-2016
+# Copyright nycz 2011-2020
 
 # This file is part of Kalpana.
 
@@ -22,6 +22,7 @@ import sys
 
 from PyQt5 import QtCore
 from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
+from libsyntyche.widgets import mk_signal2
 
 from .common import autocomplete_file_path, command_callback, KalpanaObject
 from .textarea import TextArea
@@ -30,9 +31,9 @@ from .textarea import TextArea
 class FileHandler(QtCore.QObject, KalpanaObject):
     """Takes care of saving and opening files."""
     # file_opened(filepath, is new file)
-    file_opened_signal = QtCore.pyqtSignal(str, bool)
+    file_opened_signal = mk_signal2(str, bool)
     # file_saved(filepath, new save name)
-    file_saved_signal = QtCore.pyqtSignal(str, bool)
+    file_saved_signal = mk_signal2(str, bool)
 
     def __init__(self, textarea: TextArea) -> None:
         super().__init__()
@@ -222,6 +223,9 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 file_to_save = filepath
             else:
                 file_to_save = self.filepath
+            # When we get here, either filepath or self.filepath has
+            # a valid value (see the first part of this if statement)
+            assert file_to_save is not None
             try:
                 with open(file_to_save, 'w', encoding='utf-8') as f:
                     f.write(self.textarea.toPlainText())
