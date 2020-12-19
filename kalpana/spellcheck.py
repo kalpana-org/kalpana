@@ -20,10 +20,11 @@ from typing import Any, Callable, Dict, List, Optional
 
 import enchant
 from PyQt5 import QtCore
-from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
+
+from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
 from libsyntyche.widgets import mk_signal0, mk_signal1
 
-from .common import command_callback, KalpanaObject
+from .common import KalpanaObject, command_callback
 
 
 def get_spellcheck_languages(name: str, text: str) -> List[str]:

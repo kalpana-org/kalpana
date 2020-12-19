@@ -15,20 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from collections import defaultdict
 import json
-from pathlib import Path
 import re
-from typing import (cast, Any, ChainMap, DefaultDict, Dict, Iterable, Mapping,
-                    Match, Optional)
+from collections import defaultdict
+from pathlib import Path
+from typing import (Any, ChainMap, DefaultDict, Dict, Iterable, Mapping, Match,
+                    Optional, cast)
 
 import yaml
-
 from PyQt5 import QtCore, QtGui
+
 from libsyntyche.widgets import mk_signal1
 
 from .common import KalpanaObject
-
 
 LOCAL_DATA_DIR = Path(__file__).resolve().parent / 'data'
 

@@ -17,14 +17,15 @@
 
 import json
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from libsyntyche.cli import Command, ArgumentRules
+
+from libsyntyche.cli import ArgumentRules, Command
 from libsyntyche.widgets import mk_signal0
 
-from .common import KalpanaObject
 from .chapteroverview import ChapterOverview
+from .common import KalpanaObject
 from .terminal import MessageTray, Terminal
 from .textarea import TextArea
 

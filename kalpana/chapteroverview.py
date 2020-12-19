@@ -16,14 +16,14 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from itertools import zip_longest
-from typing import cast, Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, cast
 
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import pyqtProperty, Qt
-
-from .chapters import Chapter, Section
+from PyQt5.QtCore import Qt, pyqtProperty
 
 from libsyntyche.widgets import Signal1
+
+from .chapters import Chapter, Section
 
 
 class SectionItem(QtWidgets.QFrame):

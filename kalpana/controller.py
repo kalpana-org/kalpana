@@ -16,27 +16,29 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import re
 import sys
-from typing import cast, Dict, List, Optional
+from typing import Dict, List, Optional, cast
+
+from PyQt5 import QtCore, QtGui
+
+from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
+from libsyntyche.widgets import Signal1, Signal3
+
+from .chapteroverview import ChapterOverview
+from .chapters import ChapterIndex
+from .common import FailSafeBase, KalpanaObject, command_callback
+from .filehandler import FileHandler
+from .mainwindow import MainWindow
+from .settings import Settings
+from .spellcheck import Spellchecker
+from .terminal import Terminal
+from .textarea import Highlighter, TextArea
+
 if sys.version_info >= (3, 8):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict
-import re
-
-from PyQt5 import QtCore, QtGui
-from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
-from libsyntyche.widgets import Signal1, Signal3
-
-from .chapters import ChapterIndex
-from .chapteroverview import ChapterOverview
-from .common import command_callback, FailSafeBase, KalpanaObject
-from .filehandler import FileHandler
-from .mainwindow import MainWindow
-from .terminal import Terminal
-from .textarea import TextArea, Highlighter
-from .settings import Settings
-from .spellcheck import Spellchecker
 
 
 logger = logging.getLogger(__name__)

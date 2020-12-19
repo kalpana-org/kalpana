@@ -15,19 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from itertools import chain
 import logging
-from typing import Any, List, Optional
 import re
+from itertools import chain
+from typing import Any, List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from libsyntyche.cli import ArgumentRules, Command
+
+from .chapters import ChapterIndex
 from .common import KalpanaObject
 from .common import TextBlockState as TBS
-from .chapters import ChapterIndex
 from .spellcheck import Spellchecker
-from libsyntyche.cli import Command, ArgumentRules
-
 
 logger = logging.getLogger(__name__)
 

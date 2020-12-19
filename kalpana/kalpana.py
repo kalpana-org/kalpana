@@ -23,11 +23,11 @@ from typing import Optional
 from PyQt5 import QtCore, QtWidgets
 
 from .chapteroverview import ChapterOverview
-from .textarea import TextArea
-from .terminal import Terminal
 from .controller import Controller
 from .mainwindow import MainWindow
 from .settings import Settings
+from .terminal import Terminal
+from .textarea import TextArea
 
 
 class Kalpana(QtWidgets.QApplication):

@@ -15,16 +15,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Optional
 import os.path
 import subprocess
 import sys
+from typing import Optional
 
 from PyQt5 import QtCore
-from libsyntyche.cli import AutocompletionPattern, Command, ArgumentRules
+
+from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
 from libsyntyche.widgets import mk_signal2
 
-from .common import autocomplete_file_path, command_callback, KalpanaObject
+from .common import KalpanaObject, autocomplete_file_path, command_callback
 from .textarea import TextArea
 
 

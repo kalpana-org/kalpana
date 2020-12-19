@@ -16,9 +16,10 @@
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
 from datetime import datetime
-from typing import cast, Iterable
+from typing import Iterable, cast
 
 from PyQt5 import QtCore, QtWidgets
+
 from libsyntyche import cli, terminal
 from libsyntyche.widgets import Signal0
 

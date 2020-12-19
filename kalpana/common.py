@@ -20,16 +20,15 @@ Classes and functions needed in multiple different modules.
 
 This is to avoid potential circular imports.
 """
-from contextlib import contextmanager
 import enum
 import logging
-from typing import Any, Callable, cast, Iterator, List, TypeVar
+from contextlib import contextmanager
+from typing import Any, Callable, Iterator, List, TypeVar, cast
 
-from PyQt5.QtCore import pyqtSignal, QVariant
+from PyQt5.QtCore import QVariant, pyqtSignal
 
-from libsyntyche.cli import Command, AutocompletionPattern
-from libsyntyche.widgets import mk_signal1, Signal2, Signal3
-
+from libsyntyche.cli import AutocompletionPattern, Command
+from libsyntyche.widgets import Signal2, Signal3, mk_signal1
 
 T = TypeVar('T', bound=Callable[..., Any])
 
