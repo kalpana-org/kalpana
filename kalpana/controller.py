@@ -18,7 +18,7 @@
 import logging
 import re
 import sys
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, cast
 
 from PyQt5 import QtCore, QtGui
 
@@ -230,45 +230,6 @@ class Controller(FailSafeBase):
             if new_index:
                 self.chapter_overview.load_chapter_data(
                     self.chapter_index.chapters)
-
-    def set_text_block_formats(self) -> None:
-        def make_format(alpha: float = 1, bold: bool = False,
-                        size: Optional[float] = None) -> QtGui.QTextCharFormat:
-            char_format = QtGui.QTextCharFormat()
-            if bold:
-                char_format.setFontWeight(QtGui.QFont.Bold)
-            if size:
-                char_format.setFontPointSize(size)
-            if alpha < 1:
-                col = self.textarea.palette().windowText().color()
-                col.setAlphaF(alpha)
-                char_format.setForeground(QtGui.QBrush(col))
-            return char_format
-
-        def set_line_format(line_number: int,
-                            format_: QtGui.QTextCharFormat) -> None:
-            block = QtGui.QTextCursor(
-                self.textarea.document().findBlockByNumber(line_number))
-            block.select(QtGui.QTextCursor.BlockUnderCursor)
-            block.setCharFormat(format_)
-        chapter_format = make_format(bold=True, size=16)
-        metadata_format = make_format(alpha=0.3)
-        section_format = make_format(alpha=0.5, bold=True)
-        chapter_data = self.chapter_index.chapters
-        pos = 0
-        self.textarea.setUndoRedoEnabled(False)
-        for chapter in chapter_data:
-            if chapter.title:
-                set_line_format(pos, chapter_format)
-                pos += 1
-            for line_num in range(1, chapter.metadata_line_count):
-                set_line_format(pos, metadata_format)
-                pos += 1
-            for section in chapter.sections:
-                if section.desc:
-                    set_line_format(pos, section_format)
-                pos += section.line_count
-        self.textarea.setUndoRedoEnabled(True)
 
     # =========== COMMANDS ================================
 
