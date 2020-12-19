@@ -129,6 +129,8 @@ class TextBlockState(enum.IntFlag):
     ITALIC = 0x200000
     UNDERLINE = 0x400000
     FORMATTING = 0x700000
+    # Other
+    HR = 0x1000000
 
 
 def autocomplete_file_path(name: str, text: str) -> List[str]:

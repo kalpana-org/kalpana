@@ -15,6 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
+"""
+The internal representation of the chapters.
+
+This should not import/depend on any GUI module (such as chapteroverview).
+"""
+
 import re
 from itertools import accumulate
 from typing import Any, Dict, Iterable, List, Optional, Set

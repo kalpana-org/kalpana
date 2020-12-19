@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
     def __init__(self) -> None:
         super().__init__()
         self.kalpana_commands = [
-                Command('quit', '', self.close, args=ArgumentRules.NONE)
+            Command('quit', '', self.close, args=ArgumentRules.NONE)
         ]
         self.title = 'New file'
         self.sapfo_title = ''
@@ -58,7 +58,6 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.stack = Stack(self)
         layout.addWidget(self.stack)
         self.stack_wrappers: Dict[int, QtWidgets.QFrame] = {}
-        self.terminal: Optional[Terminal] = None
         self.message_tray = MessageTray(self)
         self.stack.resized.connect(self.adjust_tray)
         self.show()
@@ -130,7 +129,6 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.update_window_title()
 
     def set_terminal(self, terminal: Terminal) -> None:
-        self.terminal = terminal
         self.layout().addWidget(terminal)
 
     def add_stack_widgets(self, widgets: List[InnerStackWidget]) -> None:

@@ -23,17 +23,18 @@ from typing import Dict, List, Optional, cast
 from PyQt5 import QtCore, QtGui
 
 from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
-from libsyntyche.widgets import Signal1, Signal3
+from libsyntyche.widgets import Signal0, Signal1, Signal3
 
 from .chapteroverview import ChapterOverview
 from .chapters import ChapterIndex
 from .common import FailSafeBase, KalpanaObject, command_callback
 from .filehandler import FileHandler
+from .highlighter import Highlighter
 from .mainwindow import MainWindow
 from .settings import Settings
 from .spellcheck import Spellchecker
 from .terminal import Terminal
-from .textarea import Highlighter, TextArea
+from .textarea import TextArea
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -45,23 +46,35 @@ logger = logging.getLogger(__name__)
 
 
 class Controller(FailSafeBase):
-    def __init__(self, mainwindow: MainWindow, textarea: TextArea,
-                 terminal: Terminal, settings: Settings,
-                 chapter_overview: ChapterOverview) -> None:
-        self.mainwindow = mainwindow
-        self.textarea = textarea
-        self.terminal = terminal
+    def __init__(self, mainwindow: MainWindow, settings: Settings) -> None:
+        # Objects created in the application constructor
         self.settings = settings
-        self.chapter_overview = chapter_overview
-        self.filehandler = FileHandler(self.textarea)
+        self.mainwindow = mainwindow
+        # Create the rest of the objects
+        # NOTE: avoid passing objects to each other unless they are
+        #       QWidget child/parent, such as textarea/mainwindow
+        self.textarea = TextArea(self.mainwindow)
+        self.chapter_overview = ChapterOverview(self.mainwindow)
+        self.terminal = Terminal(self.mainwindow, self.settings.command_history)
+        self.filehandler = FileHandler(self.textarea.toPlainText,
+                                       self.textarea.document().isModified)
         self.chapter_index = ChapterIndex()
         self.spellchecker = Spellchecker(self.settings.config_dir,
                                          self.textarea.word_under_cursor)
-        self.highlighter = Highlighter(self.textarea, self.chapter_index,
-                                       self.spellchecker)
+        self.highlighter = Highlighter(self.textarea.document(),
+                                       lambda: self.textarea.palette().windowText().color(),
+                                       self.spellchecker.check_word)
+        # Init mainwindow with the objects it needs
+        self.mainwindow.set_terminal(self.terminal)
+        self.mainwindow.add_stack_widgets([self.textarea, self.chapter_overview])
+        # Connect everything
         self.set_keybindings()
         self.connect_objects()
         self.register_own_commands()
+
+    def init_done(self) -> None:
+        """Called by the main application when its constructor is finished"""
+        self.highlighter.init_done()
 
     def error(self, text: str) -> None:
         self.terminal.error(text)
@@ -175,12 +188,30 @@ class Controller(FailSafeBase):
             if obj != self.filehandler:
                 self.filehandler.file_saved_signal.connect(obj.file_saved)
                 self.filehandler.file_opened_signal.connect(obj.file_opened)
+
+        # Filehandler signals
+        def set_text(text: str) -> None:
+            self.textarea.setPlainText(text)
+            # For some reason, this isn't properly emitted
+            self.textarea.document().modificationChanged.emit(False)
+        self.filehandler.set_text.connect(set_text)
+
+        # Spellchecker signals
         self.spellchecker.rehighlight.connect(self.highlighter.rehighlight)
         self.spellchecker.rehighlight_word.connect(self.highlighter.rehighlight_word)
+
+        # Textarea signals
+        def new_cursor_position() -> None:
+            # QTextDocument's equivalent signal only emits on edit operations,
+            # but we want it on any movement at all
+            self.highlighter.new_cursor_position(self.textarea.textCursor().block())
+        cast(Signal0, self.textarea.cursorPositionChanged).connect(new_cursor_position)
         cast(Signal3[int, int, int], self.textarea.document().contentsChange
              ).connect(self.update_chapter_index)
         cast(Signal1[bool], self.textarea.modificationChanged
              ).connect(self.mainwindow.modification_changed)
+
+        # Terminal signals
         self.terminal.show_message.connect(self.mainwindow.message_tray.add_message)
         self.terminal.error_triggered.connect(self.mainwindow.shake_screen)
 

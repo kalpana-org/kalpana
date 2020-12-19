@@ -19,8 +19,8 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import (Any, ChainMap, DefaultDict, Dict, Iterable, Mapping, Match,
-                    Optional, cast)
+from typing import (Any, ChainMap, DefaultDict, Dict, Iterable, List, Mapping,
+                    Match, Optional, cast)
 
 import yaml
 from PyQt5 import QtCore, QtGui
@@ -94,7 +94,7 @@ class Settings(QtCore.QObject, KalpanaObject):
         self.config_dir = config_dir or default_config_dir()
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.active_file: str = ''
-        self.registered_settings: Dict[str, KalpanaObject] = {}
+        self.registered_settings: Dict[str, List[KalpanaObject]] = {}
         self.command_history = CommandHistory(self.config_dir)
         self.settings: ChainMap[str, Any] = ChainMap()
         self.key_bindings: Dict[int, str] = {}
@@ -137,6 +137,9 @@ class Settings(QtCore.QObject, KalpanaObject):
         except yaml.YAMLError as e:
             self.error(f'Invalid yaml in the file config: {e}')
         else:
+            for obj in self.registered_settings.get(name, []):
+                with obj.try_it(f"Couldn't update setting {name!r}"):
+                    obj.setting_changed(name, new_value)
             file_settings = self.settings.maps[0]
             all_files_config[self.active_file] = file_settings
             with self.try_it("Couldn't save yaml settings to disk"):
@@ -151,16 +154,19 @@ class Settings(QtCore.QObject, KalpanaObject):
         Register that an object is waiting for changes to a certain setting.
         """
         for name in names:
-            self.registered_settings[name] = obj
+            if name not in self.registered_settings:
+                self.registered_settings[name] = []
+            self.registered_settings[name].append(obj)
 
     def notify_settings_changes(self, new_settings: Mapping[str, Any]) -> None:
         """Send changed settings to the objects that registered them."""
         if new_settings:
-            for setting, obj in self.registered_settings.items():
+            for setting, objs in self.registered_settings.items():
                 if not self.settings \
                         or (new_settings[setting] != self.settings[setting]):
-                    with obj.try_it(f"Couldn't update setting {setting!r}"):
-                        obj.setting_changed(setting, new_settings[setting])
+                    for obj in objs:
+                        with obj.try_it(f"Couldn't update setting {setting!r}"):
+                            obj.setting_changed(setting, new_settings[setting])
 
     def _load_yaml_file(self, config_path: Path) -> Dict[str, Any]:
         """

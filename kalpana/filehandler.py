@@ -18,15 +18,14 @@
 import os.path
 import subprocess
 import sys
-from typing import Optional
+from typing import Callable, Optional
 
 from PyQt5 import QtCore
 
 from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
-from libsyntyche.widgets import mk_signal2
+from libsyntyche.widgets import mk_signal1, mk_signal2
 
 from .common import KalpanaObject, autocomplete_file_path, command_callback
-from .textarea import TextArea
 
 
 class FileHandler(QtCore.QObject, KalpanaObject):
@@ -35,10 +34,13 @@ class FileHandler(QtCore.QObject, KalpanaObject):
     file_opened_signal = mk_signal2(str, bool)
     # file_saved(filepath, new save name)
     file_saved_signal = mk_signal2(str, bool)
+    set_text = mk_signal1(str)
 
-    def __init__(self, textarea: TextArea) -> None:
+    def __init__(self, get_text: Callable[[], str],
+                 is_modified: Callable[[], bool]) -> None:
         super().__init__()
-        self.textarea = textarea
+        self.is_modified = is_modified
+        self.get_text = get_text
         self.filepath: Optional[str] = None
         self.kalpana_commands = [
                 Command('new-file', 'Create a new file.',
@@ -130,12 +132,13 @@ class FileHandler(QtCore.QObject, KalpanaObject):
         Note that nothing is written to the disk when new_file is run. An
         invalid filepath will only be detected when trying to save.
         """
-        if self.textarea.document().isModified() and not force:
+        if self.is_modified() and not force:
             self.confirm('There are unsaved changes. Discard them?',
                          self.force_new_file, filepath or '')
         elif filepath and os.path.exists(filepath):
             self.error('File already exists, open it instead')
         else:
+            self.set_text.emit('')
             if filepath:
                 self.filepath = filepath
                 self.file_opened_signal.emit(filepath, True)
@@ -144,9 +147,6 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 self.filepath = None
                 self.file_opened_signal.emit('', True)
                 self.log('New file')
-            self.textarea.setPlainText('')
-            # For some reason this signal isn't triggered on its own
-            self.textarea.document().modificationChanged.emit(False)
 
     @command_callback
     def new_file_in_new_window(self, filepath: Optional[str]) -> None:
@@ -167,7 +167,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
 
         This will only open files encoded in utf-8 or latin1.
         """
-        if self.textarea.document().isModified() and not force:
+        if self.is_modified() and not force:
             self.confirm('There are unsaved changes. Discard them?',
                          self.force_open_file, filepath)
         elif not os.path.isfile(filepath):
@@ -181,7 +181,7 @@ class FileHandler(QtCore.QObject, KalpanaObject):
                 except UnicodeDecodeError:
                     continue
                 else:
-                    self.textarea.setPlainText(text)
+                    self.set_text.emit(text)
                     self.filepath = filepath
                     self.log(f'File opened: {filepath}')
                     self.file_opened_signal.emit(filepath, False)
@@ -229,14 +229,10 @@ class FileHandler(QtCore.QObject, KalpanaObject):
             assert file_to_save is not None
             try:
                 with open(file_to_save, 'w', encoding='utf-8') as f:
-                    f.write(self.textarea.toPlainText())
+                    f.write(self.get_text())
             except IOError:
                 self.error(f'Unable to save the file: {file_to_save}')
             else:
                 self.log(f'File saved: {file_to_save}')
-                if file_to_save == self.filepath:
-                    self.file_saved_signal.emit(file_to_save, False)
-                else:
-                    self.file_saved_signal.emit(file_to_save, True)
+                self.file_saved_signal.emit(file_to_save, file_to_save != self.filepath)
                 self.filepath = file_to_save
-                self.textarea.document().setModified(False)

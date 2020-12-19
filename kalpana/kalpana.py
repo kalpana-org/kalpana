@@ -22,12 +22,9 @@ from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 
-from .chapteroverview import ChapterOverview
 from .controller import Controller
 from .mainwindow import MainWindow
 from .settings import Settings
-from .terminal import Terminal
-from .textarea import TextArea
 
 
 class Kalpana(QtWidgets.QApplication):
@@ -38,24 +35,14 @@ class Kalpana(QtWidgets.QApplication):
         super().__init__(['kalpana2'])
         self.settings = Settings(Path(config_dir) if config_dir else None)
         self.mainwindow = MainWindow()
-        self.textarea = TextArea(self.mainwindow)
-        self.chapter_overview = ChapterOverview(self.mainwindow)
-        self.terminal = Terminal(self.mainwindow,
-                                 self.settings.command_history)
-        self.mainwindow.set_terminal(self.terminal)
-        self.mainwindow.add_stack_widgets([self.textarea,
-                                           self.chapter_overview])
-        self.controller = Controller(self.mainwindow,
-                                     self.textarea,
-                                     self.terminal,
-                                     self.settings,
-                                     self.chapter_overview)
+        self.controller = Controller(self.mainwindow, self.settings)
         self.make_event_filter()
         self.settings.css_changed.connect(self.setStyleSheet)
         self.settings.reload_settings()
         self.settings.reload_stylesheet()
         if file_to_open:
             self.controller.filehandler.load_file_at_startup(file_to_open)
+        self.controller.init_done()
 
     def make_event_filter(self) -> None:
         class MainWindowEventFilter(QtCore.QObject):
