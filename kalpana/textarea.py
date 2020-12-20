@@ -17,9 +17,10 @@
 
 import logging
 import re
-from typing import Any, List, Optional
+from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 
 from libsyntyche.cli import ArgumentRules, Command
 
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
-    def __init__(self, parent: QtWidgets.QWidget) -> None:
+    def __init__(self, parent: QtWidgets.QWidget,) -> None:
         super().__init__(parent)
         self.kalpana_settings = [
                 'show-line-numbers',
@@ -124,6 +125,31 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         self.hide_scrollbar_anim = a
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
+        # Input mode
+        self.normal_mode_key_event: Optional[Callable[[QtGui.QKeyEvent], None]] = None
+        self.setCursorWidth(3)
+        self._insert_mode = False
+        self.in_leader = False
+        self.leader_timer = QtCore.QTimer()
+        self.leader_timer.setInterval(500)
+        self.leader_timer.setSingleShot(True)
+
+        def update_leader() -> None:
+            self.in_leader = False
+        self.leader_timer.timeout.connect(update_leader)
+
+    @property
+    def insert_mode(self) -> bool:
+        return self._insert_mode
+
+    @insert_mode.setter
+    def insert_mode(self, val: bool) -> None:
+        if val:
+            self.setCursorWidth(1)
+        else:
+            self.setCursorWidth(3)
+        self._insert_mode = val
+
     def scrollbar_moved(self) -> None:
         if not self.autohide_scrollbar:
             return
@@ -182,6 +208,34 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
     def file_saved(self, filepath: str, new_name: bool) -> None:
         self.document().setModified(False)
 
+    def visible_blocks(self) -> Iterable[Tuple[QtCore.QRectF, QtGui.QTextBlock]]:
+        page_bottom = self.viewport().height()
+        viewport_offset = self.contentOffset()
+        block = self.firstVisibleBlock()
+        while block.isValid():
+            rect = self.blockBoundingGeometry(block).translated(viewport_offset)
+            if rect.y() > page_bottom:
+                break
+            yield rect, block
+            block = block.next()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if self.insert_mode:
+            if event.text() == '\\' and not self.in_leader:
+                def exit_leader() -> None:
+                    if self.in_leader:
+                        self.textCursor().insertText('\\')
+                        self.in_leader = False
+                QtCore.QTimer.singleShot(500, exit_leader)
+                self.in_leader = True
+            elif event.key() == Qt.Key_Escape or (self.in_leader and event.text() == 'e'):
+                self.in_leader = False
+                self.insert_mode = False
+            else:
+                super().keyPressEvent(event)
+        elif self.normal_mode_key_event is not None:
+            self.normal_mode_key_event(event)
+
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         if not self.line_number_bar.isVisible():
             self.setViewportMargins(0, 0, 0, 0)
@@ -193,24 +247,16 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
 
     def draw_horizontal_ruler(self) -> None:
         painter = QtGui.QPainter(self.viewport())
-        pagebottom = self.viewport().height()
-        viewport_offset = self.contentOffset()
-        block = self.firstVisibleBlock()
         hrmargin = 0.3
         fg = self.palette().windowText().color()
         fg.setAlphaF(0.4)
         painter.setPen(QtGui.QPen(QtGui.QBrush(fg), 2))
-        while block.isValid():
-            rect = self.blockBoundingGeometry(block)\
-                .translated(viewport_offset)
-            if rect.y() > pagebottom:
-                break
+        for rect, block in self.visible_blocks():
             if block.userState() & TextBlockState.HR and block != self.textCursor().block():
                 x1 = int(rect.x() + rect.width()*hrmargin)
                 x2 = int(rect.x() + rect.width()*(1-hrmargin))
                 y = int(rect.y() + rect.height()*0.5)
                 painter.drawLine(x1, y, x2, y)
-            block = block.next()
         painter.end()
 
     def word_under_cursor(self) -> Optional[str]:
@@ -292,7 +338,7 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
     def _searching_backwards(self) -> QtGui.QTextDocument.FindFlags:
         return QtGui.QTextDocument.FindBackward & self.search_flags
 
-    def search_next(self) -> None:
+    def search_next(self, in_reverse: bool = False) -> None:
         """
         Go to the next string found.
 
@@ -301,17 +347,24 @@ class TextArea(QtWidgets.QPlainTextEdit, KalpanaObject):
         if self.search_buffer is None:
             self.error('No previous searches')
             return
+        search_flags = QtGui.QTextDocument.FindFlags()
+        if in_reverse != bool(self._searching_backwards()):
+            searching_backwards = True
+            search_flags |= self.search_flags | QtGui.QTextDocument.FindBackward
+        else:
+            searching_backwards = False
+            search_flags |= self.search_flags & ~QtGui.QTextDocument.FindBackward
         temp_cursor = self.textCursor()
-        found = self.find(self.search_buffer, self.search_flags)
+        found = self.find(self.search_buffer, search_flags)
         if not found:
             if not self.textCursor().atStart() \
-                        or (self._searching_backwards()
+                        or (searching_backwards
                             and not self.textCursor().atEnd()):
-                if self._searching_backwards():
+                if searching_backwards:
                     self.moveCursor(QtGui.QTextCursor.End)
                 else:
                     self.moveCursor(QtGui.QTextCursor.Start)
-                found = self.find(self.search_buffer, self.search_flags)
+                found = self.find(self.search_buffer, search_flags)
                 if not found:
                     self.setTextCursor(temp_cursor)
                     self.error('Text not found')

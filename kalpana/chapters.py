@@ -272,6 +272,11 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
         """Return what line a given chapter begins on."""
         return self.chapter_line_numbers[num]
 
+    @property
+    def section_line_numbers(self) -> List[int]:
+        return [0] + list(accumulate(offset for chapter in self.chapters
+                                     for offset in chapter.section_line_offsets(0)))[:-1]
+
     def special_lines(self) -> List[int]:
         lines: List[int] = []
         pos = 0

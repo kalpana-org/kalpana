@@ -35,6 +35,7 @@ from .settings import Settings
 from .spellcheck import Spellchecker
 from .terminal import Terminal
 from .textarea import TextArea
+from .vimmode import VimMode
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -54,6 +55,17 @@ class Controller(FailSafeBase):
         # NOTE: avoid passing objects to each other unless they are
         #       QWidget child/parent, such as textarea/mainwindow
         self.textarea = TextArea(self.mainwindow)
+
+        def activate_insert_mode() -> None:
+            self.textarea.insert_mode = True
+
+        self.vimmode = VimMode(self.textarea.document(),
+                               self.textarea.viewport().height,
+                               self.textarea.textCursor,
+                               self.textarea.setTextCursor,
+                               self.textarea.visible_blocks,
+                               activate_insert_mode)
+        self.textarea.normal_mode_key_event = self.vimmode.key_pressed
         self.chapter_overview = ChapterOverview(self.mainwindow)
         self.terminal = Terminal(self.mainwindow, self.settings.command_history)
         self.filehandler = FileHandler(self.textarea.toPlainText,
@@ -200,6 +212,10 @@ class Controller(FailSafeBase):
         self.spellchecker.rehighlight.connect(self.highlighter.rehighlight)
         self.spellchecker.rehighlight_word.connect(self.highlighter.rehighlight_word)
 
+        # Terminal signals
+        self.terminal.show_message.connect(self.mainwindow.message_tray.add_message)
+        self.terminal.error_triggered.connect(self.mainwindow.shake_screen)
+
         # Textarea signals
         def new_cursor_position() -> None:
             # QTextDocument's equivalent signal only emits on edit operations,
@@ -211,9 +227,23 @@ class Controller(FailSafeBase):
         cast(Signal1[bool], self.textarea.modificationChanged
              ).connect(self.mainwindow.modification_changed)
 
-        # Terminal signals
-        self.terminal.show_message.connect(self.mainwindow.message_tray.add_message)
-        self.terminal.error_triggered.connect(self.mainwindow.shake_screen)
+        # Vim mode signals
+        def align_cursor_to_edge(top_edge: bool) -> None:
+            vb = self.textarea.verticalScrollBar()
+            vb.setValue(vb.maximum() if top_edge else 0)
+            self.textarea.ensureCursorVisible()
+        self.vimmode.align_cursor_to_edge.connect(align_cursor_to_edge)
+        self.vimmode.center_cursor.connect(self.textarea.centerCursor)
+        self.vimmode.change_chapter.connect(self.go_to_chapter_incremental)
+        self.vimmode.go_to_chapter.connect(self._go_to_chapter)
+        self.vimmode.search_next.connect(self.textarea.search_next)
+
+        def show_terminal(cmd: str) -> None:
+            if cmd:
+                self.terminal.exec_command(' ' + cmd)
+            else:
+                self.terminal.input_field.setFocus()
+        self.vimmode.show_terminal.connect(show_terminal)
 
     def toggle_terminal(self) -> None:
         if self.terminal.input_field.hasFocus():
@@ -272,6 +302,17 @@ class Controller(FailSafeBase):
         return [item for item in ['file', 'spellcheck', 'modified']
                 if item.startswith(text)]
 
+    def _go_to_chapter(self, chapter: int) -> None:
+        total_chapters = len(self.chapter_index.chapters)
+        if chapter not in range(-total_chapters, total_chapters):
+            self.terminal.error('Invalid chapter!')
+        else:
+            if chapter < 0:
+                chapter += total_chapters
+            line = self.chapter_index.get_chapter_line(chapter)
+            self.textarea.center_on_line(line)
+            print('going to chapter', chapter, 'on line', line)
+
     @command_callback
     def go_to_chapter(self, arg: str) -> None:
         """
@@ -286,15 +327,7 @@ class Controller(FailSafeBase):
         elif not re.match(r'-?\d+$', arg):
             self.terminal.error('Argument has to be a number!')
         else:
-            chapter = int(arg)
-            total_chapters = len(self.chapter_index.chapters)
-            if chapter not in range(-total_chapters, total_chapters):
-                self.terminal.error('Invalid chapter!')
-            else:
-                if chapter < 0:
-                    chapter += total_chapters
-                line = self.chapter_index.get_chapter_line(chapter)
-                self.textarea.center_on_line(line)
+            self._go_to_chapter(int(arg))
 
     @command_callback
     def go_to_next_chapter(self) -> None:
@@ -319,8 +352,11 @@ class Controller(FailSafeBase):
             current_chapter_line = self.chapter_index.get_chapter_line(
                 current_chapter)
             # Go to the top of the current chapter if going up and not there
-            if diff == -1 and current_line != current_chapter_line:
-                line = current_chapter_line
+            if diff < 0 and current_line != current_chapter_line:
+                if diff == -1:
+                    line = current_chapter_line
+                else:
+                    line = self.chapter_index.get_chapter_line(target_chapter + 1)
             self.textarea.center_on_line(line)
 
     @command_callback
