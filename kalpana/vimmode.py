@@ -15,13 +15,162 @@
 # You should have received a copy of the GNU General Public License
 # along with Kalpana. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Callable, Iterable, List, Optional, Tuple
+import logging
+from functools import reduce
+from operator import mul
+from typing import (Any, Callable, Dict, Iterable, List, Optional, Set, Tuple,
+                    TypeVar)
 
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextCursor
 
 from libsyntyche.widgets import mk_signal0, mk_signal1
+
+QTC = QTextCursor
+
+F = TypeVar('F', bound=Callable[..., Any])
+
+
+KEYS = {
+    Qt.Key_Left: '<left>',
+    Qt.Key_Right: '<right>',
+    Qt.Key_Up: '<up>',
+    Qt.Key_Down: '<down>',
+    Qt.Key_Escape: '<escape>',
+    Qt.Key_Space: '<space>',
+    Qt.Key_Backspace: '<backspace>',
+    Qt.Key_Tab: '<tab>',
+}
+
+partial_keys: Set[str] = set()
+commands: Dict[str, Callable[['VimMode'], None]] = {}
+count_commands: Dict[str, Callable[['VimMode', int], None]] = {}
+motions: Dict[str, Callable[['VimMode', QTC.MoveMode], QTextCursor]] = {}
+count_motions: Dict[str, Callable[['VimMode', int, QTC.MoveMode], QTextCursor]] = {}
+to_char_motions: Dict[str, Callable[['VimMode', int, str, QTC.MoveMode],
+                                    Optional[QTextCursor]]] = {}
+text_object_select_full = 'a'
+text_object_select_inside = 'i'
+text_object_modifiers = {
+    text_object_select_full: 'Select the text object and following whitespace',
+    text_object_select_inside: 'Select the text object',
+}
+operators: Dict[str, Callable[['VimMode', QTextCursor], None]] = {}
+
+text_object_wrappers = {
+    '"': ('"', '"'),
+    "'": ("'", "'"),
+    '(': ('(', ')'),
+    ')': ('(', ')'),
+    '[': ('[', ']'),
+    ']': ('[', ']'),
+    '{': ('{', '}'),
+    '}': ('{', '}'),
+    '<': ('<', '>'),
+    '>': ('<', '>'),
+    '/': ('/', '/'),
+    '*': ('*', '*'),
+}
+text_objects: Dict[str, Callable[['VimMode', QTC, bool], QTextCursor]] = {}
+
+
+def command(keys: Set[str], help_text: str) -> Callable[[F], F]:
+    def decorator_command(func: F) -> F:
+        for key in keys:
+            if key in commands:
+                logging.warn(f'key {key} is bound to multiple commands')
+            if len(key) == 2:
+                partial_keys.add(key[0])
+            commands[key] = func
+        return func
+    return decorator_command
+
+
+def count_command(keys: Set[str], help_text: str) -> Callable[[F], F]:
+    def decorator_command(func: F) -> F:
+        for key in keys:
+            if key in count_commands:
+                logging.warn(f'key {key} is bound to multiple count commands')
+            if len(key) == 2:
+                partial_keys.add(key[0])
+            count_commands[key] = func
+        return func
+    return decorator_command
+
+
+def motion(keys: Set[str], help_text: str
+           ) -> Callable[[Callable[['VimMode', QTC, QTC.MoveMode], None]],
+                         Callable[['VimMode', QTC.MoveMode], QTC]]:
+    def decorator_command(func: Callable[['VimMode', QTC, QTC.MoveMode], None]
+                          ) -> Callable[['VimMode', QTC.MoveMode], QTC]:
+        def wrapper(self: 'VimMode', move_mode: QTC.MoveMode) -> QTC:
+            tc = self.get_cursor()
+            func(self, tc, move_mode)
+            return tc
+        for key in keys:
+            if key in motions:
+                logging.warn(f'key {key} is bound to multiple motions')
+            if len(key) == 2:
+                partial_keys.add(key[0])
+            motions[key] = wrapper
+        return wrapper
+    return decorator_command
+
+
+def count_motion(keys: Set[str], help_text: str
+                 ) -> Callable[[Callable[['VimMode', int, QTC, QTC.MoveMode], None]],
+                               Callable[['VimMode', int, QTC.MoveMode], QTC]]:
+    def decorator_command(func: Callable[['VimMode', int, QTC, QTC.MoveMode], None]
+                          ) -> Callable[['VimMode', int, QTC.MoveMode], QTC]:
+        def wrapper(self: 'VimMode', count: int, move_mode: QTC.MoveMode) -> QTC:
+            tc = self.get_cursor()
+            func(self, count, tc, move_mode)
+            return tc
+        for key in keys:
+            if key in count_motions:
+                logging.warn(f'key {key} is bound to multiple count motions')
+            if len(key) == 2:
+                partial_keys.add(key[0])
+            count_motions[key] = wrapper
+        return wrapper
+    return decorator_command
+
+
+def to_char_motion(keys: Set[str], help_text: str) -> Callable[[F], F]:
+    def decorator_command(func: F) -> F:
+        for key in keys:
+            if key in to_char_motions:
+                logging.warn(f'key {key} is bound to multiple to-char motions')
+            if len(key) == 2:
+                partial_keys.add(key[0])
+            to_char_motions[key] = func
+        return func
+    return decorator_command
+
+
+def text_object(keys: Set[str], help_text: str) -> Callable[[F], F]:
+    def decorator_command(func: F) -> F:
+        for key in keys:
+            if key in text_objects:
+                logging.warn(f'key {key} is bound to multiple text objects')
+            text_objects[key] = func
+        return func
+    return decorator_command
+
+
+def operator(keys: Set[str], help_text: str) -> Callable[[F], F]:
+    def decorator_command(func: F) -> F:
+        for key in keys:
+            if key in operators:
+                logging.warn(f'key {key} is bound to multiple operators')
+            operators[key] = func
+        return func
+    return decorator_command
+
+
+def is_sentence_sep(text: str) -> bool:
+    return text.isspace() or text in '"\''
 
 
 class VimMode(QtCore.QObject):
@@ -55,39 +204,300 @@ class VimMode(QtCore.QObject):
         self.counts = ['']
         self.partial_key = ''
 
-    def key_pressed(self, event: QtGui.QKeyEvent) -> None:
-        """
-        # Syntax Rules
-        H, zz
-        [partial-key] <action>
+    @property
+    def count(self) -> int:
+        return reduce(mul, (int(c or '1') for c in self.counts))
 
-        9w, 3gg
-        [count=1] [partial-key] <action>
+    # COMMANDS
 
-        12Fj
-        [count=1] <action> <target-char>
+    @command({':', KEYS[Qt.Key_Escape]}, 'Switch to the terminal')
+    def _show_terminal(self) -> None:
+        self.show_terminal.emit('')
 
-        dw, gU4w, gU4gg
-        [count=1] [partial-key] <action> [count=1] [partial-key] <action>
+    @command({'/'}, 'Start a search string')
+    def _start_search(self) -> None:
+        self.show_terminal.emit('/')
 
-        dfJ, gu5Fw
-        [count=1] [partial-key] <action> [count=1] <action> <target-char>
+    @command({'n'}, 'Search next')
+    def _search_next(self) -> None:
+        self.search_next.emit(False)
 
-        gUiw, das
-        [partial-key] <action> <modifier> <target-obj>
-        """
-        QTC = QTextCursor
-        doc = self.document
+    @command({'N'}, 'Search next (reverse)')
+    def _search_next_reverse(self) -> None:
+        self.search_next.emit(True)
 
-        def move(motion: QTextCursor.MoveOperation, count: int = 1) -> None:
-            tc = self.get_cursor()
-            tc.movePosition(motion, n=count)
-            self.set_cursor(tc)
+    @command({'zz'}, 'Scroll to put the current line in the middle of the screen')
+    def _center_cursor(self) -> None:
+        self.center_cursor.emit()
 
-        def is_sentence_sep(text: str) -> bool:
-            return text.isspace() or text in '"\''
+    @command({'zt'}, 'Scroll to put the current line at the top of the screen')
+    def _scroll_cursor_top(self) -> None:
+        self.align_cursor_to_edge.emit(True)
 
-        def next_sentence(tc: QTextCursor, move_mode: QTextCursor.MoveMode) -> None:
+    @command({'zb'}, 'Scroll to put the current line at the bottom of the screen')
+    def _scroll_cursor_bottom(self) -> None:
+        self.align_cursor_to_edge.emit(False)
+
+    @command({'<c-b>'}, 'Scroll up one screen height')
+    def _scroll_screen_up(self) -> None:
+        tc = self.get_cursor()
+        tc.setPosition(next(iter(self.get_visible_blocks()))[1].position())
+        self.set_cursor(tc)
+        self.align_cursor_to_edge.emit(False)
+
+    @command({'<c-f>'}, 'Scroll down one screen height')
+    def _scroll_screen_down(self) -> None:
+        tc = self.get_cursor()
+        for _, block in self.get_visible_blocks():
+            pass
+        tc.setPosition(block.position())
+        self.set_cursor(tc)
+        self.align_cursor_to_edge.emit(True)
+
+    @command({'D'}, 'Delete to the end of the block')
+    def _delete_to_eob(self) -> None:
+        tc = self.get_cursor()
+        if not tc.atBlockEnd():
+            tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
+            tc.deleteChar()
+
+    @command({'C'}, 'Delete to the end of the block and switch to insert mode')
+    def _change_to_eob(self) -> None:
+        self._delete_to_eob()
+        self.activate_insert_mode()
+
+    def _append_insert_generic(self, motion: QTC.MoveOperation,
+                               insert_block: bool = False,
+                               motion2: QTC.MoveOperation = QTC.NoMove) -> None:
+        tc = self.get_cursor()
+        tc.movePosition(motion)
+        if insert_block:
+            tc.insertBlock()
+        tc.movePosition(motion2)
+        self.set_cursor(tc)
+        self.activate_insert_mode()
+
+    @command({'A'}, 'Switch to insert mode at the end of the block')
+    def _append_at_eob(self) -> None:
+        self._append_insert_generic(QTC.EndOfBlock)
+
+    @command({'a'}, 'Switch to insert mode after the current character')
+    def _append(self) -> None:
+        self._append_insert_generic(QTC.NextCharacter)
+
+    @command({'I'}, 'Switch to insert mode at the start of the block')
+    def _insert_at_sob(self) -> None:
+        self._append_insert_generic(QTC.StartOfBlock)
+
+    @command({'i'}, 'Switch to insert mode')
+    def _insert(self) -> None:
+        self.activate_insert_mode()
+
+    @command({'O'}, 'Add a new block after the current and switch to insert mode there')
+    def _append_block(self) -> None:
+        self._append_insert_generic(QTC.StartOfBlock, True, QTC.PreviousBlock)
+
+    @command({'o'}, 'Insert a new block before the current and switch to insert mode there')
+    def _insert_block(self) -> None:
+        self._append_insert_generic(QTC.EndOfBlock, True)
+
+    def _paste_generic(self, motion1: QTC.MoveOperation,
+                       motion2: QTC.MoveOperation) -> None:
+        clipboard = QtGui.QGuiApplication.clipboard()
+        tc = self.get_cursor()
+        text = clipboard.text()
+        # \u2029 is paragraph separator
+        if '\n' in text or '\u2029' in text:
+            tc.movePosition(motion1)
+        else:
+            tc.movePosition(motion2)
+        tc.insertText(text)
+        self.set_cursor(tc)
+
+    @count_command({'p'}, 'Paste <count> times after the current character/block')
+    def _paste(self) -> None:
+        self._paste_generic(QTC.NextBlock, QTC.Right)
+
+    @count_command({'P'}, 'Paste <count> times before the current character/block')
+    def _paste_before(self) -> None:
+        self._paste_generic(QTC.StartOfBlock, QTC.NoMove)
+
+    # COUNT COMMANDS
+
+    @count_command({'u', '<c-z>'}, 'Undo <count> actions')
+    def _undo(self, count: int) -> None:
+        for _ in range(count):
+            if not self.document.isUndoAvailable():
+                break
+            self.document.undo()
+
+    @count_command({'<c-r>', '<c-y>'}, 'Redo <count> actions')
+    def _redo(self, count: int) -> None:
+        for _ in range(count):
+            if not self.document.isRedoAvailable():
+                break
+            self.document.redo()
+
+    @count_command({'gc'}, 'Go to chapter <count>')
+    def _go_to_chapter(self, count: int) -> None:
+        self.go_to_chapter.emit(count)
+
+    @count_command({'gC'}, 'Go to chapter <count>, counting from the end')
+    def _go_to_chapter_reverse(self, count: int) -> None:
+        self.go_to_chapter.emit(-count)
+
+    @count_command({'<c-tab>'}, 'Go <count> chapters forward')
+    def _change_chapter(self, count: int) -> None:
+        self.change_chapter.emit(count)
+
+    @count_command({'<cs-tab>'}, 'Go <count> chapters backward')
+    def _change_chapter_reverse(self, count: int) -> None:
+        self.change_chapter.emit(-count)
+
+    @count_command({'x'}, 'Delete <count> characters')
+    def _delete(self, count: int) -> None:
+        tc = self.get_cursor()
+        tc.beginEditBlock()
+        tc.movePosition(QTC.NextCharacter, QTC.KeepAnchor, n=count)
+        tc.removeSelectedText()
+        tc.endEditBlock()
+
+    @count_command({'s'}, 'Delete <count> characters and switch to insert mode')
+    def _delete_and_insert(self, count: int) -> None:
+        self._delete(count)
+        self.activate_insert_mode()
+
+    @count_command({'~'}, 'Swap the case of <count> characters')
+    def _swap_case(self, count: int) -> None:
+        tc = self.get_cursor()
+        tc.beginEditBlock()
+        tc.movePosition(QTC.NextCharacter, QTC.KeepAnchor, n=count)
+        text = tc.selectedText()
+        tc.removeSelectedText()
+        tc.insertText(text.swapcase())
+        tc.endEditBlock()
+
+    @count_command({'J'}, 'Join the next <count> blocks with this')
+    def _join_lines(self, count: int) -> None:
+        tc = self.get_cursor()
+        tc.beginEditBlock()
+        for _ in range(count):
+            next_block = tc.block().next()
+            if not next_block.isValid():
+                break
+            add_space = bool(next_block.text().strip())
+            tc.movePosition(QTC.EndOfBlock)
+            tc.deleteChar()
+            if add_space:
+                tc.insertText(' ')
+        tc.endEditBlock()
+
+    # MOTIONS
+
+    @motion({'0'}, 'Go to the start of the block')
+    def _go_to_sob(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.StartOfBlock, move_mode)
+
+    @motion({'^'}, 'Go to the start of the line')
+    def _go_to_sol(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.StartOfLine, move_mode)
+
+    @motion({'$'}, 'Go to the end of the block')
+    def _go_to_eob(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.EndOfBlock, move_mode)
+
+    @motion({'G'}, 'Go to the end of the document')
+    def _go_to_end(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.End, move_mode)
+
+    @motion({'H'}, 'Go to the top of the screen')
+    def _go_to_screen_top(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.setPosition(next(iter(self.get_visible_blocks()))[1].position(), move_mode)
+
+    @motion({'M'}, 'Go to the middle of the screen')
+    def _go_to_screen_mid(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        height = self.get_height()
+        for rect, block in self.get_visible_blocks():
+            if rect.top() < height / 2 and rect.bottom() > height / 2:
+                tc.setPosition(block.position(), move_mode)
+                break
+
+    @motion({'L'}, 'Go to the bottom of the screen')
+    def _go_to_screen_bottom(self, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.setPosition(list(self.get_visible_blocks())[-1][1].position(), move_mode)
+
+    # COUNT MOTIONS
+
+    @count_motion({'b'}, 'Go to the start of <count> words left')
+    def _word_backwards(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.PreviousWord, move_mode, count)
+
+    @count_motion({'w'}, 'Go to the start of <count> words right')
+    def _word_forwards(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.NextWord, move_mode, count)
+
+    @count_motion({'e'}, 'Go to the end of <count> words right')
+    def _word_end_forwards(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        if count == 1:
+            pos = self.get_cursor().position()
+            tc.movePosition(QTC.EndOfWord, move_mode)
+            if pos == tc.position():
+                tc.movePosition(QTC.NextWord, move_mode)
+                tc.movePosition(QTC.EndOfWord, move_mode)
+        else:
+            tc.movePosition(QTC.NextWord, move_mode, count)
+            tc.movePosition(QTC.EndOfWord, move_mode)
+
+    @count_motion({'gg'}, 'Go to block <count>')
+    def _go_to_block(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        count = min(count - 1, self.document.blockCount() - 1)
+        tc.setPosition(self.document.findBlockByNumber(count).position(), move_mode)
+
+    @count_motion({KEYS[Qt.Key_Backspace], KEYS[Qt.Key_Left]}, 'Go <count> characters left')
+    def _go_left(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.Left, move_mode, count)
+
+    @count_motion({KEYS[Qt.Key_Space], KEYS[Qt.Key_Right]}, 'Go <count> characters right')
+    def _go_right(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.Right, move_mode, count)
+
+    @count_motion({'h', KEYS[Qt.Key_Up]}, 'Go <count> lines up')
+    def _go_up(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.Up, move_mode, count)
+
+    @count_motion({'k', KEYS[Qt.Key_Down]}, 'Go <count> lines down')
+    def _go_down(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        tc.movePosition(QTC.Down, move_mode, count)
+
+    @count_motion({'('}, 'Go <count> sentences left')
+    def _prev_sentence(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        for _ in range(count):
+            if tc.atStart():
+                return
+            if tc.atBlockStart():
+                tc.movePosition(QTC.Left, move_mode)
+                if tc.atBlockStart():
+                    continue
+            pos = tc.positionInBlock() - 1
+            text = tc.block().text()
+            while 0 <= pos < len(text) and is_sentence_sep(text[pos]):
+                pos -= 1
+            start_pos = max(text.rfind('.', 0, pos),
+                            text.rfind('?', 0, pos),
+                            text.rfind('!', 0, pos))
+            if start_pos != -1:
+                start_pos += 1
+                while start_pos < len(text) and is_sentence_sep(text[start_pos]):
+                    start_pos += 1
+                tc.setPosition(tc.block().position() + start_pos, move_mode)
+            elif pos == 0:
+                tc.movePosition(QTC.PreviousBlock, move_mode)
+            else:
+                tc.movePosition(QTC.StartOfBlock, move_mode)
+
+    @count_motion({')'}, 'Go <count> sentences right')
+    def _next_sentence(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        for _ in range(count):
             pos = tc.positionInBlock()
             text = tc.block().text()
             end_poses = [text.find('.', pos),
@@ -110,60 +520,188 @@ class VimMode(QtCore.QObject):
                         break
                     block = block.next()
 
-        def prev_sentence(tc: QTextCursor, move_mode: QTextCursor.MoveMode) -> None:
-            if tc.atStart():
-                return
-            if tc.atBlockStart():
-                tc.movePosition(QTC.Left, move_mode)
-                if tc.atBlockStart():
-                    return
-            pos = tc.positionInBlock() - 1
-            text = tc.block().text()
-            while 0 <= pos < len(text) and is_sentence_sep(text[pos]):
-                pos -= 1
-            start_pos = max(text.rfind('.', 0, pos),
-                            text.rfind('?', 0, pos),
-                            text.rfind('!', 0, pos))
-            if start_pos != -1:
-                start_pos += 1
-                while start_pos < len(text) and is_sentence_sep(text[start_pos]):
-                    start_pos += 1
-                tc.setPosition(tc.block().position() + start_pos, move_mode)
-            elif pos == 0:
-                tc.movePosition(QTC.PreviousBlock, move_mode)
-            else:
-                tc.movePosition(QTC.StartOfBlock, move_mode)
+    def _prev_next_block(self, count: int, tc: QTC, move_mode: QTC.MoveMode,
+                         forward: bool) -> None:
+        block = tc.block().next() if forward else tc.block().previous()
+        pos = -1
+        while block.isValid():
+            if block.text().strip():
+                pos = block.position()
+                count -= 1
+                if count == 0:
+                    tc.setPosition(pos, move_mode)
+                    break
+            block = block.next() if forward else block.previous()
 
-        def to_char(op: str, count: int, key: str,
-                    move_mode: QTextCursor.MoveMode = QTC.MoveAnchor
-                    ) -> Optional[QTextCursor]:
-            if len(key) != 1 and key not in {SPACE}:
-                return None
-            if key == SPACE:
-                key = ' '
-            tc = self.get_cursor()
-            pos = tc.positionInBlock()
-            text = tc.block().text()
-            if op in {'f', 't'}:
-                for _ in range(count):
-                    pos = text.find(key, pos + 1)
-                    if pos == -1:
-                        break
-                else:
-                    if op == 't':
-                        pos -= 1
-            elif op in {'F', 'T'}:
-                for _ in range(count):
-                    pos = text.rfind(key, 0, pos)
-                    if pos == -1:
-                        break
-                else:
-                    if op == 'T':
-                        pos += 1
-            if pos >= 0:
-                tc.setPosition(tc.block().position() + pos, move_mode)
-                return tc
+    @count_motion({'{'}, 'Go <count> blocks up')
+    def _prev_block(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        self._prev_next_block(count, tc, move_mode, False)
+
+    @count_motion({'}'}, 'Go <count> blocks down')
+    def _next_block(self, count: int, tc: QTC, move_mode: QTC.MoveMode) -> None:
+        self._prev_next_block(count, tc, move_mode, True)
+
+    # TO-CHAR MOTIONS
+
+    def _to_char_generic(self, forward: bool, greedy: bool, count: int, key: str,
+                         move_mode: QTextCursor.MoveMode
+                         ) -> Optional[QTextCursor]:
+        if len(key) != 1 and key not in {KEYS[Qt.Key_Space]}:
             return None
+        if key == KEYS[Qt.Key_Space]:
+            key = ' '
+        tc = self.get_cursor()
+        pos = tc.positionInBlock()
+        text = tc.block().text()
+        if forward:
+            for _ in range(count):
+                pos = text.find(key, pos + 1)
+                if pos == -1:
+                    break
+            else:
+                if not greedy:
+                    pos -= 1
+        else:
+            for _ in range(count):
+                pos = text.rfind(key, 0, pos)
+                if pos == -1:
+                    break
+            else:
+                if not greedy:
+                    pos += 1
+        if pos >= 0:
+            tc.setPosition(tc.block().position() + pos, move_mode)
+            return tc
+        return None
+
+    @to_char_motion({'f'}, 'Go to the <count>th <char> to the right')
+    def _to_char_right_greedy(self, count: int, key: str, move_mode: QTC.MoveMode
+                              ) -> Optional[QTextCursor]:
+        return self._to_char_generic(True, True, count, key, move_mode)
+
+    @to_char_motion({'F'}, 'Go to the <count>th <char> to the left')
+    def _to_char_left_greedy(self, count: int, key: str, move_mode: QTC.MoveMode
+                             ) -> Optional[QTextCursor]:
+        return self._to_char_generic(False, True, count, key, move_mode)
+
+    @to_char_motion({'t'}, 'Go to one char before the <count>th <char> to the right')
+    def _to_char_right(self, count: int, key: str, move_mode: QTC.MoveMode
+                       ) -> Optional[QTextCursor]:
+        return self._to_char_generic(True, False, count, key, move_mode)
+
+    @to_char_motion({'T'}, 'Go to one char before the <count>th <char> to the left')
+    def _to_char_left(self, count: int, key: str, move_mode: QTC.MoveMode
+                      ) -> Optional[QTextCursor]:
+        return self._to_char_generic(False, False, count, key, move_mode)
+
+    # TEXT OBJECT SELECTIONS
+
+    @text_object({'p'}, 'Select a paragraph')
+    def _text_obj_paragraph(self, tc: QTC, select_full: bool) -> None:
+        tc.movePosition(QTC.StartOfBlock)
+        tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
+        if select_full:
+            tc.movePosition(QTC.NextBlock, QTC.KeepAnchor)
+            block = tc.block()
+            while block.isValid():
+                if not block.text().strip():
+                    tc.movePosition(QTC.NextBlock,
+                                    QTC.KeepAnchor)
+                else:
+                    break
+                block = block.next()
+
+    @text_object({'s'}, 'Select a sentence')
+    def _text_obj_sentence(self, tc: QTC, select_full: bool) -> None:
+        pos = tc.positionInBlock()
+        text = tc.block().text()
+        start_pos = max(text.rfind('.', 0, pos),
+                        text.rfind('?', 0, pos),
+                        text.rfind('!', 0, pos))
+        end_poses = [text.find('.', pos),
+                     text.find('?', pos),
+                     text.find('!', pos)]
+        if max(end_poses) != -1:
+            end_pos = min(p for p in end_poses if p != -1)
+        else:
+            end_pos = -1
+        if start_pos == -1:
+            tc.movePosition(QTC.StartOfBlock)
+        else:
+            start_pos += 1
+            while start_pos < len(text) and text[start_pos].isspace():
+                start_pos += 1
+            tc.setPosition(tc.block().position() + start_pos)
+        if end_pos == -1:
+            tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
+        else:
+            end_pos += 1
+            if select_full:
+                while end_pos < len(text) and text[end_pos].isspace():
+                    end_pos += 1
+            tc.setPosition(tc.block().position() + end_pos,
+                           QTC.KeepAnchor)
+
+    @text_object({'w'}, 'Select a word')
+    def _text_obj_word(self, tc: QTC, select_full: bool) -> None:
+        tc.movePosition(QTC.StartOfWord)
+        tc.movePosition(QTC.EndOfWord, QTC.KeepAnchor)
+        if select_full:
+            tc.movePosition(QTC.NextWord, QTC.KeepAnchor)
+
+    # OPERATORS
+
+    @operator({'d'}, 'Delete a chunk of text')
+    def _delete_op(self, tc: QTC) -> None:
+        clipboard = QtGui.QGuiApplication.clipboard()
+        clipboard.setText(tc.selectedText())
+        tc.removeSelectedText()
+
+    @operator({'c'}, 'Delete a chunk of text and switch to insert mode')
+    def _change_op(self, tc: QTC) -> None:
+        self._delete_op(tc)
+        self.activate_insert_mode()
+
+    @operator({'gu'}, 'Switch a chunk of text to lower case characters')
+    def _lower_case_op(self, tc: QTC) -> None:
+        new_text = tc.selectedText().lower()
+        tc.removeSelectedText()
+        tc.insertText(new_text)
+
+    @operator({'gU'}, 'Switch a chunk of text to upper case characters')
+    def _upper_case_op(self, tc: QTC) -> None:
+        new_text = tc.selectedText().upper()
+        tc.removeSelectedText()
+        tc.insertText(new_text)
+
+    @operator({'y'}, 'Copy a chunk of text')
+    def _yank_op(self, tc: QTC) -> None:
+        clipboard = QtGui.QGuiApplication.clipboard()
+        clipboard.setText(tc.selectedText())
+
+    # OTHER
+
+    def key_pressed(self, event: QtGui.QKeyEvent) -> None:
+        """
+        # Syntax Rules
+        H, zz
+        [partial-key] <action>
+
+        9w, 3gg
+        [count=1] [partial-key] <action>
+
+        12Fj
+        [count=1] <action> <target-char>
+
+        dw, gU4w, gU4gg
+        [count=1] [partial-key] <action> [count=1] [partial-key] <action>
+
+        dfJ, gu5Fw
+        [count=1] [partial-key] <action> [count=1] <action> <target-char>
+
+        gUiw, das
+        [partial-key] <action> <modifier> <target-obj>
+        """
 
         def select_between(tc: QTextCursor, start_char: str, end_char: str,
                            select_inside: bool = True) -> None:
@@ -184,118 +722,6 @@ class VimMode(QtCore.QObject):
             tc.setPosition(tc.block().position() + start_pos)
             tc.setPosition(tc.block().position() + end_pos, QTC.KeepAnchor)
 
-        def do_motion(key: str, move_mode: QTextCursor.MoveMode) -> QTextCursor:
-            tc = self.get_cursor()
-            move_actions = {
-                '0': QTC.StartOfBlock,
-                '^': QTC.StartOfLine,
-                '$': QTC.EndOfBlock,
-                'G': QTC.End,
-            }
-            if key in move_actions:
-                tc.movePosition(move_actions[key], move_mode)
-            elif key == 'H':
-                tc.setPosition(next(iter(self.get_visible_blocks()))[1].position(), move_mode)
-            elif key in {'M', 'L'}:
-                height = self.get_height()
-                for rect, block in self.get_visible_blocks():
-                    if (key == 'M' and rect.top() < height / 2 and rect.bottom() > height / 2) \
-                            or (key == 'L' and rect.bottom() >= height):
-                        tc.setPosition(block.position(), move_mode)
-                        break
-            else:
-                # TODO: warn
-                pass
-            return tc
-
-        def do_count_motion(key: str, count: int, move_mode: QTextCursor.MoveMode) -> QTextCursor:
-            tc = self.get_cursor()
-            move_actions = {
-                'b': QTC.PreviousWord,
-                'w': QTC.NextWord,
-                SPACE: QTC.Right,
-                BACKSPACE: QTC.Left,
-                'h': QTC.Up,
-                'k': QTC.Down,
-                RIGHT: QTC.Right,
-                LEFT: QTC.Left,
-                UP: QTC.Up,
-                DOWN: QTC.Down,
-            }
-            if key in move_actions:
-                tc.movePosition(move_actions[key], move_mode, count)
-            elif key == 'gg':
-                count = min(count - 1, doc.blockCount() - 1)
-                tc.setPosition(doc.findBlockByNumber(count).position(), move_mode)
-            elif key == 'e':
-                if count == 1:
-                    pos = self.get_cursor().position()
-                    tc.movePosition(QTC.EndOfWord, move_mode)
-                    if pos == tc.position():
-                        tc.movePosition(QTC.NextWord, move_mode)
-                        tc.movePosition(QTC.EndOfWord, move_mode)
-                else:
-                    tc.movePosition(QTC.NextWord, move_mode, count)
-                    tc.movePosition(QTC.EndOfWord, move_mode)
-            elif key == '(':
-                for _ in range(int(self.counts[0] or '1')):
-                    prev_sentence(tc, move_mode)
-            elif key == ')':
-                for _ in range(int(self.counts[0] or '1')):
-                    next_sentence(tc, move_mode)
-            elif key in {'{', '}'}:
-                block = tc.block().next() if key == '}' else tc.block().previous()
-                pos = -1
-                while block.isValid():
-                    if block.text().strip():
-                        pos = block.position()
-                        count -= 1
-                        if count == 0:
-                            tc.setPosition(pos, move_mode)
-                            break
-                    block = block.next() if key == '}' else block.previous()
-            else:
-                # TODO: warn
-                pass
-            return tc
-
-        def do_operation(tc: QTextCursor, op: str) -> None:
-            if op in {'c', 'd'}:
-                clipboard = QtGui.QGuiApplication.clipboard()
-                clipboard.setText(tc.selectedText())
-                tc.removeSelectedText()
-                if op == 'c':
-                    self.activate_insert_mode()
-            elif op in {'gu', 'gU'}:
-                new_text = (tc.selectedText().lower() if op == 'gu'
-                            else tc.selectedText().upper())
-                tc.removeSelectedText()
-                tc.insertText(new_text)
-            elif op == 'y':
-                clipboard = QtGui.QGuiApplication.clipboard()
-                clipboard.setText(tc.selectedText())
-            else:
-                # TODO: warn
-                pass
-
-        SPACE = '<space>'
-        BACKSPACE = '<backspace>'
-        ESCAPE = '<escape>'
-        LEFT = '<left>'
-        RIGHT = '<right>'
-        UP = '<up>'
-        DOWN = '<down>'
-        text_obj_sel_mod = 'i a'.split()
-        text_obj_sel_target = 'w s p " \' / * ( ) [ ] < > { }'.split()
-        commands = [ESCAPE] + ': / n N zz zt zb a A i I o O D C * ? <c-f> <c-b>'.split()
-        count_commands = 'u gc gC <c-r> <c-tab> <cs-tab> x ~ s J p P'.split()
-        motions = '0 ^ $ G H M L'.split()
-        count_motions = 'gg w b e h k ( ) { }'.split()
-        count_motions.extend([SPACE, BACKSPACE, LEFT, RIGHT, UP, DOWN])
-        to_char_motions = 'f F t T'.split()
-        motion_operators = 'y c d gu gU'.split()
-        partial_keys = 'g z'.split()
-
         # Encode key
         if event.key() in {Qt.Key_Control, Qt.Key_Shift, Qt.Key_Alt,
                            Qt.Key_AltGr, Qt.Key_Meta}:
@@ -315,23 +741,9 @@ class VimMode(QtCore.QObject):
                 else:
                     key = f'<c-{chr(event.nativeVirtualKey())}>'
         else:
-            if mods == Qt.NoModifier \
-                    and event.key() in {Qt.Key_Space, Qt.Key_Backspace, Qt.Key_Escape,
-                                        Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down}:
-                if event.key() == Qt.Key_Space:
-                    key = SPACE
-                elif event.key() == Qt.Key_Backspace:
-                    key = BACKSPACE
-                elif event.key() == Qt.Key_Escape:
-                    key = ESCAPE
-                elif event.key() == Qt.Key_Left:
-                    key = LEFT
-                elif event.key() == Qt.Key_Right:
-                    key = RIGHT
-                elif event.key() == Qt.Key_Up:
-                    key = UP
-                elif event.key() == Qt.Key_Down:
-                    key = DOWN
+
+            if mods == Qt.NoModifier and event.key() in KEYS:
+                key = KEYS[Qt.Key(event.key())]
             elif event.text():
                 key = event.text()
             else:
@@ -346,93 +758,32 @@ class VimMode(QtCore.QObject):
             # == Run operation up to character ==
             if self.ops[1] in to_char_motions:
                 op, motion = self.ops
-                count = int(self.counts[0] or '1') * int(self.counts[1] or '1')
-                tc = to_char(motion, count, key, QTC.KeepAnchor)
+                tc = to_char_motions[motion](self, self.count, key, QTC.KeepAnchor)
                 if tc is not None and tc.hasSelection():
                     tc.beginEditBlock()
-                    do_operation(tc, op)
+                    operators[op](self, tc)
                     tc.endEditBlock()
                 self.clear()
             # == Run operation on text object ==
-            elif self.ops[1] in text_obj_sel_mod:
-                if key in text_obj_sel_target:
+            elif self.ops[1] in text_object_modifiers:
+                if key in text_objects or key in text_object_wrappers:
                     # Select the text
                     op, mod = self.ops
+                    select_full = mod == text_object_select_full
                     tc = self.get_cursor()
                     tc.beginEditBlock()
-                    pairs = {
-                        '"': ('"', '"'),
-                        '\'': ('\'', '\''),
-                        '(': ('(', ')'),
-                        ')': ('(', ')'),
-                        '[': ('[', ']'),
-                        ']': ('[', ']'),
-                        '{': ('{', '}'),
-                        '}': ('{', '}'),
-                        '<': ('<', '>'),
-                        '>': ('<', '>'),
-                        '/': ('/', '/'),
-                        '*': ('*', '*'),
-                    }
                     # Paragraph
-                    if key == 'p':
-                        tc.movePosition(QTC.StartOfBlock)
-                        tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
-                        if mod == 'a':
-                            tc.movePosition(QTC.NextBlock, QTC.KeepAnchor)
-                            block = tc.block()
-                            while block.isValid():
-                                if not block.text().strip():
-                                    tc.movePosition(QTC.NextBlock,
-                                                    QTC.KeepAnchor)
-                                else:
-                                    break
-                                block = block.next()
-                    # Sentence
-                    elif key == 's':
-                        pos = tc.positionInBlock()
-                        text = tc.block().text()
-                        start_pos = max(text.rfind('.', 0, pos),
-                                        text.rfind('?', 0, pos),
-                                        text.rfind('!', 0, pos))
-                        end_poses = [text.find('.', pos),
-                                     text.find('?', pos),
-                                     text.find('!', pos)]
-                        if max(end_poses) != -1:
-                            end_pos = min(p for p in end_poses if p != -1)
-                        else:
-                            end_pos = -1
-                        if start_pos == -1:
-                            tc.movePosition(QTC.StartOfBlock)
-                        else:
-                            start_pos += 1
-                            while start_pos < len(text) and text[start_pos].isspace():
-                                start_pos += 1
-                            tc.setPosition(tc.block().position() + start_pos)
-                        if end_pos == -1:
-                            tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
-                        else:
-                            end_pos += 1
-                            if mod == 'a':
-                                while end_pos < len(text) and text[end_pos].isspace():
-                                    end_pos += 1
-                            tc.setPosition(tc.block().position() + end_pos,
-                                           QTC.KeepAnchor)
-                    # Word
-                    elif key == 'w':
-                        tc.movePosition(QTC.StartOfWord)
-                        tc.movePosition(QTC.EndOfWord, QTC.KeepAnchor)
-                        if mod == 'a':
-                            tc.movePosition(QTC.NextWord, QTC.KeepAnchor)
+                    if key in text_objects:
+                        text_objects[key](self, tc, select_full)
                     # Character pairs
-                    elif key in pairs:
-                        start, end = pairs[key]
-                        select_between(tc, start, end, mod == 'i')
+                    elif key in text_object_wrappers:
+                        start, end = text_object_wrappers[key]
+                        select_between(tc, start, end, select_full)
                     else:
                         # TODO: warn
                         pass
                     # Do the thing
-                    do_operation(tc, op)
+                    operators[op](self, tc)
                     tc.endEditBlock()
                 self.clear()
             else:
@@ -441,41 +792,39 @@ class VimMode(QtCore.QObject):
         elif len(self.ops) == 1:
             # == Go to character ==
             if self.ops[0] in to_char_motions:
-                tc = to_char(self.ops[0], int(self.counts[0] or '1'), key)
+                tc = to_char_motions[self.ops[0]](self, self.count, key, QTC.MoveAnchor)
                 if tc:
                     self.set_cursor(tc)
                 self.clear()
             # == In operation ==
-            elif self.ops[0] in motion_operators:
+            elif self.ops[0] in operators:
                 if key.isdigit():
                     self.counts[-1] += key
                 elif key in partial_keys:
                     self.partial_key = key
-                elif key in to_char_motions + text_obj_sel_mod:
+                elif key in to_char_motions or key in text_object_modifiers:
                     self.ops.append(key)
                 # Run operation on <count> lines
                 elif key == self.ops[0]:
-                    count = int(self.counts[0] or '1') * int(self.counts[1] or '1')
                     tc = self.get_cursor()
                     tc.beginEditBlock()
                     tc.movePosition(QTC.StartOfBlock)
-                    tc.movePosition(QTC.NextBlock, QTC.KeepAnchor, n=count)
-                    do_operation(tc, key)
+                    tc.movePosition(QTC.NextBlock, QTC.KeepAnchor, n=self.count)
+                    operators[key](self, tc)
                     tc.endEditBlock()
                     self.clear()
                 # Run operation on motion
                 elif key in motions:
-                    tc = do_motion(key, QTC.KeepAnchor)
+                    tc = motions[key](self, QTC.KeepAnchor)
                     tc.beginEditBlock()
-                    do_operation(tc, self.ops[0])
+                    operators[self.ops[0]](self, tc)
                     tc.endEditBlock()
                     self.clear()
                 # Run operation on <count> motions
                 elif key in count_motions:
-                    count = int(self.counts[0] or '1') * int(self.counts[1] or '1')
-                    tc = do_count_motion(key, count, QTC.KeepAnchor)
+                    tc = count_motions[key](self, self.count, QTC.KeepAnchor)
                     tc.beginEditBlock()
-                    do_operation(tc, self.ops[0])
+                    operators[self.ops[0]](self, tc)
                     tc.endEditBlock()
                     self.clear()
                 # Invalid key
@@ -490,141 +839,24 @@ class VimMode(QtCore.QObject):
                 self.ops.append(key)
             # == Run simple command ==
             elif key in commands:
-                if key in {':', ESCAPE}:
-                    self.show_terminal.emit('')
-                elif key == '/':
-                    self.show_terminal.emit('/')
-                elif key in {'n', 'N'}:
-                    reverse = key == 'N'
-                    self.search_next.emit(reverse)
-                elif key == 'zz':
-                    self.center_cursor.emit()
-                elif key == 'zt':
-                    self.align_cursor_to_edge.emit(True)
-                elif key == 'zb':
-                    self.align_cursor_to_edge.emit(False)
-                elif key == '<c-b>':
-                    tc = self.get_cursor()
-                    tc.setPosition(next(iter(self.get_visible_blocks()))[1].position())
-                    self.set_cursor(tc)
-                    self.align_cursor_to_edge.emit(False)
-                elif key == '<c-f>':
-                    tc = self.get_cursor()
-                    for _, block in self.get_visible_blocks():
-                        pass
-                    tc.setPosition(block.position())
-                    self.set_cursor(tc)
-                    self.align_cursor_to_edge.emit(True)
-                elif key in {'D', 'C'}:
-                    tc = self.get_cursor()
-                    if not tc.atBlockEnd():
-                        tc.movePosition(QTC.EndOfBlock, QTC.KeepAnchor)
-                        tc.deleteChar()
-                    if key == 'C':
-                        self.activate_insert_mode()
-                elif key in {'A', 'a', 'I', 'i'}:
-                    if key == 'A':
-                        move(QTC.EndOfBlock)
-                    elif key == 'I':
-                        move(QTC.StartOfBlock)
-                    elif key == 'a':
-                        move(QTC.NextCharacter)
-                    self.activate_insert_mode()
-                elif key == 'O':
-                    tc = self.get_cursor()
-                    tc.movePosition(QTC.StartOfBlock)
-                    tc.insertBlock()
-                    tc.movePosition(QTC.PreviousBlock)
-                    self.set_cursor(tc)
-                    self.activate_insert_mode()
-                elif key == 'o':
-                    tc = self.get_cursor()
-                    tc.movePosition(QTC.EndOfBlock)
-                    tc.insertBlock()
-                    self.set_cursor(tc)
-                    self.activate_insert_mode()
-                elif key == '*':
-                    pass
-                elif key == '?':
-                    pass
-                else:
-                    # TODO: warn
-                    pass
+                commands[key](self)
                 self.clear()
             # == Run simple motion ==
             elif key in motions:
-                tc = do_motion(key, QTC.MoveAnchor)
+                tc = motions[key](self, QTC.MoveAnchor)
                 self.set_cursor(tc)
                 self.clear()
             # == Run <count> commands ==
             elif key in count_commands:
-                count = int(self.counts[0] or '1')
-                if key in {'u', '<c-r>'}:
-                    for _ in range(count):
-                        if key == 'u':
-                            if not doc.isUndoAvailable():
-                                break
-                            doc.undo()
-                        else:
-                            if not doc.isRedoAvailable():
-                                break
-                            doc.redo()
-                elif key in {'gc', 'gC'}:
-                    self.go_to_chapter.emit(count * (-1 if key == 'gC' else 1))
-                elif key in {'<c-tab>', '<cs-tab>'}:
-                    self.change_chapter.emit(count * (-1 if key == '<cs-tab>' else 1))
-                elif key in {'s', 'x', '~'}:
-                    tc = self.get_cursor()
-                    tc.beginEditBlock()
-                    tc.movePosition(QTC.NextCharacter, QTC.KeepAnchor, n=count)
-                    if key == '~':
-                        text = tc.selectedText()
-                    tc.removeSelectedText()
-                    if key == 's':
-                        self.activate_insert_mode()
-                    elif key == '~':
-                        tc.insertText(text.swapcase())
-                    tc.endEditBlock()
-                elif key == 'J':
-                    tc = self.get_cursor()
-                    tc.beginEditBlock()
-                    for _ in range(count):
-                        next_block = tc.block().next()
-                        if not next_block.isValid():
-                            break
-                        add_space = bool(next_block.text().strip())
-                        tc.movePosition(QTC.EndOfBlock)
-                        tc.deleteChar()
-                        if add_space:
-                            tc.insertText(' ')
-                    tc.endEditBlock()
-                elif key in {'p', 'P'}:
-                    clipboard = QtGui.QGuiApplication.clipboard()
-                    tc = self.get_cursor()
-                    text = clipboard.text()
-                    # \u2029 is paragraph separator
-                    if '\n' in text or '\u2029' in text:
-                        if key == 'p':
-                            tc.movePosition(QTC.NextBlock)
-                        else:
-                            tc.movePosition(QTC.StartOfBlock)
-                    else:
-                        if key == 'p':
-                            tc.movePosition(QTC.Right)
-                    tc.insertText(text)
-                    self.set_cursor(tc)
-                else:
-                    # TODO: warn
-                    pass
+                count_commands[key](self, self.count)
                 self.clear()
             # == Run <count> motions ==
             elif key in count_motions:
-                count = int(self.counts[0] or '1')
-                tc = do_count_motion(key, count, QTC.MoveAnchor)
+                tc = count_motions[key](self, self.count, QTC.MoveAnchor)
                 self.set_cursor(tc)
                 self.clear()
             # == Start an operation ==
-            elif key in motion_operators:
+            elif key in operators:
                 self.ops.append(key)
                 self.counts.append('')
             else:
