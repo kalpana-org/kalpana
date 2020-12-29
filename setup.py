@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='kalpana',
-    version='2.0',
+    version='2.0.0',
     description='A clean and very minimalistic word processor',
     url='https://github.com/kalpana-org/kalpana',
     author='nycz',
@@ -19,7 +19,7 @@ setup(
         'Topic :: Text Editors :: Word Processors'
     ],
     packages=find_packages(exclude=['thoughts', 'tests']),
-    # install_requires=['PyQt5', 'PyYAML', 'pyenchant'],
+    install_requires=['libsyntyche', 'PyQt5', 'PyYAML', 'pyenchant'],
     include_package_data=True,
     entry_points={
         'gui_scripts': [
