@@ -199,7 +199,7 @@ class ChapterOverview(QtWidgets.QScrollArea):
         layout = QtWidgets.QVBoxLayout(self.container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        layout.addStretch(1)
+        layout.addSpacerItem(QtWidgets.QSpacerItem(0, 300, vPolicy = QtWidgets.QSizePolicy.MinimumExpanding))
         self.chapter_items: List[ChapterItem] = []
         self.show()
 
