@@ -1,1 +1,2 @@
-include kalpana/data/*
+include kalpana/data/default_settings.yaml
+include kalpana/data/qt.css
