@@ -236,7 +236,7 @@ class Controller(FailSafeBase):
         self.vimmode.center_cursor.connect(self.textarea.centerCursor)
         self.vimmode.change_chapter.connect(self.go_to_chapter_incremental)
         self.vimmode.go_to_chapter.connect(self._go_to_chapter)
-        self.vimmode.search_next.connect(self.textarea.search_next)
+        self.vimmode.search_next.connect(self.textarea.searcher.search_next)
 
         def show_terminal(cmd: str) -> None:
             if cmd:
