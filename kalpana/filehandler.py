@@ -20,10 +20,9 @@ import subprocess
 import sys
 from typing import Callable, Optional
 
-from PyQt5 import QtCore
-
 from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
 from libsyntyche.widgets import mk_signal1, mk_signal2
+from PyQt5 import QtCore
 
 from .common import KalpanaObject, autocomplete_file_path, command_callback
 

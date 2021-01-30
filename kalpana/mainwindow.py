@@ -19,14 +19,14 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Union, cast
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-
 from libsyntyche.cli import ArgumentRules, Command
+from libsyntyche.terminal import MessageTray
 from libsyntyche.widgets import mk_signal0
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from .chapteroverview import ChapterOverview
 from .common import KalpanaObject
-from .terminal import MessageTray, Terminal
+from .terminal import Terminal
 from .textarea import TextArea
 
 InnerStackWidget = Union[ChapterOverview, TextArea]
@@ -60,6 +60,7 @@ class MainWindow(QtWidgets.QFrame, KalpanaObject):
         self.stack_wrappers: Dict[int, QtWidgets.QFrame] = {}
         self.message_tray = MessageTray(self)
         self.stack.resized.connect(self.adjust_tray)
+        self.shakeanim: QtCore.QPropertyAnimation
         self.show()
 
     def resizeEvent(self, ev: QtGui.QResizeEvent) -> None:

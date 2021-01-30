@@ -23,9 +23,8 @@ from typing import (Any, ChainMap, DefaultDict, Dict, Iterable, List, Mapping,
                     Match, Optional, cast)
 
 import yaml
-from PyQt5 import QtCore, QtGui
-
 from libsyntyche.widgets import mk_signal1
+from PyQt5 import QtCore, QtGui
 
 from .common import KalpanaObject
 
@@ -73,8 +72,6 @@ class CommandHistory:
             self.command_frequency.update(command_frequency)
             for abbr, data in autocompletion_history.items():
                 self.autocompletion_history[abbr].update(data)
-        self._hash = json.dumps([self.command_frequency,
-                                self.autocompletion_history], sort_keys=True)
 
     def save(self) -> None:
         data = {'autocompletion_history': self.autocompletion_history,

@@ -19,10 +19,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import enchant
-from PyQt5 import QtCore
-
 from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
 from libsyntyche.widgets import mk_signal0, mk_signal1
+from PyQt5 import QtCore
 
 from .common import KalpanaObject, command_callback
 

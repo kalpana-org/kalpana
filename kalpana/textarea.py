@@ -17,13 +17,12 @@
 
 import logging
 import re
-from typing import Any, Callable, Iterable, List, Optional, Tuple
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from typing import Any, Callable, Iterable, Optional, Tuple
 
 from libsyntyche.cli import ArgumentRules, Command
 from libsyntyche.texteditor import Searcher
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
 
 from .common import KalpanaObject, TextBlockState
 

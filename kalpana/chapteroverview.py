@@ -18,10 +18,9 @@
 from itertools import zip_longest
 from typing import Iterable, List, Optional, Tuple, cast
 
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtProperty
-
 from libsyntyche.widgets import Signal1
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt, pyqtProperty  # type: ignore
 
 from .chapters import Chapter, Section
 
@@ -199,7 +198,9 @@ class ChapterOverview(QtWidgets.QScrollArea):
         layout = QtWidgets.QVBoxLayout(self.container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        layout.addSpacerItem(QtWidgets.QSpacerItem(0, 300, vPolicy = QtWidgets.QSizePolicy.MinimumExpanding))
+        layout.addSpacerItem(QtWidgets.QSpacerItem(
+            0, 300, vPolicy=QtWidgets.QSizePolicy.MinimumExpanding
+        ))
         self.chapter_items: List[ChapterItem] = []
         self.show()
 

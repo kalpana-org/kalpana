@@ -20,10 +20,9 @@ import re
 import sys
 from typing import Dict, List, cast
 
-from PyQt5 import QtCore, QtGui
-
 from libsyntyche.cli import ArgumentRules, AutocompletionPattern, Command
 from libsyntyche.widgets import Signal0, Signal1, Signal3
+from PyQt5 import QtCore, QtGui
 
 from .chapteroverview import ChapterOverview
 from .chapters import ChapterIndex
@@ -90,9 +89,6 @@ class Controller(FailSafeBase):
 
     def error(self, text: str) -> None:
         self.terminal.error(text)
-
-    def update_style(self) -> None:
-        pass
 
     def register_own_commands(self) -> None:
         commands = [
@@ -163,12 +159,10 @@ class Controller(FailSafeBase):
 
     def set_keybindings(self) -> None:
         class EventFilter(QtCore.QObject):
-            def eventFilter(self_, obj: QtCore.QObject,
-                            event: QtCore.QEvent) -> bool:
+            def eventFilter(self_, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
                 if event.type() == QtCore.QEvent.KeyPress:
                     key_event = cast(QtGui.QKeyEvent, event)
-                    actual_key = (key_event.key()
-                                  | int(cast(int, key_event.modifiers())))
+                    actual_key = key_event.key() | int(key_event.modifiers())
                     if actual_key in self.settings.key_bindings:
                         command_string = self.settings.key_bindings[actual_key]
                         self.terminal.exec_command(command_string)
@@ -205,7 +199,7 @@ class Controller(FailSafeBase):
         def set_text(text: str) -> None:
             self.textarea.setPlainText(text)
             # For some reason, this isn't properly emitted
-            self.textarea.document().modificationChanged.emit(False)
+            cast(Signal1[bool], self.textarea.document().modificationChanged).emit(False)
         self.filehandler.set_text.connect(set_text)
 
         # Spellchecker signals
@@ -422,8 +416,8 @@ class Controller(FailSafeBase):
                 = self.settings.settings['export_formats']
             # TODO: unify this with highlighter in textarea.py
             # for marker in (italic_marker, bold_marker):
-                # for chunk in re.finditer(r'(?:\W|^)({0}[^{0}]*{0})(?:\W|$)'
-                                         # .format(re.escape(marker)), text):
+            #     for chunk in re.finditer(r'(?:\W|^)({0}[^{0}]*{0})(?:\W|$)'
+            #                              .format(re.escape(marker)), text):
             fmt = args[1]
             if fmt not in export_formats:
                 self.terminal.error('Export format not recognized!')

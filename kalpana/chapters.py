@@ -23,7 +23,7 @@ This should not import/depend on any GUI module (such as chapteroverview).
 
 import re
 from itertools import accumulate
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from PyQt5 import QtCore, QtGui
 
@@ -36,15 +36,6 @@ class Section:
         self.line_count = 0
         self.word_count = 0
         self.desc = desc
-
-    def update_word_count(self, block: QtGui.QTextBlock) -> None:
-        offset = block.blockNumber()
-        block = block.next()
-        self.word_count = 0
-        while block.isValid() \
-                and block.blockNumber() < offset + self.line_count:
-            self.word_count += len(block.text().split())
-            block = block.next()
 
     def __eq__(self, other: Any) -> bool:
         try:
@@ -135,12 +126,6 @@ class Chapter:
             )
         except Exception:
             return False
-
-    def section_line_offsets(self, start: int) -> Iterable[int]:
-        line = start
-        for section in self.sections:
-            yield line
-            line += section.line_count
 
 
 class ChapterIndex(QtCore.QObject, KalpanaObject):
@@ -271,11 +256,6 @@ class ChapterIndex(QtCore.QObject, KalpanaObject):
     def get_chapter_line(self, num: int) -> int:
         """Return what line a given chapter begins on."""
         return self.chapter_line_numbers[num]
-
-    @property
-    def section_line_numbers(self) -> List[int]:
-        return [0] + list(accumulate(offset for chapter in self.chapters
-                                     for offset in chapter.section_line_offsets(0)))[:-1]
 
     def special_lines(self) -> List[int]:
         lines: List[int] = []

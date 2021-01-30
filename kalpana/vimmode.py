@@ -21,11 +21,10 @@ from operator import mul
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Set, Tuple,
                     TypeVar)
 
+from libsyntyche.widgets import mk_signal0, mk_signal1
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextCursor
-
-from libsyntyche.widgets import mk_signal0, mk_signal1
 
 QTC = QTextCursor
 

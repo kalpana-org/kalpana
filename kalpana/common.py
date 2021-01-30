@@ -25,10 +25,9 @@ import logging
 from contextlib import contextmanager
 from typing import Any, Callable, Iterator, List, TypeVar, cast
 
-from PyQt5.QtCore import QVariant, pyqtSignal
-
 from libsyntyche.cli import AutocompletionPattern, Command
 from libsyntyche.widgets import Signal2, Signal3, mk_signal1
+from PyQt5.QtCore import QVariant, pyqtSignal
 
 T = TypeVar('T', bound=Callable[..., Any])
 
